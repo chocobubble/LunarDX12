@@ -192,9 +192,9 @@ void MainApp::CreateRenderTargetView()
 		m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_rtvHandle);
 
 		m_renderTargets[i] = backBuffer;
-		// TODO
-		// m_rtvHandle
-		// backBuffer->Release();
+		
+		// Increment the handle for the next RTV
+		m_rtvHandle.ptr += m_renderTargetViewDescriptorSize;
 	}
 }
 
