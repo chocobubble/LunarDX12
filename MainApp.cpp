@@ -1,11 +1,17 @@
 #include "MainApp.h"
 #include "Logger.h"
+#include "Utils.h"
 
 #include <iostream>
 
-using namespace std;
+namespace Lunar {
 
 MainApp *g_mainApp = nullptr;
+
+LRESULT WINAPI WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    return g_mainApp->MessageProc(hWnd, msg, wParam, lParam);
+}
 
 MainApp::MainApp()
 {
@@ -17,11 +23,6 @@ MainApp::~MainApp()
 	g_mainApp = nullptr;
 
 	DestroyWindow(m_mainWindow);
-}
-
-LRESULT WINAPI WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	return  g_mainApp->MessageProc(hWnd, msg, wParam, lParam);
 }
 
 LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -52,6 +53,50 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+void MainApp::InitializeCommandList()
+{
+	LOG_FUNCTION_ENTRY();
+/*	
+	typedef struct D3D12_COMMAND_QUEUE_DESC
+	{
+		D3D12_COMMAND_LIST_TYPE Type;
+		INT Priority;
+		D3D12_COMMAND_QUEUE_FLAGS Flags;
+		UINT NodeMask;
+	} 	D3D12_COMMAND_QUEUE_DESC;
+	
+	typedef 
+	enum D3D12_COMMAND_LIST_TYPE
+		{
+			D3D12_COMMAND_LIST_TYPE_DIRECT	= 0,
+			D3D12_COMMAND_LIST_TYPE_BUNDLE	= 1,
+			D3D12_COMMAND_LIST_TYPE_COMPUTE	= 2,
+			D3D12_COMMAND_LIST_TYPE_COPY	= 3,
+			D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE	= 4,
+			D3D12_COMMAND_LIST_TYPE_VIDEO_PROCESS	= 5,
+			D3D12_COMMAND_LIST_TYPE_VIDEO_ENCODE	= 6
+		} 	D3D12_COMMAND_LIST_TYPE;
+	
+	typedef 
+	enum D3D12_COMMAND_QUEUE_FLAGS
+		{
+			D3D12_COMMAND_QUEUE_FLAG_NONE	= 0,
+			D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT	= 0x1
+		} 	D3D12_COMMAND_QUEUE_FLAGS;
+	*/
+	
+	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_commandQueue.GetAddressOf()));
+	
+	m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf()));
+	
+	m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_commandList.GetAddressOf()));
+
+	m_commandList->Close();
 }
 
 int MainApp::Run()
@@ -86,12 +131,59 @@ void MainApp::Initialize()
 {
 	LOG_FUNCTION_ENTRY();
 	InitMainWindow();
+	InitDirect3D();
+	InitializeCommandList();	
 	Run();
 }
 
 bool MainApp::InitDirect3D()
 {
-	return true;	
+	LOG_FUNCTION_ENTRY();
+
+	ComPtr<ID3D12Device> tempDevice;
+	
+	const D3D_DRIVER_TYPE driverType = D3D_DRIVER_TYPE_HARDWARE;
+
+	UINT createFactoryFlags = 0;
+#if defined(_DEBUG) | defined(DEBUG)
+	// createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+#endif
+	THROW_IF_FAILED(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(m_factory.GetAddressOf())))
+
+	SIZE_T MaxSize = 0; // for finding the adapter with the most memory
+	for (uint32_t adapterIndex = 0; DXGI_ERROR_NOT_FOUND != m_factory->EnumAdapters1(adapterIndex, &m_adapter); ++adapterIndex)
+	{
+		DXGI_ADAPTER_DESC1 desc;
+		m_adapter->GetDesc1(&desc);
+
+		// Is a software adapter?
+		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+			continue;
+
+		// Can create a D3D12 device?
+		THROW_IF_FAILED(D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&tempDevice)))
+
+		if (desc.DedicatedVideoMemory < MaxSize)
+			continue;
+
+		MaxSize = desc.DedicatedVideoMemory;
+		if (m_device != nullptr)
+			m_device->Release();
+
+		m_device = tempDevice.Detach();
+
+		std::wstring gpuName(desc.Description);
+		std::string gpuNameA(gpuName.begin(), gpuName.end());
+		LOG_DEBUG("Selected GPU: ", gpuNameA, " (", desc.DedicatedVideoMemory >> 20, " MB)");
+	}
+	
+	if (m_device == nullptr)
+	{
+		LOG_ERROR("Failed to find suitable GPU adapter");
+		return false;
+	}
+	
+	return true;
 }
 
 bool MainApp::InitMainWindow()
@@ -142,4 +234,5 @@ bool MainApp::InitMainWindow()
 	return true;
 }
 
+} // namespace Lunar
 

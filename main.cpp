@@ -2,7 +2,7 @@
 
 int main()
 {
-	MainApp mainApp;
+	Lunar::MainApp mainApp;
 	mainApp.Initialize();
     return 0;
 }

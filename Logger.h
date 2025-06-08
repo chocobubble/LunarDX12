@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <sstream>
 
+namespace Lunar {
+
 enum class LogLevel
 {
 	DEBUG,
@@ -43,11 +45,11 @@ public:
 		std::stringstream message;
 		message << GetCurrentTime() << " [DEBUG] "
 			<< "[" << functionName << "] >>> Function Entry";
-		std::cout << message.str() << std::endl;
+		std::cout << message.str() << "\n";
 
 		if (m_logToFile && m_logFile.is_open())
 		{
-			m_logFile << message.str() << std::endl;
+			m_logFile << message.str() << "\n";
 		}
 	}
 
@@ -56,11 +58,11 @@ public:
 		std::stringstream message;
 		message << GetCurrentTime() << " [DEBUG] "
 			<< "[" << functionName << "] <<< Function Exit";
-		std::cout << message.str() << std::endl;
+		std::cout << message.str() << "\n";
 
 		if (m_logToFile && m_logFile.is_open())
 		{
-			m_logFile << message.str() << std::endl;
+			m_logFile << message.str() << "\n";
 		}
 	}
 
@@ -83,16 +85,13 @@ private:
 	Logger()
 		: m_logToFile(false)
 	{
-		// logs 디렉터리 생성
 		CreateLogsDirectory();
 
-		// 시작 시간이 포함된 로그 파일명 생성
 		std::string timestamp = GetCurrentTimeForFilename();
 		std::string logFilename = "logs/log_" + timestamp + ".txt";
 		EnableFileLogging(logFilename);
 	}
 
-	// logs 디렉터리가 없으면 생성
 	void CreateLogsDirectory()
 	{
 		#ifdef _WIN32
@@ -110,7 +109,6 @@ private:
 		}
 	}
 
-	// 파일명에 적합한 형식의 현재 시간 문자열 반환
 	std::string GetCurrentTimeForFilename()
 	{
 		auto now = std::chrono::system_clock::now();
@@ -176,3 +174,5 @@ private:
 
 #define LOG_FUNCTION_ENTRY()  Logger::GetInstance().LogFunctionEntry(__func__)
 #define LOG_FUNCTION_EXIT()   Logger::GetInstance().LogFunctionExit(__func__)
+
+} // namespace Lunar
