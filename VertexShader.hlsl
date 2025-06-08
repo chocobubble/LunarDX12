@@ -1,17 +1,19 @@
 struct VertexIn
 {
-	float3 pos : POSITION;
-	float4 color : COLOR;
+    float3 pos : POSITION;
+    float4 color : COLOR;
 };
 
-struct VertexOut
+struct PixelIn
 {
-	float4 pos : SV_POSITION;
-	float4 color : COLOR;
+    float4 pos : SV_POSITION;
+    float4 color : COLOR;
 };
 
-void main(VertexIn vIn)
+PixelIn main(VertexIn vIn)
 {
-	VertexOut vOut;
-	
+    PixelIn pIn;
+    pIn.pos = float4(vIn.pos, 1.0f);
+    pIn.color = vIn.color;
+    return pIn;
 }

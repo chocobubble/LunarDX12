@@ -2,14 +2,25 @@
 
 #include <d3d12.h>
 #include <d3dcompiler.h>
+#include <vector>
 #include <Windows.h>
 #include <wrl.h>
 #include "dxgi1_6.h"
+#include <DirectXMath.h>
+
+#include "Constants.h"
+using namespace DirectX;
 
 using Microsoft::WRL::ComPtr;
 
 namespace Lunar {
 
+struct Vertex
+{
+	XMFLOAT3 pos;
+	XMFLOAT4 color;
+};
+	
 class MainApp {
 public:
 	MainApp();
@@ -21,9 +32,15 @@ public:
 private:
 	void InitializeCommandList();
 	void CreateSwapChain();
+	void CreateCBVDescriptorHeap();
+	void CreateConstantBufferView();
 	void CreateRTVDescriptorHeap();
 	void CreateRenderTargetView();
 	void CreateRootSignature();
+	void BuildShadersAndInputLayout();
+	void BuildTriangle();
+	void BuildPSO();
+	void CreateFence();
 	void Render();
 	void Update();
 	bool InitDirect3D();
@@ -40,12 +57,32 @@ private:
 	ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 	ComPtr<IDXGISwapChain1> m_swapChain;
 	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+	ComPtr<ID3D12DescriptorHeap> m_cbvHeap;
 	ComPtr<ID3D12RootSignature> m_rootSignature;
+	ComPtr<ID3DBlob> m_vsByteCode;
+	ComPtr<ID3DBlob> m_psByteCode;
+	ComPtr<ID3D12PipelineState> m_pipelineState;
+	ComPtr<ID3D12Resource> m_vertexBuffer;
+	ComPtr<ID3D12Fence> m_fence;
+	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
 
 	UINT m_displayWidth;
 	UINT m_displayHeight;
+	UINT m_renderTargetViewDescriptorSize;
+	UINT m_fenceValue;
+	UINT m_frameIndex;
+
+	std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputLayout;
+
+	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
+
+	HANDLE m_fenceEvent;
+
+	D3D12_VIEWPORT m_viewport;
+	D3D12_RECT m_scissorRect;
 };
 
 } // namespace Lunar

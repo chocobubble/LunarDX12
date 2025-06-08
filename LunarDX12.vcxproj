@@ -132,9 +132,7 @@
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainApp.cpp" />
-    <ClCompile Include="PixelShader.hlsl" />
     <ClCompile Include="Utils.cpp" />
-    <ClCompile Include="VertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Constants.h" />
@@ -145,4 +143,14 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+  <FxCompile Include="VertexShader.hlsl">
+    <ShaderType>Vertex</ShaderType>
+    <ShaderModel>5.0</ShaderModel>
+  </FxCompile>
+  <FxCompile Include="PixelShader.hlsl">
+    <ShaderType>Pixel</ShaderType>
+    <ShaderModel>5.0</ShaderModel>
+  </FxCompile>
+</ItemGroup>
 </Project>

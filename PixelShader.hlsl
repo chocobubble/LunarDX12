@@ -6,5 +6,5 @@ struct PixelIn
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
-	
+	return pIn.color;
 }
