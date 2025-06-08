@@ -128,12 +128,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Constants.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainApp.cpp" />
+    <ClCompile Include="PixelShader.hlsl" />
     <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="VertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Constants.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="MainApp.h" />
     <ClInclude Include="Utils.h" />

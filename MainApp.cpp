@@ -1,6 +1,8 @@
 #include "MainApp.h"
 #include "Logger.h"
 #include "Utils.h"
+#include "Constants.h"
+#include <d3d12.h>
 
 #include <iostream>
 
@@ -16,6 +18,8 @@ LRESULT WINAPI WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 MainApp::MainApp()
 {
 	g_mainApp = this;
+	m_displayWidth = 1280;
+	m_displayHeight = 720;
 }
 
 MainApp::~MainApp()
@@ -99,6 +103,120 @@ void MainApp::InitializeCommandList()
 	m_commandList->Close();
 }
 
+void MainApp::CreateSwapChain()
+{
+	LOG_FUNCTION_ENTRY();
+	/*
+	typedef struct DXGI_SWAP_CHAIN_DESC1
+	{
+		UINT Width;
+		UINT Height;
+		DXGI_FORMAT Format; // pixel format
+		BOOL Stereo;
+		DXGI_SAMPLE_DESC SampleDesc;
+		DXGI_USAGE BufferUsage;
+		UINT BufferCount;
+		DXGI_SCALING Scaling;
+		DXGI_SWAP_EFFECT SwapEffect;
+		DXGI_ALPHA_MODE AlphaMode;
+		UINT Flags;
+	} 	DXGI_SWAP_CHAIN_DESC1;
+	*/
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+	swapChainDesc.Width = m_displayWidth;
+	swapChainDesc.Height = m_displayHeight;
+	swapChainDesc.Format = Lunar::Constants::SWAP_CHAIN_FORMAT;
+	swapChainDesc.SampleDesc.Count = Lunar::Constants::SAMPLE_COUNT; // not use MSAA for now
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.BufferCount = Lunar::Constants::BUFFER_COUNT;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+	THROW_IF_FAILED(m_factory->CreateSwapChainForHwnd(
+		m_commandQueue.Get(),
+		m_mainWindow,					// window handle
+		&swapChainDesc,                 // swap chain description
+		nullptr,						// full screen description
+		nullptr,						// restrict to output description
+		m_swapChain.GetAddressOf()      // Created Swap Chain
+		))
+}
+
+void MainApp::CreateRTVDescriptorHeap()
+{
+	LOG_FUNCTION_ENTRY();
+	/*
+	typedef struct D3D12_DESCRIPTOR_HEAP_DESC
+	{
+		D3D12_DESCRIPTOR_HEAP_TYPE Type;
+		UINT NumDescriptors;
+		D3D12_DESCRIPTOR_HEAP_FLAGS Flags;
+		UINT NodeMask;
+	} 	D3D12_DESCRIPTOR_HEAP_DESC;
+	*/
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtvHeapDesc.NumDescriptors = Lunar::Constants::BUFFER_COUNT;
+	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	rtvHeapDesc.NodeMask = 1;
+	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(m_rtvHeap.GetAddressOf())))
+}
+
+void MainApp::CreateRenderTargetView()
+{
+	LOG_FUNCTION_ENTRY();
+	
+	m_rtvHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+	for (uint32_t i = 0; i < Lunar::Constants::BUFFER_COUNT; ++i)
+	{
+		ComPtr<ID3D12Resource> backBuffer;
+		m_swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+		m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_rtvHandle);
+
+		// TODO
+		backBuffer->Release();
+	}
+}
+
+void MainApp::CreateRootSignature()
+{
+	/*
+	typedef struct D3D12_ROOT_SIGNATURE_DESC
+	{
+		UINT NumParameters;
+		_Field_size_full_(NumParameters)  const D3D12_ROOT_PARAMETER *pParameters;
+		UINT NumStaticSamplers;
+		_Field_size_full_(NumStaticSamplers)  const D3D12_STATIC_SAMPLER_DESC *pStaticSamplers;
+		D3D12_ROOT_SIGNATURE_FLAGS Flags;
+	} 	D3D12_ROOT_SIGNATURE_DESC;
+	*/
+
+	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+	rootSignatureDesc.NumParameters = 0;
+	rootSignatureDesc.pParameters = nullptr;
+	rootSignatureDesc.NumStaticSamplers = 0;
+	rootSignatureDesc.pStaticSamplers = nullptr;
+	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	
+	ComPtr<ID3DBlob> signature = nullptr;
+	ComPtr<ID3DBlob> error = nullptr;
+	HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
+										   signature.GetAddressOf(), error.GetAddressOf());
+	
+	if (FAILED(hr))
+	{
+		if (error != nullptr)
+		{
+			LOG_ERROR("Failed to serialize root signature: ", 
+					static_cast<char*>(error->GetBufferPointer()));
+		}
+		return;
+	}
+	
+	THROW_IF_FAILED(m_device->CreateRootSignature(0, signature->GetBufferPointer(),
+											   signature->GetBufferSize(),
+											   IID_PPV_ARGS(m_rootSignature.GetAddressOf())))
+}
+
 int MainApp::Run()
 {
 	LOG_FUNCTION_ENTRY();
@@ -132,7 +250,11 @@ void MainApp::Initialize()
 	LOG_FUNCTION_ENTRY();
 	InitMainWindow();
 	InitDirect3D();
-	InitializeCommandList();	
+	InitializeCommandList();
+	CreateSwapChain();
+	CreateRTVDescriptorHeap();
+	CreateRenderTargetView();
+	CreateRootSignature();
 	Run();
 }
 
@@ -141,13 +263,12 @@ bool MainApp::InitDirect3D()
 	LOG_FUNCTION_ENTRY();
 
 	ComPtr<ID3D12Device> tempDevice;
-	
-	const D3D_DRIVER_TYPE driverType = D3D_DRIVER_TYPE_HARDWARE;
 
 	UINT createFactoryFlags = 0;
 #if defined(_DEBUG) | defined(DEBUG)
 	// createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
+	
 	THROW_IF_FAILED(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(m_factory.GetAddressOf())))
 
 	SIZE_T MaxSize = 0; // for finding the adapter with the most memory
@@ -172,9 +293,7 @@ bool MainApp::InitDirect3D()
 
 		m_device = tempDevice.Detach();
 
-		std::wstring gpuName(desc.Description);
-		std::string gpuNameA(gpuName.begin(), gpuName.end());
-		LOG_DEBUG("Selected GPU: ", gpuNameA, " (", desc.DedicatedVideoMemory >> 20, " MB)");
+		LOG_DEBUG("Selected GPU: ", std::string(std::begin(desc.Description), std::end(desc.Description)), " (", desc.DedicatedVideoMemory >> 20, " MB)");
 	}
 	
 	if (m_device == nullptr)
