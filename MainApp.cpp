@@ -374,8 +374,8 @@ void MainApp::BuildTriangle()
 	} 	D3D12_VERTEX_BUFFER_VIEW;
 	*/
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.SizeInBytes = sizeof(Vertex);
-	m_vertexBufferView.StrideInBytes = vertexBufferSize;
+	m_vertexBufferView.SizeInBytes = vertexBufferSize;
+	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
 }
 
 void MainApp::BuildPSO()
