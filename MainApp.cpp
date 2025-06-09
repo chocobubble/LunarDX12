@@ -7,6 +7,8 @@
 #include "Constants.h"
 #include <d3d12.h>
 
+#include "ConstantBuffers.h"
+
 namespace Lunar {
 
 MainApp *g_mainApp = nullptr;
@@ -155,7 +157,59 @@ void MainApp::CreateCBVDescriptorHeap()
 
 void MainApp::CreateConstantBufferView()
 {
+	UINT elementByteSize = Utils::CalculateConstantBufferByteSize(sizeof(BasicConstants));
 	
+	D3D12_HEAP_PROPERTIES heapProperties = {};
+	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	heapProperties.CreationNodeMask = 1;
+	heapProperties.VisibleNodeMask = 1;
+
+	D3D12_RESOURCE_DESC bufferDesc = {};
+	bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	bufferDesc.Alignment = 0;
+	bufferDesc.Width = elementByteSize * /*element count*/ 1;
+	bufferDesc.Height = 1;
+	bufferDesc.DepthOrArraySize = 1;
+	bufferDesc.MipLevels = 1;
+	bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+	bufferDesc.SampleDesc.Count = 1;
+	bufferDesc.SampleDesc.Quality = 0;
+	bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	THROW_IF_FAILED(m_device->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&bufferDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(m_uploadBuffer.GetAddressOf())
+		))
+
+	BYTE* pCbvDataBegin = nullptr;
+	
+	THROW_IF_FAILED(m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin)))
+
+	BasicConstants constants;
+	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
+	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
+	constants.eyeWorld = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	constants.dummy = 0.0f;
+
+	memcpy(pCbvDataBegin, &constants, sizeof(BasicConstants));
+	
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = m_uploadBuffer->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = elementByteSize;
+
+	m_device->CreateConstantBufferView(
+		&cbvDesc,
+		m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
+
+	// unmap is not necessary because the constant buffer updates frequently
+	m_uploadBuffer->Unmap(0, nullptr);
 }
 
 void MainApp::CreateRTVDescriptorHeap()
@@ -314,7 +368,7 @@ void MainApp::BuildTriangle()
 	} 	D3D12_HEAP_PROPERTIES;
 	*/
 	D3D12_HEAP_PROPERTIES heapProperties = {};
-	// heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; -> GPU 만 접근가능해짐.
+	// heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; -> only GPU can access 
 	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
 	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -623,7 +677,7 @@ void MainApp::Render()
 	// wait for completing current frame
 	if (m_fence->GetCompletedValue() < currentFenceValue)
 	{
-		m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent);
+		THROW_IF_FAILED(m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent))
 		WaitForSingleObject(m_fenceEvent, INFINITE);
 	}
 
@@ -741,6 +795,11 @@ bool MainApp::InitMainWindow()
 	UpdateWindow(m_mainWindow);
 
 	return true;
+}
+
+float MainApp::GetAspectRatio() const
+{
+	return static_cast<float>(m_displayWidth) / m_displayHeight;
 }
 
 } // namespace Lunar

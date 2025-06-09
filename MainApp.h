@@ -45,6 +45,7 @@ private:
 	void Update();
 	bool InitDirect3D();
 	bool InitMainWindow();
+	float GetAspectRatio() const;
 	
 	HWND m_mainWindow;
 	
@@ -65,6 +66,7 @@ private:
 	ComPtr<ID3D12Resource> m_vertexBuffer;
 	ComPtr<ID3D12Fence> m_fence;
 	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
+	ComPtr<ID3D12Resource> m_uploadBuffer;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;

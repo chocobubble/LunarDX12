@@ -12,6 +12,11 @@ namespace  Lunar
 class Utils
 {
 public:
+	static UINT CalculateConstantBufferByteSize(UINT byteSize)
+	{
+		// Constant buffers must be a multiple of the minimum hardware allocation size (usually 256 bytes)
+		return (byteSize + 255) & ~255;
+	}	
 };
 	
 } // namespace Lunar
