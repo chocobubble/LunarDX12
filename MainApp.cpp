@@ -769,8 +769,12 @@ bool MainApp::InitDirect3D()
 	ComPtr<ID3D12Device> tempDevice;
 
 	UINT createFactoryFlags = 0;
-#if defined(_DEBUG) | defined(DEBUG)
-	// createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+#if defined(_DEBUG) || defined(DEBUG)
+{
+	ComPtr<ID3D12Debug> debugController;
+	THROW_IF_FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))
+	debugController->EnableDebugLayer();
+}
 #endif
 	
 	THROW_IF_FAILED(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(m_factory.GetAddressOf())))
