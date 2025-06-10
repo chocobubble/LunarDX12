@@ -9,6 +9,7 @@
 #include <DirectXMath.h>
 
 #include "LunarConstants.h"
+#include "LunarTimer.h"
 using namespace DirectX;
 
 using Microsoft::WRL::ComPtr;
@@ -41,8 +42,8 @@ private:
 	void BuildTriangle();
 	void BuildPSO();
 	void CreateFence();
-	void Render();
-	void Update();
+	void Render(double dt);
+	void Update(double dt);
 	bool InitDirect3D();
 	bool InitMainWindow();
 	float GetAspectRatio() const;
@@ -85,6 +86,8 @@ private:
 
 	D3D12_VIEWPORT m_viewport;
 	D3D12_RECT m_scissorRect;
+
+	lunar::LunarTimer m_lunarTimer;
 };
 
 } // namespace Lunar

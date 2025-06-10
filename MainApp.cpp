@@ -597,6 +597,9 @@ void MainApp::CreateFence()
 int MainApp::Run()
 {
 	LOG_FUNCTION_ENTRY();
+	
+	m_lunarTimer.Reset();
+	
 	MSG msg = { 0 };
 	while (WM_QUIT != msg.message) 
 	{
@@ -604,20 +607,34 @@ int MainApp::Run()
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
-			Update();
-			Render();
+			m_lunarTimer.Tick();
+			double deltaTime = m_lunarTimer.GetDeltaTime();
+			Update(deltaTime);
+			Render(deltaTime);
 		}
 	}
 	LOG_FUNCTION_EXIT();
 	return 0;
 }
 
-void MainApp::Update()
+void MainApp::Update(double dt)
 {
+	BYTE* pCbvDataBegin; 
+	m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin));
+
+	BasicConstants constants = {};
+	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
+	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
+	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
+	float angle = t * XM_2PI;
+	constants.eyeWorld = XMFLOAT3(cosf(angle) * 0.5, sinf(angle) * 0.5, 0.0f);
+	constants.dummy = 0.0f;
+
+	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 }
 
 
-void MainApp::Render()
+void MainApp::Render(double dt)
 {
 	ComPtr<IDXGISwapChain3> swapChain3;
 	THROW_IF_FAILED(m_swapChain.As(&swapChain3));
@@ -743,7 +760,6 @@ void MainApp::Initialize()
 	BuildPSO();
 	BuildTriangle();
 	CreateFence();
-	Run();
 }
 
 bool MainApp::InitDirect3D()
