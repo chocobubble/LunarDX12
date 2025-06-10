@@ -8,7 +8,7 @@
 #include "dxgi1_6.h"
 #include <DirectXMath.h>
 
-#include "Constants.h"
+#include "LunarConstants.h"
 using namespace DirectX;
 
 using Microsoft::WRL::ComPtr;
