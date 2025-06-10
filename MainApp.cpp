@@ -195,7 +195,7 @@ void MainApp::CreateConstantBufferView()
 	BasicConstants constants;
 	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
 	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
-	constants.eyeWorld = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	constants.eyeWorld = XMFLOAT3(1.0f, 1.0f, 0.0f);
 	constants.dummy = 0.0f;
 
 	memcpy(pCbvDataBegin, &constants, sizeof(BasicConstants));
@@ -255,6 +255,42 @@ void MainApp::CreateRenderTargetView()
 void MainApp::CreateRootSignature()
 {
 	/*
+	typedef struct D3D12_DESCRIPTOR_RANGE
+	{
+		D3D12_DESCRIPTOR_RANGE_TYPE RangeType;
+		UINT NumDescriptors;
+		UINT BaseShaderRegister;
+		UINT RegisterSpace;
+		UINT OffsetInDescriptorsFromTableStart;
+	} 	D3D12_DESCRIPTOR_RANGE;
+	*/
+	D3D12_DESCRIPTOR_RANGE cbvTable = {};
+	cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	cbvTable.NumDescriptors = 1;
+	cbvTable.BaseShaderRegister = 0;
+	cbvTable.RegisterSpace = 0;
+	cbvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	
+	/*
+	typedef struct D3D12_ROOT_PARAMETER
+	{
+		D3D12_ROOT_PARAMETER_TYPE ParameterType;
+		union 
+		{
+			D3D12_ROOT_DESCRIPTOR_TABLE DescriptorTable;
+			D3D12_ROOT_CONSTANTS Constants;
+			D3D12_ROOT_DESCRIPTOR Descriptor;
+		} 	;
+		D3D12_SHADER_VISIBILITY ShaderVisibility;
+	} 	D3D12_ROOT_PARAMETER;
+	*/
+	D3D12_ROOT_PARAMETER rootParameters[1];
+	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[0].DescriptorTable.pDescriptorRanges = &cbvTable;
+	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	
+	/*
 	typedef struct D3D12_ROOT_SIGNATURE_DESC
 	{
 		UINT NumParameters;
@@ -266,8 +302,8 @@ void MainApp::CreateRootSignature()
 	*/
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-	rootSignatureDesc.NumParameters = 0;
-	rootSignatureDesc.pParameters = nullptr;
+	rootSignatureDesc.NumParameters = 1;
+	rootSignatureDesc.pParameters = rootParameters;
 	rootSignatureDesc.NumStaticSamplers = 0;
 	rootSignatureDesc.pStaticSamplers = nullptr;
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -638,6 +674,12 @@ void MainApp::Render()
 	renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
 	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, nullptr);
 
+	// Set Constant Buffer Descriptor heap
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get() };
+	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	m_commandList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
+
 	// clear
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
@@ -692,6 +734,8 @@ void MainApp::Initialize()
 	InitDirect3D();
 	InitializeCommandList();
 	CreateSwapChain();
+	CreateCBVDescriptorHeap();
+	CreateConstantBufferView();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
 	CreateRootSignature();
