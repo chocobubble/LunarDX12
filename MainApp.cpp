@@ -69,7 +69,6 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage(0);
-		default: ;
 		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
