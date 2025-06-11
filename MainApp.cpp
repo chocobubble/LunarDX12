@@ -743,12 +743,13 @@ void MainApp::Render(double dt)
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 
-	// set Vertex Buffer
-	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-
-	// draw a triangle
-	m_commandList->DrawInstanced(3, 1, 0, 0);
+	// // set Vertex Buffer
+	// m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	// m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+	//
+	// // draw a triangle
+	// m_commandList->DrawInstanced(3, 1, 0, 0);
+	m_cube->Draw(m_commandList.Get());
 
 	// resource barrier - transition to the present state
 	barrier = {};
