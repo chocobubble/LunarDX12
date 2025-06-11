@@ -129,6 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ConstantBuffers.cpp" />
+    <ClCompile Include="Cube.cpp" />
     <ClCompile Include="LunarConstants.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
@@ -138,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConstantBuffers.h" />
+    <ClInclude Include="Cube.h" />
     <ClInclude Include="LunarConstants.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="MainApp.h" />

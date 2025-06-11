@@ -8,6 +8,7 @@
 #include "Utils.h"
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
+#include "Cube.h"
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -68,6 +69,7 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage(0);
+		default: ;
 		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
@@ -182,6 +184,7 @@ void MainApp::CreateSwapChain()
 		nullptr,						// restrict to output description
 		m_swapChain.GetAddressOf()      // Created Swap Chain
 		))
+	
 }
 
 void MainApp::CreateCBVDescriptorHeap()
@@ -699,8 +702,8 @@ void MainApp::Render(double dt)
 	m_scissorRect = {};
 	m_scissorRect.left = 0;
 	m_scissorRect.top = 0;
-	m_scissorRect.right = static_cast<float>(m_displayWidth);
-	m_scissorRect.bottom = static_cast<float>(m_displayHeight);
+	m_scissorRect.right = static_cast<LONG>(m_displayWidth);
+	m_scissorRect.bottom = static_cast<LONG>(m_displayHeight);
 	m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
 	// barrier
@@ -808,7 +811,8 @@ void MainApp::Initialize()
 	CreateRootSignature();
 	BuildShadersAndInputLayout();
 	BuildPSO();
-	BuildTriangle();
+	// BuildTriangle();
+	InitializeGeometry();
 	CreateFence();
 	InitGui();
 }
@@ -915,6 +919,22 @@ bool MainApp::InitMainWindow()
 float MainApp::GetAspectRatio() const
 {
 	return static_cast<float>(m_displayWidth) / m_displayHeight;
+}
+
+void MainApp::InitializeGeometry()
+{
+	m_cube = std::make_unique<Cube>();
+	m_commandAllocator->Reset();
+	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+	m_cube->Initialize(m_device.Get(), m_commandList.Get());
+	m_cube->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	m_cube->SetScale(1.0f);
+	m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
+
+	// m_commandList->Close();
+	// ID3D12CommandList* commandLists[] = { m_commandList.Get() };
+	// m_commandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 }
 
 } // namespace Lunar

@@ -7,11 +7,10 @@
 #include <wrl.h>
 #include "dxgi1_6.h"
 #include <DirectXMath.h>
-
+#include <memory>
 #include "LunarConstants.h"
 #include "LunarTimer.h"
 using namespace DirectX;
-
 using Microsoft::WRL::ComPtr;
 
 namespace Lunar {
@@ -48,6 +47,7 @@ private:
 	bool InitDirect3D();
 	bool InitMainWindow();
 	float GetAspectRatio() const;
+	void InitializeGeometry();
 	
 	HWND m_mainWindow;
 	
@@ -89,7 +89,9 @@ private:
 	D3D12_VIEWPORT m_viewport;
 	D3D12_RECT m_scissorRect;
 
-	lunar::LunarTimer m_lunarTimer;
+	Lunar::LunarTimer m_lunarTimer;
+	
+	std::unique_ptr<class Cube> m_cube;
 };
 
 } // namespace Lunar
