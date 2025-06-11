@@ -1,13 +1,16 @@
-#include "MainApp.h"
-
+#include <d3d12.h>
 #include <array>
-
+#include <imgui.h>
+#include <imgui_impl_dx12.h>
+#include <imgui_impl_win32.h>
+#include "MainApp.h"
 #include "Logger.h"
 #include "Utils.h"
 #include "LunarConstants.h"
-#include <d3d12.h>
-
 #include "ConstantBuffers.h"
+
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Lunar {
 
@@ -27,6 +30,10 @@ MainApp::MainApp()
 
 MainApp::~MainApp()
 {
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+	
 	g_mainApp = nullptr;
 
 	DestroyWindow(m_mainWindow);
@@ -34,6 +41,10 @@ MainApp::~MainApp()
 
 LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	// Handle ImGui input first
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+		return 0;
+	
 	switch (msg)
 	{
 		case WM_SIZE:
@@ -60,6 +71,35 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+void MainApp::InitGui()
+{
+	LOG_FUNCTION_ENTRY();
+	
+	// Create descriptor heap for ImGui
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.NumDescriptors = 1;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_imGuiDescriptorHeap.GetAddressOf())));
+	
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.DisplaySize = ImVec2(static_cast<float>(m_displayWidth), static_cast<float>(m_displayHeight));
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplWin32_Init(m_mainWindow);
+	ImGui_ImplDX12_Init(
+		m_device.Get(),
+		Lunar::Constants::BUFFER_COUNT,
+		Lunar::Constants::SWAP_CHAIN_FORMAT,
+		m_imGuiDescriptorHeap.Get(),
+		m_imGuiDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+		m_imGuiDescriptorHeap->GetGPUDescriptorHandleForHeapStart()
+	);
 }
 
 void MainApp::InitializeCommandList()
@@ -718,6 +758,16 @@ void MainApp::Render(double dt)
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_commandList->ResourceBarrier(1, &barrier);
 
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	ImGui::Begin("Lunar DX12");
+	ImGui::Text("FPS: %.2f", 1.0f / dt);
+	ImGui::End();
+	ImGui::Render();
+	ID3D12DescriptorHeap* heaps[] = { m_imGuiDescriptorHeap.Get() };
+	m_commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 
 	m_commandList->Close();
 
@@ -760,6 +810,7 @@ void MainApp::Initialize()
 	BuildPSO();
 	BuildTriangle();
 	CreateFence();
+	InitGui();
 }
 
 bool MainApp::InitDirect3D()

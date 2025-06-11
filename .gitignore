@@ -91,3 +91,5 @@ docs/
 
 # Log files
 logs/
+
+*.ini

@@ -31,6 +31,7 @@ public:
 	LRESULT MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	
 private:
+	void InitGui();
 	void InitializeCommandList();
 	void CreateSwapChain();
 	void CreateCBVDescriptorHeap();
@@ -68,6 +69,7 @@ private:
 	ComPtr<ID3D12Fence> m_fence;
 	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
 	ComPtr<ID3D12Resource> m_uploadBuffer;
+	ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
