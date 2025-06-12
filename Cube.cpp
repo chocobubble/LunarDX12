@@ -159,58 +159,57 @@ void Cube::SetScale(const float scale)
 void Cube::SetColor(const XMFLOAT4& color)
 {
 	m_color = color;
-	UpdateWorldMatrix();
 }
 
 void Cube::CreateGeometry()
 {
-	// definite 8 vertices of a cube
-	m_vertices = {
-		// front (z = 0.5)
-		{ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3( 0.5f,  0.5f,  0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3( 0.5f, -0.5f,  0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+    // definite 8 vertices of a cube
+    m_vertices = {
+        // front (z = -0.5)
+        { XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+        { XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
     
-		// back (z = -0.5)
-		{ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f) },
-		{ XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f) },
-		{ XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, -1.0f, 1.0f) },
+        // back (z = 0.5)
+        { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f) },
+        { XMFLOAT3(0.5f,  -0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f) },
+        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f) },
+        { XMFLOAT3( -0.5f, 0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f) },
     
-		// top (y = 0.5)
-		{ XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }, 
-		{ XMFLOAT3( 0.5f,  0.5f,  0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }, 
-		{ XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }, 
+        // top (y = 0.5)
+        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }, 
+        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }, 
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }, 
     
-		// bottom (y = -0.5)
-		{ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, -1.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT4(0.0f, -1.0f, 0.0f, 1.0f) }, 
-		{ XMFLOAT3( 0.5f, -0.5f,  0.5f), XMFLOAT4(0.0f, -1.0f, 0.0f, 1.0f) }, 
-		{ XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, -1.0f, 0.0f, 1.0f) }, 
+        // bottom (y = -0.5)
+        { XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f) }, 
+        { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f) }, 
+        { XMFLOAT3( -0.5f, -0.5f, 0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f) }, 
     
-		// left (x = -0.5)
-		{ XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(-1.0f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f, -0.5f,  0.5f), XMFLOAT4(-1.0f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f,  0.5f,  0.5f), XMFLOAT4(-1.0f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(-1.0f, 0.0f, 0.0f, 1.0f) },
+        // left (x = -0.5)
+        { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f) },
+        { XMFLOAT3(-0.5f, 0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f) },
+        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f) },
+        { XMFLOAT3(-0.5f,  -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f) },
     
-		// right (x = 0.5)
-		{ XMFLOAT3( 0.5f, -0.5f,  0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3( 0.5f,  0.5f,  0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-	};
+        // right (x = 0.5)
+        { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+    };
 
-	m_indices = {
-		0, 1, 2, 0, 2, 3, // front
-		4, 5, 6, 4, 6, 7, // back
-		8, 9, 10, 8, 10, 11, // top
-		12, 13, 14, 12, 14, 15, // bottom
-		16, 17, 18, 16, 18, 19, // left
-		20, 21, 22, 20, 22, 23 // right
-	};
+    m_indices = {
+        0, 1, 2, 0, 2, 3, // front
+        4, 5, 6, 4, 6, 7, // back
+        8, 9, 10, 8, 10, 11, // top
+        12, 13, 14, 12, 14, 15, // bottom
+        16, 17, 18, 16, 18, 19, // left
+        20, 21, 22, 20, 22, 23 // right
+    };
 }
 
 void Cube::UpdateWorldMatrix()

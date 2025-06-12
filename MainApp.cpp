@@ -27,6 +27,7 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_displayWidth = 1280;
 	m_displayHeight = 720;
+	m_eyeWorld = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 
 MainApp::~MainApp()
@@ -573,16 +574,13 @@ void MainApp::Update(double dt)
 
 	BasicConstants constants = {};
 	XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
+	worldMatrix = XMMatrixTranspose(worldMatrix);
 	XMStoreFloat4x4(&constants.model, worldMatrix);
 	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
 	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
 	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
-	float angle = t * XM_PI;
-	if (angle >= XM_PI)
-	{
-		angle = -XM_PI;	
-	}
-	XMFLOAT3 rotation = XMFLOAT3(angle, angle, 0.0f);
+	float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
+	XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
 	m_cube->SetRotation(rotation);
 
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
