@@ -39,7 +39,6 @@ private:
 	void CreateRenderTargetView();
 	void CreateRootSignature();
 	void BuildShadersAndInputLayout();
-	void BuildTriangle();
 	void BuildPSO();
 	void CreateFence();
 	void Render(double dt);
@@ -65,7 +64,6 @@ private:
 	ComPtr<ID3DBlob> m_vsByteCode;
 	ComPtr<ID3DBlob> m_psByteCode;
 	ComPtr<ID3D12PipelineState> m_pipelineState;
-	ComPtr<ID3D12Resource> m_vertexBuffer;
 	ComPtr<ID3D12Fence> m_fence;
 	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
 	ComPtr<ID3D12Resource> m_uploadBuffer;
@@ -81,8 +79,6 @@ private:
 	UINT m_frameIndex;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputLayout;
-
-	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
 	HANDLE m_fenceEvent;
 

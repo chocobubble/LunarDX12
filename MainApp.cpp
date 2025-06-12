@@ -417,99 +417,6 @@ void MainApp::BuildShadersAndInputLayout()
 	};
 }
 
-void MainApp::BuildTriangle()
-{
-	LOG_FUNCTION_ENTRY();
-	std::array<Vertex, 3> vertices = 
-	{
-		Vertex{XMFLOAT3(0.0f, 0.5f, 0.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)},
-		Vertex{XMFLOAT3(0.5f, -0.5f, 0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f)},
-		Vertex{XMFLOAT3(-0.5f, -0.5f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f)}
-	};
-
-	std::array<uint16_t, 3> indices =
-		{
-			0, 1, 2
-		};
-
-	const UINT vertexBufferSize = (UINT)vertices.size() * sizeof(Vertex);
-	const UINT indexBufferSize = (UINT)indices.size() * sizeof(uint16_t);
-
-	/*
-	typedef struct D3D12_HEAP_PROPERTIES
-	{
-		D3D12_HEAP_TYPE Type;
-		D3D12_CPU_PAGE_PROPERTY CPUPageProperty;
-		D3D12_MEMORY_POOL MemoryPoolPreference;
-		UINT CreationNodeMask;
-		UINT VisibleNodeMask;
-	} 	D3D12_HEAP_PROPERTIES;
-	*/
-	D3D12_HEAP_PROPERTIES heapProperties = {};
-	// heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; -> only GPU can access 
-	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	heapProperties.CreationNodeMask = 1;
-	heapProperties.VisibleNodeMask = 1;
-
-	/*
-	typedef struct D3D12_RESOURCE_DESC
-	{
-		D3D12_RESOURCE_DIMENSION Dimension;
-		UINT64 Alignment;
-		UINT64 Width;
-		UINT Height;
-		UINT16 DepthOrArraySize;
-		UINT16 MipLevels;
-		DXGI_FORMAT Format;
-		DXGI_SAMPLE_DESC SampleDesc;
-		D3D12_TEXTURE_LAYOUT Layout;
-		D3D12_RESOURCE_FLAGS Flags;
-	} 	D3D12_RESOURCE_DESC;
-	*/
-	D3D12_RESOURCE_DESC bufferDesc = {};
-	bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	bufferDesc.Alignment = 0;
-	bufferDesc.Width = vertexBufferSize;
-	bufferDesc.Height = 1;
-	bufferDesc.DepthOrArraySize = 1;
-	bufferDesc.MipLevels = 1;
-	bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-	bufferDesc.SampleDesc.Count = 1;
-	bufferDesc.SampleDesc.Quality = 0;
-	bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-	THROW_IF_FAILED(m_device->CreateCommittedResource(
-		&heapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&bufferDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(m_vertexBuffer.GetAddressOf())
-		))
-
-	// copy vertex data
-	UINT8* pVertexDataBegin = nullptr;
-	D3D12_RANGE readRange = { 0, 0 };
-	m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin));
-	memcpy(pVertexDataBegin, vertices.data(), vertexBufferSize);
-	m_vertexBuffer->Unmap(0, nullptr);
-
-	/*
-	typedef struct D3D12_VERTEX_BUFFER_VIEW
-	{
-		D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		UINT SizeInBytes;
-		UINT StrideInBytes;
-	} 	D3D12_VERTEX_BUFFER_VIEW;
-	*/
-	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.SizeInBytes = vertexBufferSize;
-	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-}
-
 void MainApp::BuildPSO()
 {
 	LOG_FUNCTION_ENTRY();
@@ -743,12 +650,6 @@ void MainApp::Render(double dt)
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 
-	// // set Vertex Buffer
-	// m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	// m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-	//
-	// // draw a triangle
-	// m_commandList->DrawInstanced(3, 1, 0, 0);
 	m_cube->Draw(m_commandList.Get());
 
 	// resource barrier - transition to the present state
@@ -811,7 +712,6 @@ void MainApp::Initialize()
 	CreateRootSignature();
 	BuildShadersAndInputLayout();
 	BuildPSO();
-	// BuildTriangle();
 	InitializeGeometry();
 	CreateFence();
 	InitGui();
@@ -931,10 +831,6 @@ void MainApp::InitializeGeometry()
 	m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
 	m_cube->SetScale(1.0f);
 	m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
-
-	// m_commandList->Close();
-	// ID3D12CommandList* commandLists[] = { m_commandList.Get() };
-	// m_commandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 }
 
 } // namespace Lunar

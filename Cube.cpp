@@ -18,6 +18,16 @@ void Cube::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandLi
 {
 	const UINT vbByteSize = static_cast<UINT>(m_vertices.size() * sizeof(Vertex));
 
+	/*
+	typedef struct D3D12_HEAP_PROPERTIES
+	{
+		D3D12_HEAP_TYPE Type;
+		D3D12_CPU_PAGE_PROPERTY CPUPageProperty;
+		D3D12_MEMORY_POOL MemoryPoolPreference;
+		UINT CreationNodeMask;
+		UINT VisibleNodeMask;
+	} 	D3D12_HEAP_PROPERTIES;
+	*/
 	D3D12_HEAP_PROPERTIES heapProperties= {};
 	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
 	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -25,6 +35,21 @@ void Cube::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandLi
 	heapProperties.CreationNodeMask = 1;
 	heapProperties.VisibleNodeMask = 1;
 
+	/*
+	typedef struct D3D12_RESOURCE_DESC
+	{
+		D3D12_RESOURCE_DIMENSION Dimension;
+		UINT64 Alignment;
+		UINT64 Width;
+		UINT Height;
+		UINT16 DepthOrArraySize;
+		UINT16 MipLevels;
+		DXGI_FORMAT Format;
+		DXGI_SAMPLE_DESC SampleDesc;
+		D3D12_TEXTURE_LAYOUT Layout;
+		D3D12_RESOURCE_FLAGS Flags;
+	} 	D3D12_RESOURCE_DESC;
+	*/
 	D3D12_RESOURCE_DESC vbDesc = {};
 	vbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 	vbDesc.Alignment = 0;
@@ -53,6 +78,14 @@ void Cube::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandLi
 	memcpy(pVertexDataBegin, m_vertices.data(), vbByteSize);
 	m_vertexBuffer->Unmap(0, nullptr);
 	
+	/*
+	typedef struct D3D12_VERTEX_BUFFER_VIEW
+	{
+		D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
+		UINT SizeInBytes;
+		UINT StrideInBytes;
+	} 	D3D12_VERTEX_BUFFER_VIEW;
+	*/
 	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
 	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
 	m_vertexBufferView.SizeInBytes = vbByteSize;
