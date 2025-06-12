@@ -572,12 +572,18 @@ void MainApp::Update(double dt)
 	m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin));
 
 	BasicConstants constants = {};
+	XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
+	XMStoreFloat4x4(&constants.model, worldMatrix);
 	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
 	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
 	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
-	float angle = t * XM_2PI;
-	constants.eyeWorld = XMFLOAT3(cosf(angle) * 0.5, sinf(angle) * 0.5, 0.0f);
-	constants.dummy = 0.0f;
+	float angle = t * XM_PI;
+	if (angle >= XM_PI)
+	{
+		angle = -XM_PI;	
+	}
+	XMFLOAT3 rotation = XMFLOAT3(angle, angle, 0.0f);
+	m_cube->SetRotation(rotation);
 
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 }
@@ -827,9 +833,9 @@ void MainApp::InitializeGeometry()
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 	m_cube->Initialize(m_device.Get(), m_commandList.Get());
-	m_cube->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	m_cube->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.5f));
 	m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	m_cube->SetScale(1.0f);
+	m_cube->SetScale(0.5f);
 	m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
 }
 

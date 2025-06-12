@@ -8,6 +8,7 @@ namespace Lunar
 
 struct BasicConstants
 {
+	XMFLOAT4X4 model;
 	XMFLOAT4X4 view;
 	XMFLOAT4X4 projection;
 	XMFLOAT3 eyeWorld;

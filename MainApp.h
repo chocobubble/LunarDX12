@@ -88,6 +88,8 @@ private:
 	Lunar::LunarTimer m_lunarTimer;
 	
 	std::unique_ptr<class Cube> m_cube;
+
+	XMFLOAT3 m_eyeWorld;
 };
 
 } // namespace Lunar

@@ -215,6 +215,7 @@ void Cube::CreateGeometry()
 
 void Cube::UpdateWorldMatrix()
 {
+	// W = SRT
 	XMMATRIX scale = XMMatrixScaling(m_scale, m_scale, m_scale);
 	XMMATRIX rotation = XMMatrixRotationRollPitchYaw(m_rotation.x, m_rotation.y, m_rotation.z);
 	XMMATRIX translation = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
