@@ -1,0 +1,144 @@
+﻿#pragma once
+
+#include "imgui.h"
+#include <string>
+#include <functional>
+#include <unordered_map>
+#include <memory>
+
+namespace Lunar 
+{
+
+class LunarGui 
+{
+private:
+    enum class UIElementType 
+    {
+        Checkbox,
+        Slider
+    };
+
+    struct BoundValue 
+    {
+        UIElementType type = UIElementType::Checkbox;
+        void* dataPtr;
+        std::function<void(void*)> onChange;
+        std::any min;
+        std::any max;
+        
+        template<typename T>
+        T* GetAs() { return static_cast<T*>(dataPtr); }
+        T GetMinValue() const 
+        {
+            try 
+            {
+                return any_cast<T>(min);
+            }
+            catch (const std::bad_any_cast& e)
+            {
+                LOG_ERROR("Failed to get min value: ", e.what());
+                return T();
+            }
+        }
+        T GetMaxValue() const
+        {
+            try
+            {
+                return any_cast<T>(max);
+            }
+            catch (const std::bad_any_cast& e)
+            {
+                LOG_ERROR("Failed to get max value: ", e.what());
+                return T();
+            }
+        }
+    };
+    
+public:
+	LunarGui();
+	~LunarGui();
+    
+	bool Initialize(HWND hwnd, ID3D12Device* device, int bufferCount, DXGI_FORMAT format, 
+				   ID3D12DescriptorHeap* heap);
+	void Shutdown();
+    
+	void BeginFrame();
+	void Render();
+	void EndFrame();
+    
+	void BindCheckbox(const std::string& id, bool value, std::function<void(bool)> onChange = nullptr) 
+    {
+        if (GetBoundValue<bool>(id)) 
+        {
+            LOG_ERROR("Value with ID '%s' already bound.", id);
+            return:
+        }
+
+		BoundValue boundValue;
+        boundValue.type = UIElementType::Checkbox;
+		boundValue.dataPtr = value;
+        
+
+        if (onChange) 
+        {
+            boundValue.onChange = [onChange](bool data) 
+            {
+                onChange(data);
+            };
+        }
+        
+		m_boundValues[id] = boundValue;
+	}
+
+	template<typename T>
+	void BindSlider(const std::string& id, T* value, T* min, T* max, std::function<void(T*)> onChange = nullptr) 
+    {
+        if (GetBoundValue<T>(id)) 
+        {
+            LOG_ERROR("Value with ID '%s' already bound.", id); 
+            return;
+        }
+
+		BoundValue boundValue;
+        boundValue.type = UIElementType::Slider;
+		boundValue.dataPtr = value;
+        boundValue.min = min;
+        boundValue.max = max;
+        
+        if (onChange) 
+        {
+            boundValue.onChange = [onChange](void* data) { onChange(static_cast<T*>(data)); };
+        }
+        
+		m_boundValues[id] = boundValue;
+	}
+    
+	template<typename T>
+	T* GetBoundValue(const std::string& id) 
+    {
+		auto it = m_boundValues.find(id);
+		if (it != m_boundValues.end()) 
+        {
+			return static_cast<T*>(it->second.dataPtr);
+		}
+		return nullptr;
+	}
+
+    bool RegisterCallback(const std::string& id, std::function<void()> callback) 
+    {
+        if (m_callbacks.find(id) != m_callbacks.end()) 
+        {
+            LOG_ERROR("Callback with ID '%s' already registered.", id);
+            return false;
+        } 
+        m_callbacks[id] = callback;
+        return true;
+    }
+
+private:
+    bool m_initialize;
+	std::unordered_map<std::string, BoundValue> m_boundValues;
+	std::unordered_map<std::string, std::function<void()>> m_callbacks;
+};
+
+} // namespace Lunar
