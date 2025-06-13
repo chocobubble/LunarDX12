@@ -4,5 +4,5 @@ int main()
 {
 	Lunar::MainApp mainApp;
 	mainApp.Initialize();
-    return 0;
+    return mainApp.Run();
 }

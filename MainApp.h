@@ -8,7 +8,8 @@
 #include "dxgi1_6.h"
 #include <DirectXMath.h>
 
-#include "Constants.h"
+#include "LunarConstants.h"
+#include "LunarTimer.h"
 using namespace DirectX;
 
 using Microsoft::WRL::ComPtr;
@@ -41,10 +42,11 @@ private:
 	void BuildTriangle();
 	void BuildPSO();
 	void CreateFence();
-	void Render();
-	void Update();
+	void Render(double dt);
+	void Update(double dt);
 	bool InitDirect3D();
 	bool InitMainWindow();
+	float GetAspectRatio() const;
 	
 	HWND m_mainWindow;
 	
@@ -65,6 +67,7 @@ private:
 	ComPtr<ID3D12Resource> m_vertexBuffer;
 	ComPtr<ID3D12Fence> m_fence;
 	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
+	ComPtr<ID3D12Resource> m_uploadBuffer;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
@@ -83,6 +86,8 @@ private:
 
 	D3D12_VIEWPORT m_viewport;
 	D3D12_RECT m_scissorRect;
+
+	lunar::LunarTimer m_lunarTimer;
 };
 
 } // namespace Lunar

@@ -4,8 +4,10 @@
 
 #include "Logger.h"
 #include "Utils.h"
-#include "Constants.h"
+#include "LunarConstants.h"
 #include <d3d12.h>
+
+#include "ConstantBuffers.h"
 
 namespace Lunar {
 
@@ -155,7 +157,59 @@ void MainApp::CreateCBVDescriptorHeap()
 
 void MainApp::CreateConstantBufferView()
 {
+	UINT elementByteSize = Utils::CalculateConstantBufferByteSize(sizeof(BasicConstants));
 	
+	D3D12_HEAP_PROPERTIES heapProperties = {};
+	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	heapProperties.CreationNodeMask = 1;
+	heapProperties.VisibleNodeMask = 1;
+
+	D3D12_RESOURCE_DESC bufferDesc = {};
+	bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	bufferDesc.Alignment = 0;
+	bufferDesc.Width = elementByteSize * /*element count*/ 1;
+	bufferDesc.Height = 1;
+	bufferDesc.DepthOrArraySize = 1;
+	bufferDesc.MipLevels = 1;
+	bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+	bufferDesc.SampleDesc.Count = 1;
+	bufferDesc.SampleDesc.Quality = 0;
+	bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	THROW_IF_FAILED(m_device->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&bufferDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(m_uploadBuffer.GetAddressOf())
+		))
+
+	BYTE* pCbvDataBegin = nullptr;
+	
+	THROW_IF_FAILED(m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin)))
+
+	BasicConstants constants;
+	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
+	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
+	constants.eyeWorld = XMFLOAT3(1.0f, 1.0f, 0.0f);
+	constants.dummy = 0.0f;
+
+	memcpy(pCbvDataBegin, &constants, sizeof(BasicConstants));
+	
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = m_uploadBuffer->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = elementByteSize;
+
+	m_device->CreateConstantBufferView(
+		&cbvDesc,
+		m_cbvHeap->GetCPUDescriptorHandleForHeapStart());
+
+	// unmap is not necessary because the constant buffer updates frequently
+	m_uploadBuffer->Unmap(0, nullptr);
 }
 
 void MainApp::CreateRTVDescriptorHeap()
@@ -201,6 +255,42 @@ void MainApp::CreateRenderTargetView()
 void MainApp::CreateRootSignature()
 {
 	/*
+	typedef struct D3D12_DESCRIPTOR_RANGE
+	{
+		D3D12_DESCRIPTOR_RANGE_TYPE RangeType;
+		UINT NumDescriptors;
+		UINT BaseShaderRegister;
+		UINT RegisterSpace;
+		UINT OffsetInDescriptorsFromTableStart;
+	} 	D3D12_DESCRIPTOR_RANGE;
+	*/
+	D3D12_DESCRIPTOR_RANGE cbvTable = {};
+	cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	cbvTable.NumDescriptors = 1;
+	cbvTable.BaseShaderRegister = 0;
+	cbvTable.RegisterSpace = 0;
+	cbvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	
+	/*
+	typedef struct D3D12_ROOT_PARAMETER
+	{
+		D3D12_ROOT_PARAMETER_TYPE ParameterType;
+		union 
+		{
+			D3D12_ROOT_DESCRIPTOR_TABLE DescriptorTable;
+			D3D12_ROOT_CONSTANTS Constants;
+			D3D12_ROOT_DESCRIPTOR Descriptor;
+		} 	;
+		D3D12_SHADER_VISIBILITY ShaderVisibility;
+	} 	D3D12_ROOT_PARAMETER;
+	*/
+	D3D12_ROOT_PARAMETER rootParameters[1];
+	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[0].DescriptorTable.pDescriptorRanges = &cbvTable;
+	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	
+	/*
 	typedef struct D3D12_ROOT_SIGNATURE_DESC
 	{
 		UINT NumParameters;
@@ -212,8 +302,8 @@ void MainApp::CreateRootSignature()
 	*/
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-	rootSignatureDesc.NumParameters = 0;
-	rootSignatureDesc.pParameters = nullptr;
+	rootSignatureDesc.NumParameters = 1;
+	rootSignatureDesc.pParameters = rootParameters;
 	rootSignatureDesc.NumStaticSamplers = 0;
 	rootSignatureDesc.pStaticSamplers = nullptr;
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -314,7 +404,7 @@ void MainApp::BuildTriangle()
 	} 	D3D12_HEAP_PROPERTIES;
 	*/
 	D3D12_HEAP_PROPERTIES heapProperties = {};
-	// heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; -> GPU 만 접근가능해짐.
+	// heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; -> only GPU can access 
 	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
 	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -507,6 +597,9 @@ void MainApp::CreateFence()
 int MainApp::Run()
 {
 	LOG_FUNCTION_ENTRY();
+	
+	m_lunarTimer.Reset();
+	
 	MSG msg = { 0 };
 	while (WM_QUIT != msg.message) 
 	{
@@ -514,20 +607,34 @@ int MainApp::Run()
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
-			Update();
-			Render();
+			m_lunarTimer.Tick();
+			double deltaTime = m_lunarTimer.GetDeltaTime();
+			Update(deltaTime);
+			Render(deltaTime);
 		}
 	}
 	LOG_FUNCTION_EXIT();
 	return 0;
 }
 
-void MainApp::Update()
+void MainApp::Update(double dt)
 {
+	BYTE* pCbvDataBegin; 
+	m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin));
+
+	BasicConstants constants = {};
+	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
+	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
+	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
+	float angle = t * XM_2PI;
+	constants.eyeWorld = XMFLOAT3(cosf(angle) * 0.5, sinf(angle) * 0.5, 0.0f);
+	constants.dummy = 0.0f;
+
+	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 }
 
 
-void MainApp::Render()
+void MainApp::Render(double dt)
 {
 	ComPtr<IDXGISwapChain3> swapChain3;
 	THROW_IF_FAILED(m_swapChain.As(&swapChain3));
@@ -584,6 +691,12 @@ void MainApp::Render()
 	renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
 	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, nullptr);
 
+	// Set Constant Buffer Descriptor heap
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get() };
+	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	m_commandList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
+
 	// clear
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
@@ -623,7 +736,7 @@ void MainApp::Render()
 	// wait for completing current frame
 	if (m_fence->GetCompletedValue() < currentFenceValue)
 	{
-		m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent);
+		THROW_IF_FAILED(m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent))
 		WaitForSingleObject(m_fenceEvent, INFINITE);
 	}
 
@@ -638,6 +751,8 @@ void MainApp::Initialize()
 	InitDirect3D();
 	InitializeCommandList();
 	CreateSwapChain();
+	CreateCBVDescriptorHeap();
+	CreateConstantBufferView();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
 	CreateRootSignature();
@@ -645,7 +760,6 @@ void MainApp::Initialize()
 	BuildPSO();
 	BuildTriangle();
 	CreateFence();
-	Run();
 }
 
 bool MainApp::InitDirect3D()
@@ -741,6 +855,11 @@ bool MainApp::InitMainWindow()
 	UpdateWindow(m_mainWindow);
 
 	return true;
+}
+
+float MainApp::GetAspectRatio() const
+{
+	return static_cast<float>(m_displayWidth) / m_displayHeight;
 }
 
 } // namespace Lunar
