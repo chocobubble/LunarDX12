@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-namespace lunar
+namespace Lunar
 {
 
 LunarTimer::LunarTimer() : 
@@ -43,4 +43,4 @@ float LunarTimer::GetDeltaTime() const
 {
 	return static_cast<float>(m_deltaTime); 
 }
-} // namespace lunar
+} // namespace Lunar

@@ -1,5 +1,6 @@
 cbuffer BasicConstants : register(b0)
 {
+	float4x4 model;
 	float4x4 view;
 	float4x4 projection;
 	float3 eyeWorld;
@@ -20,10 +21,8 @@ struct PixelIn
 PixelIn main(VertexIn vIn)
 {
     PixelIn pIn;
-    pIn.pos = float4(vIn.pos, 1.0f);
+	float4 pos = float4(vIn.pos, 1.0f);
+	pIn.pos = mul(pos, model);
     pIn.color = vIn.color;
-	// for test
-	pIn.pos = float4(vIn.pos + eyeWorld, 1.0f);
-    pIn.color = vIn.color + float4(eyeWorld, 0.0f);
     return pIn;
 }

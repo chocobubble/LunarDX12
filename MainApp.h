@@ -7,11 +7,10 @@
 #include <wrl.h>
 #include "dxgi1_6.h"
 #include <DirectXMath.h>
-
+#include <memory>
 #include "LunarConstants.h"
 #include "LunarTimer.h"
 using namespace DirectX;
-
 using Microsoft::WRL::ComPtr;
 
 namespace Lunar {
@@ -31,6 +30,7 @@ public:
 	LRESULT MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	
 private:
+	void InitGui();
 	void InitializeCommandList();
 	void CreateSwapChain();
 	void CreateCBVDescriptorHeap();
@@ -39,7 +39,6 @@ private:
 	void CreateRenderTargetView();
 	void CreateRootSignature();
 	void BuildShadersAndInputLayout();
-	void BuildTriangle();
 	void BuildPSO();
 	void CreateFence();
 	void Render(double dt);
@@ -47,6 +46,7 @@ private:
 	bool InitDirect3D();
 	bool InitMainWindow();
 	float GetAspectRatio() const;
+	void InitializeGeometry();
 	
 	HWND m_mainWindow;
 	
@@ -64,10 +64,10 @@ private:
 	ComPtr<ID3DBlob> m_vsByteCode;
 	ComPtr<ID3DBlob> m_psByteCode;
 	ComPtr<ID3D12PipelineState> m_pipelineState;
-	ComPtr<ID3D12Resource> m_vertexBuffer;
 	ComPtr<ID3D12Fence> m_fence;
 	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
 	ComPtr<ID3D12Resource> m_uploadBuffer;
+	ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
@@ -80,14 +80,16 @@ private:
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputLayout;
 
-	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
-
 	HANDLE m_fenceEvent;
 
 	D3D12_VIEWPORT m_viewport;
 	D3D12_RECT m_scissorRect;
 
-	lunar::LunarTimer m_lunarTimer;
+	Lunar::LunarTimer m_lunarTimer;
+	
+	std::unique_ptr<class Cube> m_cube;
+
+	XMFLOAT3 m_eyeWorld;
 };
 
 } // namespace Lunar

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-namespace lunar
+namespace Lunar
 {
 class LunarTimer
 {
@@ -18,4 +18,4 @@ private:
 	double m_secondsPerCount;
 	
 };
-} // namespace lunar
+} // namespace Lunar

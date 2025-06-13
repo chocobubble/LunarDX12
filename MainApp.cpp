@@ -1,13 +1,17 @@
-#include "MainApp.h"
-
+#include <d3d12.h>
 #include <array>
-
+#include <imgui.h>
+#include <imgui_impl_dx12.h>
+#include <imgui_impl_win32.h>
+#include "MainApp.h"
 #include "Logger.h"
 #include "Utils.h"
 #include "LunarConstants.h"
-#include <d3d12.h>
-
 #include "ConstantBuffers.h"
+#include "Cube.h"
+
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Lunar {
 
@@ -23,10 +27,15 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_displayWidth = 1280;
 	m_displayHeight = 720;
+	m_eyeWorld = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 
 MainApp::~MainApp()
 {
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+	
 	g_mainApp = nullptr;
 
 	DestroyWindow(m_mainWindow);
@@ -34,6 +43,10 @@ MainApp::~MainApp()
 
 LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	// Handle ImGui input first
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+		return 0;
+	
 	switch (msg)
 	{
 		case WM_SIZE:
@@ -60,6 +73,35 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+void MainApp::InitGui()
+{
+	LOG_FUNCTION_ENTRY();
+	
+	// Create descriptor heap for ImGui
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.NumDescriptors = 1;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_imGuiDescriptorHeap.GetAddressOf())));
+	
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.DisplaySize = ImVec2(static_cast<float>(m_displayWidth), static_cast<float>(m_displayHeight));
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplWin32_Init(m_mainWindow);
+	ImGui_ImplDX12_Init(
+		m_device.Get(),
+		Lunar::Constants::BUFFER_COUNT,
+		Lunar::Constants::SWAP_CHAIN_FORMAT,
+		m_imGuiDescriptorHeap.Get(),
+		m_imGuiDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+		m_imGuiDescriptorHeap->GetGPUDescriptorHandleForHeapStart()
+	);
 }
 
 void MainApp::InitializeCommandList()
@@ -142,6 +184,7 @@ void MainApp::CreateSwapChain()
 		nullptr,						// restrict to output description
 		m_swapChain.GetAddressOf()      // Created Swap Chain
 		))
+	
 }
 
 void MainApp::CreateCBVDescriptorHeap()
@@ -375,99 +418,6 @@ void MainApp::BuildShadersAndInputLayout()
 	};
 }
 
-void MainApp::BuildTriangle()
-{
-	LOG_FUNCTION_ENTRY();
-	std::array<Vertex, 3> vertices = 
-	{
-		Vertex{XMFLOAT3(0.0f, 0.5f, 0.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f)},
-		Vertex{XMFLOAT3(0.5f, -0.5f, 0.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f)},
-		Vertex{XMFLOAT3(-0.5f, -0.5f, 0.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f)}
-	};
-
-	std::array<uint16_t, 3> indices =
-		{
-			0, 1, 2
-		};
-
-	const UINT vertexBufferSize = (UINT)vertices.size() * sizeof(Vertex);
-	const UINT indexBufferSize = (UINT)indices.size() * sizeof(uint16_t);
-
-	/*
-	typedef struct D3D12_HEAP_PROPERTIES
-	{
-		D3D12_HEAP_TYPE Type;
-		D3D12_CPU_PAGE_PROPERTY CPUPageProperty;
-		D3D12_MEMORY_POOL MemoryPoolPreference;
-		UINT CreationNodeMask;
-		UINT VisibleNodeMask;
-	} 	D3D12_HEAP_PROPERTIES;
-	*/
-	D3D12_HEAP_PROPERTIES heapProperties = {};
-	// heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; -> only GPU can access 
-	heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	heapProperties.CreationNodeMask = 1;
-	heapProperties.VisibleNodeMask = 1;
-
-	/*
-	typedef struct D3D12_RESOURCE_DESC
-	{
-		D3D12_RESOURCE_DIMENSION Dimension;
-		UINT64 Alignment;
-		UINT64 Width;
-		UINT Height;
-		UINT16 DepthOrArraySize;
-		UINT16 MipLevels;
-		DXGI_FORMAT Format;
-		DXGI_SAMPLE_DESC SampleDesc;
-		D3D12_TEXTURE_LAYOUT Layout;
-		D3D12_RESOURCE_FLAGS Flags;
-	} 	D3D12_RESOURCE_DESC;
-	*/
-	D3D12_RESOURCE_DESC bufferDesc = {};
-	bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	bufferDesc.Alignment = 0;
-	bufferDesc.Width = vertexBufferSize;
-	bufferDesc.Height = 1;
-	bufferDesc.DepthOrArraySize = 1;
-	bufferDesc.MipLevels = 1;
-	bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-	bufferDesc.SampleDesc.Count = 1;
-	bufferDesc.SampleDesc.Quality = 0;
-	bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-	THROW_IF_FAILED(m_device->CreateCommittedResource(
-		&heapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&bufferDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(m_vertexBuffer.GetAddressOf())
-		))
-
-	// copy vertex data
-	UINT8* pVertexDataBegin = nullptr;
-	D3D12_RANGE readRange = { 0, 0 };
-	m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin));
-	memcpy(pVertexDataBegin, vertices.data(), vertexBufferSize);
-	m_vertexBuffer->Unmap(0, nullptr);
-
-	/*
-	typedef struct D3D12_VERTEX_BUFFER_VIEW
-	{
-		D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		UINT SizeInBytes;
-		UINT StrideInBytes;
-	} 	D3D12_VERTEX_BUFFER_VIEW;
-	*/
-	m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-	m_vertexBufferView.SizeInBytes = vertexBufferSize;
-	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-}
-
 void MainApp::BuildPSO()
 {
 	LOG_FUNCTION_ENTRY();
@@ -623,12 +573,15 @@ void MainApp::Update(double dt)
 	m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin));
 
 	BasicConstants constants = {};
+	XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
+	worldMatrix = XMMatrixTranspose(worldMatrix);
+	XMStoreFloat4x4(&constants.model, worldMatrix);
 	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
 	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
 	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
-	float angle = t * XM_2PI;
-	constants.eyeWorld = XMFLOAT3(cosf(angle) * 0.5, sinf(angle) * 0.5, 0.0f);
-	constants.dummy = 0.0f;
+	float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
+	XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
+	m_cube->SetRotation(rotation);
 
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 }
@@ -659,8 +612,8 @@ void MainApp::Render(double dt)
 	m_scissorRect = {};
 	m_scissorRect.left = 0;
 	m_scissorRect.top = 0;
-	m_scissorRect.right = static_cast<float>(m_displayWidth);
-	m_scissorRect.bottom = static_cast<float>(m_displayHeight);
+	m_scissorRect.right = static_cast<LONG>(m_displayWidth);
+	m_scissorRect.bottom = static_cast<LONG>(m_displayHeight);
 	m_commandList->RSSetScissorRects(1, &m_scissorRect);
 
 	// barrier
@@ -701,12 +654,7 @@ void MainApp::Render(double dt)
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 
-	// set Vertex Buffer
-	m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
-
-	// draw a triangle
-	m_commandList->DrawInstanced(3, 1, 0, 0);
+	m_cube->Draw(m_commandList.Get());
 
 	// resource barrier - transition to the present state
 	barrier = {};
@@ -718,6 +666,16 @@ void MainApp::Render(double dt)
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_commandList->ResourceBarrier(1, &barrier);
 
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	ImGui::Begin("Lunar DX12");
+	ImGui::Text("FPS: %.2f", 1.0f / dt);
+	ImGui::End();
+	ImGui::Render();
+	ID3D12DescriptorHeap* heaps[] = { m_imGuiDescriptorHeap.Get() };
+	m_commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 
 	m_commandList->Close();
 
@@ -758,8 +716,9 @@ void MainApp::Initialize()
 	CreateRootSignature();
 	BuildShadersAndInputLayout();
 	BuildPSO();
-	BuildTriangle();
+	InitializeGeometry();
 	CreateFence();
+	InitGui();
 }
 
 bool MainApp::InitDirect3D()
@@ -769,8 +728,12 @@ bool MainApp::InitDirect3D()
 	ComPtr<ID3D12Device> tempDevice;
 
 	UINT createFactoryFlags = 0;
-#if defined(_DEBUG) | defined(DEBUG)
-	// createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+#if defined(_DEBUG) || defined(DEBUG)
+{
+	ComPtr<ID3D12Debug> debugController;
+	THROW_IF_FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))
+	debugController->EnableDebugLayer();
+}
 #endif
 	
 	THROW_IF_FAILED(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(m_factory.GetAddressOf())))
@@ -860,6 +823,18 @@ bool MainApp::InitMainWindow()
 float MainApp::GetAspectRatio() const
 {
 	return static_cast<float>(m_displayWidth) / m_displayHeight;
+}
+
+void MainApp::InitializeGeometry()
+{
+	m_cube = std::make_unique<Cube>();
+	m_commandAllocator->Reset();
+	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+	m_cube->Initialize(m_device.Get(), m_commandList.Get());
+	m_cube->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.5f));
+	m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	m_cube->SetScale(0.5f);
+	m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
 }
 
 } // namespace Lunar
