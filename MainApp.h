@@ -45,6 +45,7 @@ private:
 	void Update(double dt);
 	bool InitDirect3D();
 	bool InitMainWindow();
+    void OnMouseMove(float x, float y);
 	float GetAspectRatio() const;
 	void InitializeGeometry();
 	
@@ -89,7 +90,11 @@ private:
 	
 	std::unique_ptr<class Cube> m_cube;
 
-	XMFLOAT3 m_eyeWorld;
+    bool m_firstMouseMove = true;
+    float m_lastMouseX = 0.0f;
+    float m_lastMouseY = 0.0f;
+
+    std::unique_ptr<class Camera> m_camera;
 };
 
 } // namespace Lunar

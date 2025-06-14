@@ -3,7 +3,7 @@ cbuffer BasicConstants : register(b0)
 	float4x4 model;
 	float4x4 view;
 	float4x4 projection;
-	float3 eyeWorld;
+	float3 eyePos;
 }
 
 struct VertexIn

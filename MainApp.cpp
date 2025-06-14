@@ -27,7 +27,6 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_displayWidth = 1280;
 	m_displayHeight = 720;
-	m_eyeWorld = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 
 MainApp::~MainApp()
@@ -58,6 +57,7 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_MOUSEMOVE:
 			LOG_DEBUG("Mouse ", LOWORD(lParam), " ", HIWORD(lParam));
+            OnMouseMove(LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_LBUTTONUP:
 			LOG_DEBUG("Left mouse button");
@@ -73,6 +73,22 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+void MainApp::OnMouseMove(float x, float y)
+{
+    if (m_firstMouseMove) 
+    {
+        m_lastMouseX = x;
+        m_lastMouseY = y;
+        m_firstMouseMove = false;
+        return;
+    }
+
+    // TODO : should compare with threshold?
+    float dx = x - m_lastMouseX;
+    float dy = y - m_lastMouseY;
+    m_camera->UpdateRotationQuatFromMouse(dx, dy);
 }
 
 void MainApp::InitGui()
@@ -236,9 +252,9 @@ void MainApp::CreateConstantBufferView()
 	THROW_IF_FAILED(m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin)))
 
 	BasicConstants constants;
-	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
-	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
-	constants.eyeWorld = XMFLOAT3(1.0f, 1.0f, 0.0f);
+	constants.view = m_camera->GetViewMatrix();
+	constants.projection = m_camera->GetProjMatrix();
+	constants.eyePos = m_camera->GetPos();
 	constants.dummy = 0.0f;
 
 	memcpy(pCbvDataBegin, &constants, sizeof(BasicConstants));
