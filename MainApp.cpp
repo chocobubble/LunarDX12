@@ -594,8 +594,8 @@ void MainApp::Update(double dt)
 	XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
 	worldMatrix = XMMatrixTranspose(worldMatrix);
 	XMStoreFloat4x4(&constants.model, worldMatrix);
-	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
-	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
+	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
+	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
 	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
 	float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
 	XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);

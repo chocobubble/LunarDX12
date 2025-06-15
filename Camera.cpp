@@ -2,6 +2,7 @@
 #include <DirectXMath.h>
 #include <algorithm>
 
+#include "Logger.h"
 #include "MathUtils.h"
 
 using namespace DirectX;
@@ -54,6 +55,7 @@ XMFLOAT3 Camera::GetPosition() const
 
 void Camera::UpdateViewDir()
 {
+	// LOG_FUNCTION_ENTRY();
     m_qRotation = Lunar::MathUtils::CreateRotationQuatFromRollPitchYaw(0.0f, m_pitch, m_yaw);
     XMVECTOR forward = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), XMLoadFloat4(&m_qRotation));
     XMVECTOR right = XMVector3Normalize(XMVector3Cross(forward, XMLoadFloat3(&m_worldUpDir)));
