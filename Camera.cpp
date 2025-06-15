@@ -40,7 +40,7 @@ const XMFLOAT4X4& Camera::GetProjMatrix()
             xScale, 0.0f, 0.0f, 0.0f,
             0.0f, yScale, 0.0f, 0.0f,
             0.0f, 0.0f, m_farZ / distFarToScreen, 1.0f,
-            0.0f, 0.0f, m_nearZ * m_farZ / distFarToScreen, 0.0f
+            0.0f, 0.0f, -m_nearZ * m_farZ / distFarToScreen, 0.0f
         };
         m_projDirty = false;
     }
