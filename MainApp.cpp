@@ -4,7 +4,6 @@
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 #include "MainApp.h"
-
 #include "Camera.h"
 #include "Logger.h"
 #include "Utils.h"
@@ -33,10 +32,6 @@ MainApp::MainApp()
 
 MainApp::~MainApp()
 {
-	ImGui_ImplDX12_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
-	
 	g_mainApp = nullptr;
 
 	DestroyWindow(m_mainWindow);
@@ -98,6 +93,8 @@ void MainApp::OnMouseMove(float x, float y)
 void MainApp::InitGui()
 {
 	LOG_FUNCTION_ENTRY();
+
+    m_gui = std::make_unique<Gui>();
 	
 	// Create descriptor heap for ImGui
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -106,22 +103,12 @@ void MainApp::InitGui()
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_imGuiDescriptorHeap.GetAddressOf())));
 	
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO &io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	io.DisplaySize = ImVec2(static_cast<float>(m_displayWidth), static_cast<float>(m_displayHeight));
-	ImGui::StyleColorsDark();
-
-	ImGui_ImplWin32_Init(m_mainWindow);
-	ImGui_ImplDX12_Init(
-		m_device.Get(),
-		Lunar::Constants::BUFFER_COUNT,
-		Lunar::Constants::SWAP_CHAIN_FORMAT,
-		m_imGuiDescriptorHeap.Get(),
-		m_imGuiDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-		m_imGuiDescriptorHeap->GetGPUDescriptorHandleForHeapStart()
-	);
+    m_gui.Initialize(
+        m_mainWindow,
+        m_device.Get(),
+        Lunar::Constants::BUFFER_COUNT,
+        Lunar::Constants::SWAP_CHAIN_FORMAT,
+        m_imGuiDescriptorHeap.Get());
 }
 
 void MainApp::InitializeCommandList()
@@ -719,13 +706,7 @@ void MainApp::Render(double dt)
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_commandList->ResourceBarrier(1, &barrier);
 
-	ImGui_ImplDX12_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-	ImGui::Begin("Lunar DX12");
-	ImGui::Text("FPS: %.2f", 1.0f / dt);
-	ImGui::End();
-	ImGui::Render();
+    m_gui->Render();
 	ID3D12DescriptorHeap* heaps[] = { m_imGuiDescriptorHeap.Get() };
 	m_commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());

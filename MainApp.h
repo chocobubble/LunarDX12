@@ -91,6 +91,7 @@ private:
 	Lunar::LunarTimer m_lunarTimer;
 	
 	std::unique_ptr<class Cube> m_cube;
+    std::unique_ptr<class LunarGUI> m_gui;
 
     bool m_firstMouseMove = true;
     float m_lastMouseX = 0.0f;

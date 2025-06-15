@@ -3,6 +3,9 @@
 #include <string>
 #include <Windows.h> 
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 namespace  Lunar
 {
 class LunarException
@@ -29,6 +32,8 @@ public:
 		// Constant buffers must be a multiple of the minimum hardware allocation size (usually 256 bytes)
 		return (byteSize + 255) & ~255;
 	}	
+private:
+    ComPtr<ID3D12Resource> LoadSimpleTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, ComPtr<ID3D12Resource>& uploadBuffer); 
 };
 	
 } // namespace Lunar
