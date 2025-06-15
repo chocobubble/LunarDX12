@@ -19,10 +19,9 @@ const XMFLOAT4X4& Camera::GetViewMatrix()
         //   - The camera doesn't have a 'size', so the scaling would not be considered. 
         // 2. Reverse the world matrix. (V = (RT)^{-1}) 
         XMMATRIX cameraRotaion = Lunar::MathUtils::CreateRotationMatrixFromQuaternion(m_qRotation); 
-        XMMATRIX transposedCameraRotation = XMMatrixTranspose(cameraRotaion);
-        XMVECTOR reversedCameraPosition = XMVectorNegate(XMLoadFloat3(&m_position));
-        XMMATRIX cameraTranslation = XMMatrixTranslationFromVector(reversedCameraPosition); 
-        XMMATRIX viewMatrix = XMMatrixMultiply(transposedCameraRotation, cameraTranslation); 
+        XMMATRIX inversedCameraRotation = XMMatrixTranspose(cameraRotaion);
+        XMMATRIX reversedCameraTranslationMatrix = XMMatrixTranslation(-m_position.x, -m_position.y, -m_position.z);
+        XMMATRIX viewMatrix = XMMatrixMultiply(reversedCameraTranslationMatrix, inversedCameraRotation);
         XMStoreFloat4x4(&m_viewMatrix, viewMatrix);
         m_viewDirty = false;
     }
@@ -58,8 +57,8 @@ void Camera::UpdateViewDir()
 	// LOG_FUNCTION_ENTRY();
     m_qRotation = Lunar::MathUtils::CreateRotationQuatFromRollPitchYaw(0.0f, m_pitch, m_yaw);
     XMVECTOR forward = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), XMLoadFloat4(&m_qRotation));
-    XMVECTOR right = XMVector3Normalize(XMVector3Cross(forward, XMLoadFloat3(&m_worldUpDir)));
-    XMVECTOR up = XMVector3Normalize(XMVector3Cross(right, forward));
+    XMVECTOR right = XMVector3Normalize(XMVector3Cross(XMLoadFloat3(&m_worldUpDir), forward));
+    XMVECTOR up = XMVector3Normalize(XMVector3Cross(forward, right));
     XMStoreFloat3(&m_viewDir, forward);
     XMStoreFloat3(&m_upDir, up);
     XMStoreFloat3(&m_rightDir, right);
@@ -68,9 +67,10 @@ void Camera::UpdateViewDir()
 
 void Camera::UpdateRotationQuatFromMouse(float dx, float dy)
 {
-    m_yaw = -dy * m_sensitivity;
-    m_pitch = dx * m_sensitivity;
-    m_yaw = std::clamp(m_yaw, -XM_PIDIV2 + 0.01f, XM_PIDIV2 - 0.01f); // -1/2pi ~ 1/2pi
+    m_yaw += dx * m_sensitivity;
+    m_pitch += dy * m_sensitivity;
+    m_pitch = std::clamp(m_pitch, -XM_PIDIV2 + 0.01f, XM_PIDIV2 - 0.01f); // -1/2pi ~ 1/2pi
+	LOG_DEBUG("yaw : ", m_yaw, ", pitch : ", m_pitch);
     UpdateViewDir();
 }
 

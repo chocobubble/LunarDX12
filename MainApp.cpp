@@ -90,6 +90,8 @@ void MainApp::OnMouseMove(float x, float y)
     // TODO : should compare with threshold?
     float dx = x - m_lastMouseX;
     float dy = y - m_lastMouseY;
+	m_lastMouseX = x;
+	m_lastMouseY = y;
     m_camera->UpdateRotationQuatFromMouse(dx, dy);
 }
 
@@ -599,7 +601,7 @@ void MainApp::Update(double dt)
 	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
 	float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
 	XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
-	m_cube->SetRotation(rotation);
+	// m_cube->SetRotation(rotation);
 
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 }

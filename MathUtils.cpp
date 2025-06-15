@@ -28,8 +28,8 @@ XMMATRIX MathUtils::CreateRotationMatrixFromQuaternion(const XMFLOAT4& quaternio
 
     return XMMATRIX(
         1.0f - 2.0f * (yy + zz), 2.0f * (xy + wz), 2.0f * (xz - wy), 0.0f,
-        2.0f * (xy + wz), 1.0f - 2.0f * (xx + zz), 2.0f * (yz - wx), 0.0f,
-        2.0f * (xz - wy), 2.0f * (yz + wx), 1.0f - 2.0f * (xx + yy), 0.0f,
+        2.0f * (xy - wz), 1.0f - 2.0f * (xx + zz), 2.0f * (yz + wx), 0.0f,
+        2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (xx + yy), 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
 }
 	
@@ -46,12 +46,12 @@ XMFLOAT4 MathUtils::CreateRotationQuatFromRollPitchYaw(float roll, float pitch, 
 	float sinYaw = sinf(halfYaw);
 	float cosYaw = cosf(halfYaw);
 
-	// qz * qy * qx (Roll * Yaw * Pitch)
+	// roll -> pitch -> yaw
 	return XMFLOAT4(
-		cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw,
-		sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw,
 		cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw,
-		cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw
+		cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw,
+		sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw,
+		cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw
 	);
 }
 } //namespace Lunar

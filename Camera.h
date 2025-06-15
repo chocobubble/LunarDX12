@@ -15,7 +15,7 @@ public:
     void                       UpdateRotationQuatFromMouse(float dx, float dy);
 
 private:
-	DirectX::XMFLOAT3   m_position = {0.0f, 0.0f, -0.5f};
+	DirectX::XMFLOAT3   m_position = {0.5f, 0.5f, -1.5f};
 	DirectX::XMFLOAT3   m_worldUpDir = {0.0f, 1.0f, 0.0f};
 	DirectX::XMFLOAT3   m_viewDir = {0.0f, 0.0f, 1.0f};
 	DirectX::XMFLOAT3   m_upDir = {0.0f, 1.0f, 0.0f};
