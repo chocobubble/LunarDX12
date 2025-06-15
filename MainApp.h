@@ -43,6 +43,7 @@ private:
 	void CreateFence();
 	void Render(double dt);
 	void Update(double dt);
+    void ProcessInput(double dt);
 	bool InitDirect3D();
 	bool InitMainWindow();
     void OnMouseMove(float x, float y);

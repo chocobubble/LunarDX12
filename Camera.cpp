@@ -74,4 +74,12 @@ void Camera::UpdateRotationQuatFromMouse(float dx, float dy)
     UpdateViewDir();
 }
 
+void Camera::UpdatePosition(float dx, float dy, float dz)
+{
+    m_position += m_rightDir * m_movementSpeed * dx;
+    m_position += m_upDir * m_movementSpeed * dy;
+    m_position += m_viewDir * m_movementSpeed * dz;
+    m_viewDirty = true;
+}
+
 } // namespace Lunar
