@@ -24,6 +24,7 @@ PixelIn main(VertexIn vIn)
 	float4 pos = float4(vIn.pos, 1.0f);
 	pIn.pos = mul(pos, model);
 	pIn.pos = mul(pIn.pos, view);
+	pIn.pos = mul(pIn.pos, projection);
     pIn.color = vIn.color;
     return pIn;
 }
