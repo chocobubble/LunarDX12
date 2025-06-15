@@ -1,21 +1,30 @@
 ﻿#include "Utils.h"
 #include <comdef.h>
+#include "Logger.h"
 
-std::string Lunar::LunarException::ToString() const
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+using namespace Microsoft::WRL;
+
+namespace Lunar
+{
+std::string LunarException::ToString() const
 {
 	// Get error message as wstring
 	std::wstring wmsg = _com_error(m_hr).ErrorMessage();
-    
+
 	// Convert to string using proper Windows API
 	int size_needed = WideCharToMultiByte(CP_UTF8, 0, wmsg.c_str(), -1, NULL, 0, NULL, NULL);
 	std::string msg(size_needed, 0);
 	WideCharToMultiByte(CP_UTF8, 0, wmsg.c_str(), -1, &msg[0], size_needed, NULL, NULL);
-    
+
 	return "[Error] " + m_function + " " + m_file + " " + std::to_string(m_line) + " error: " + msg;
 }
 
-ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, ComPtr<ID3D12Resource>& uploadBuffer)
+ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename)
 {
+	LOG_FUNCTION_ENTRY();
     int width, height, channels;
     unsigned char* data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
     if (!data)
@@ -52,7 +61,7 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
         D3D12_RESOURCE_STATE_COPY_DEST, 
         nullptr, IID_PPV_ARGS(&texture)))
     }
-    catch (Exception e)
+    catch (std::exception e)
     {
         stbi_image_free(data);
         throw std::runtime_error("Failed to create texture resource");
@@ -100,31 +109,27 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     // - uploadBufferSize: total memory needed for upload buffer with alignment
 
     // upload buffer
-    D3D12_HEAP_PROPERTIES heapProperties = {};
+	ComPtr<ID3D12Resource> uploadBuffer;
     heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	heapProperties.CreationNodeMask = 1;
-	heapProperties.VisibleNodeMask = 1;
 
     D3D12_RESOURCE_DESC uploadBufferDesc = {};
-    textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    textureDesc.Width = uploadBufferSize;
-    textureDesc.Height = 1;
-    textureDesc.DepthOrArraySize = 1;
-    textureDesc.MipLevels = 1;
-    textureDesc.Format = DXGI_FORMAT_UNKNOWN;
-    textureDesc.SampleDesc.Count = 1;
-    textureDesc.SampleDesc.Quality = 0;
-    textureDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    uploadBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    uploadBufferDesc.Width = uploadBufferSize;
+    uploadBufferDesc.Height = 1;
+    uploadBufferDesc.DepthOrArraySize = 1;
+    uploadBufferDesc.MipLevels = 1;
+    uploadBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uploadBufferDesc.SampleDesc.Count = 1;
+    uploadBufferDesc.SampleDesc.Quality = 0;
+    uploadBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    uploadBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
     THROW_IF_FAILED(device->CreateCommittedResource(
         &heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &uploadBufferDesc,
         D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr, IID_PPV_ARGS(&uploadBuffer)));
+        nullptr, IID_PPV_ARGS(&uploadBuffer)))
 
     // copy data
     void* mappedData;
@@ -141,21 +146,21 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
 
     /*
     struct D3D12_TEXTURE_COPY_LOCATION {
-        ID3D12Resource* pResource;                  // Resource pointer
-    D3D12_TEXTURE_COPY_TYPE Type;              // Copy type
-    union {
-        D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedFootprint;  // For buffers
-        UINT SubresourceIndex;                               // For textures
-    };
-};
-*/
+		ID3D12Resource* pResource;                  // Resource pointer
+		D3D12_TEXTURE_COPY_TYPE Type;              // Copy type
+		union {
+			D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedFootprint;  // For buffers
+			UINT SubresourceIndex;                               // For textures
+		};
+	};
+	*/
     D3D12_TEXTURE_COPY_LOCATION destLocation = {};
-    destLocation.pResource = uploadBuffer.Get();
+    destLocation.pResource = texture.Get();
     destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
     destLocation.SubresourceIndex = 0;
 
     D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-    srcLocation.pResource = texture.Get();
+    srcLocation.pResource = uploadBuffer.Get();
     srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     srcLocation.PlacedFootprint = layouts;
 
@@ -184,3 +189,4 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     stbi_image_free(data);
     return texture;
 }
+} // namespace Lunar

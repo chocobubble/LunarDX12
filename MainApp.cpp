@@ -10,6 +10,7 @@
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
 #include "Cube.h"
+#include "LunarGui.h"
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -53,7 +54,7 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				return 0;
 			break;
 		case WM_MOUSEMOVE:
-			LOG_DEBUG("Mouse ", LOWORD(lParam), " ", HIWORD(lParam));
+			// LOG_DEBUG("Mouse ", LOWORD(lParam), " ", HIWORD(lParam));
             OnMouseMove(LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_LBUTTONUP:
@@ -94,7 +95,7 @@ void MainApp::InitGui()
 {
 	LOG_FUNCTION_ENTRY();
 
-    m_gui = std::make_unique<Gui>();
+    m_gui = std::make_unique<LunarGui>();
 	
 	// Create descriptor heap for ImGui
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -103,7 +104,7 @@ void MainApp::InitGui()
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_imGuiDescriptorHeap.GetAddressOf())));
 	
-    m_gui.Initialize(
+    m_gui->Initialize(
         m_mainWindow,
         m_device.Get(),
         Lunar::Constants::BUFFER_COUNT,
@@ -302,6 +303,78 @@ void MainApp::CreateRenderTargetView()
 	}
 }
 
+void MainApp::CreateShaderResourceView()
+{
+	LOG_FUNCTION_ENTRY();
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.NumDescriptors = 1;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
+
+	/*
+	struct D3D12_SHADER_RESOURCE_VIEW_DESC {
+		DXGI_FORMAT Format;                    // Pixel format of the resource data
+											  // Use DXGI_FORMAT_UNKNOWN to use resource's original format
+											  // Can specify different format for type conversion
+	
+		D3D12_SRV_DIMENSION ViewDimension;    // Specifies the resource type and how shader will access it
+											  // Common values:
+											  // - D3D12_SRV_DIMENSION_TEXTURE1D: 1D texture
+											  // - D3D12_SRV_DIMENSION_TEXTURE2D: 2D texture
+											  // - D3D12_SRV_DIMENSION_TEXTURE3D: 3D texture
+											  // - D3D12_SRV_DIMENSION_TEXTURECUBE: Cube map
+											  // - D3D12_SRV_DIMENSION_BUFFER: Raw buffer
+	
+		UINT Shader4ComponentMapping;         // Controls how texture components (RGBA) are mapped to shader
+											  // Use D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING for standard RGBA mapping
+											  // Can rearrange/swizzle components (e.g., BGRA to RGBA)
+	
+		union {
+			D3D12_BUFFER_SRV Buffer;                    // Used when ViewDimension is BUFFER
+			D3D12_TEX1D_SRV Texture1D;                 // Used for 1D textures
+			D3D12_TEX1D_ARRAY_SRV Texture1DArray;      // Used for 1D texture arrays
+			D3D12_TEX2D_SRV Texture2D;                 // Used for 2D textures (most common)
+			D3D12_TEX2D_ARRAY_SRV Texture2DArray;      // Used for 2D texture arrays
+			D3D12_TEX2DMS_SRV Texture2DMS;             // Used for multisampled 2D textures
+			D3D12_TEX2DMS_ARRAY_SRV Texture2DMSArray;  // Used for multisampled 2D texture arrays
+			D3D12_TEX3D_SRV Texture3D;                 // Used for 3D textures
+			D3D12_TEXCUBE_SRV TextureCube;              // Used for cube map textures
+			D3D12_TEXCUBE_ARRAY_SRV TextureCubeArray;  // Used for cube map texture arrays
+		};
+	};
+	
+	// D3D12_TEX2D_SRV structure (most commonly used for 2D textures)
+	struct D3D12_TEX2D_SRV {
+		UINT MostDetailedMip;        // Index of the most detailed mipmap level to use
+									 // 0 = highest resolution level
+	
+		UINT MipLevels;              // Number of mipmap levels to use
+									 // Use -1 to use all available mip levels from MostDetailedMip
+									 // Use 1 for single mip level (no mipmapping)
+	
+		UINT PlaneSlice;             // For planar formats, specifies which plane to access
+									 // Use 0 for non-planar formats (most common case)
+	
+		FLOAT ResourceMinLODClamp;   // Minimum LOD (Level of Detail) clamp value
+									 // Prevents shader from sampling below this mip level
+									 // Use 0.0f for no clamping (most common)
+	};
+	*/
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.PlaneSlice = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
+	m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHandle);
+}
+
 void MainApp::CreateRootSignature()
 {
 	/*
@@ -334,11 +407,24 @@ void MainApp::CreateRootSignature()
 		D3D12_SHADER_VISIBILITY ShaderVisibility;
 	} 	D3D12_ROOT_PARAMETER;
 	*/
-	D3D12_ROOT_PARAMETER rootParameters[1];
+	D3D12_ROOT_PARAMETER rootParameters[2];
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[0].DescriptorTable.pDescriptorRanges = &cbvTable;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+	// Shader Resource View
+	D3D12_DESCRIPTOR_RANGE srvTable = {};
+	srvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	srvTable.NumDescriptors = 1;
+	srvTable.BaseShaderRegister = 0;
+	srvTable.RegisterSpace = 0;
+	srvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[1].DescriptorTable.pDescriptorRanges = &srvTable;
+	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	
 	/*
 	typedef struct D3D12_ROOT_SIGNATURE_DESC
@@ -352,7 +438,7 @@ void MainApp::CreateRootSignature()
 	*/
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-	rootSignatureDesc.NumParameters = 1;
+	rootSignatureDesc.NumParameters = 2;
 	rootSignatureDesc.pParameters = rootParameters;
 	rootSignatureDesc.NumStaticSamplers = 0;
 	rootSignatureDesc.pStaticSamplers = nullptr;
@@ -685,10 +771,11 @@ void MainApp::Render(double dt)
 	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, nullptr);
 
 	// Set Constant Buffer Descriptor heap
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get(), m_srvHeap.Get() };
 	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	m_commandList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
+	m_commandList->SetGraphicsRootDescriptorTable(0, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// clear
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
@@ -706,7 +793,7 @@ void MainApp::Render(double dt)
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_commandList->ResourceBarrier(1, &barrier);
 
-    m_gui->Render();
+    m_gui->Render(dt);
 	ID3D12DescriptorHeap* heaps[] = { m_imGuiDescriptorHeap.Get() };
 	m_commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
@@ -748,6 +835,8 @@ void MainApp::Initialize()
 	CreateConstantBufferView();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
+	InitializeTextures();
+	CreateShaderResourceView();
 	CreateRootSignature();
 	BuildShadersAndInputLayout();
 	BuildPSO();
@@ -795,7 +884,7 @@ bool MainApp::InitDirect3D()
 
 		m_device = tempDevice.Detach();
 
-		LOG_DEBUG("Selected GPU: ", std::string(std::begin(desc.Description), std::end(desc.Description)), " (", desc.DedicatedVideoMemory >> 20, " MB)");
+		// LOG_DEBUG("Selected GPU: ", std::string(std::begin(desc.Description), std::end(desc.Description)), " (", desc.DedicatedVideoMemory >> 20, " MB)");
 	}
 	
 	if (m_device == nullptr)
@@ -880,5 +969,11 @@ void MainApp::CreateCamera()
 	m_camera = std::make_unique<Camera>();
 }
 
+void MainApp::InitializeTextures()
+{
+	LOG_FUNCTION_ENTRY();
+    
+	std::string texturePath = "Assets\\Textures\\black_tiling_15-1K\\tiling_15_basecolor-1K.png";
+	m_texture = Utils::LoadSimpleTexture(m_device.Get(), m_commandList.Get(), texturePath);
+}
 } // namespace Lunar
-

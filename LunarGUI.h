@@ -65,82 +65,23 @@ public:
 	LunarGui();
 	~LunarGui();
     
-	bool Initialize(HWND hwnd, ID3D12Device* device, int bufferCount, DXGI_FORMAT format, 
+	bool Initialize(HWND hwnd, ID3D12Device* device, UINT bufferCount, DXGI_FORMAT format, 
 				   ID3D12DescriptorHeap* heap);
 	void Shutdown();
     
 	void BeginFrame();
-	void Render();
+	void Render(float dt);
 	void EndFrame();
     
-	void BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange = nullptr) 
-    {
-        if (GetBoundValue<bool>(id)) 
-        {
-            LOG_ERROR("Value with ID '%s' already bound.", id);
-            return;
-        }
+	void BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange = nullptr);
 
-		BoundValue boundValue;
-        boundValue.type = UIElementType::Checkbox;
-		boundValue.dataPtr = value;
-        
-
-        if (onChange) 
-        {
-            boundValue.onChange = [onChange](bool data) 
-            {
-                onChange(data);
-            };
-        }
-        
-		m_boundValues[id] = boundValue;
-	}
-
-	template<typename T>
-	void BindSlider(const std::string& id, T* value, T* min, T* max, std::function<void(T*)> onChange = nullptr) 
-    {
-        if (GetBoundValue<T>(id)) 
-        {
-            LOG_ERROR("Value with ID '%s' already bound.", id); 
-            return;
-        }
-
-		BoundValue boundValue;
-        boundValue.type = UIElementType::Slider;
-		boundValue.dataPtr = value;
-        boundValue.min = min;
-        boundValue.max = max;
-        
-        if (onChange) 
-        {
-            boundValue.onChange = [onChange](void* data) { onChange(static_cast<T*>(data)); };
-        }
-        
-		m_boundValues[id] = boundValue;
-	}
+    template<typename T>
+	void BindSlider(const std::string& id, T* value, T* min, T* max, std::function<void(T*)> onChange = nullptr);
     
 	template<typename T>
-	T* GetBoundValue(const std::string& id) 
-    {
-		auto it = m_boundValues.find(id);
-		if (it != m_boundValues.end()) 
-        {
-			return static_cast<T*>(it->second.dataPtr);
-		}
-		return nullptr;
-	}
+	T* GetBoundValue(const std::string& id) ;
 
-    bool RegisterCallback(const std::string& id, std::function<void()> callback) 
-    {
-        if (m_callbacks.find(id) != m_callbacks.end()) 
-        {
-            LOG_ERROR("Callback with ID '%s' already registered.", id);
-            return false;
-        } 
-        m_callbacks[id] = callback;
-        return true;
-    }
+    bool RegisterCallback(const std::string& id, std::function<void()> callback);
 
 private:
     bool m_initialized;

@@ -70,7 +70,7 @@ void Camera::UpdateRotationQuatFromMouse(float dx, float dy)
     m_yaw += dx * m_sensitivity;
     m_pitch += dy * m_sensitivity;
     m_pitch = std::clamp(m_pitch, -XM_PIDIV2 + 0.01f, XM_PIDIV2 - 0.01f); // -1/2pi ~ 1/2pi
-	LOG_DEBUG("yaw : ", m_yaw, ", pitch : ", m_pitch);
+	// LOG_DEBUG("yaw : ", m_yaw, ", pitch : ", m_pitch);
     UpdateViewDir();
 }
 
