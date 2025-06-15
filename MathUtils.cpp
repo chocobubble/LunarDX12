@@ -1,15 +1,17 @@
 #include "MathUtils.h"
+#include <DirectXMath.h>
 
+using namespace DirectX;
 namespace Lunar 
 {
 
-XMFLOAT4 MathUtils::CreateFromAxisAngle(float ax, float ay, float zx, float angle)
+XMFLOAT4 MathUtils::CreateFromAxisAngle(float ax, float ay, float az, float angle)
 {
     float halfAngle = angle * 0.5f;
     float sinHalfAngle = sinf(halfAngle);
     float cosHalfAngle = cosf(halfAngle);
 
-    return XMFLOAT4(ax * sinHalfAngle, ay * sinHalfAngle, zx * sinHalfAngle, cosHalfAngle);
+    return XMFLOAT4(ax * sinHalfAngle, ay * sinHalfAngle, az * sinHalfAngle, cosHalfAngle);
 }
 
 XMMATRIX MathUtils::CreateRotationMatrixFromQuaternion(const XMFLOAT4& quaternion)
@@ -30,24 +32,26 @@ XMMATRIX MathUtils::CreateRotationMatrixFromQuaternion(const XMFLOAT4& quaternio
         2.0f * (xz - wy), 2.0f * (yz + wx), 1.0f - 2.0f * (xx + yy), 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
 }
-XMFLOAT4 CreateRotationQuatFromRollPitchYaw(float roll, float pitch, float yaw)
+	
+XMFLOAT4 MathUtils::CreateRotationQuatFromRollPitchYaw(float roll, float pitch, float yaw)
 {
-    float halfRoll = roll * 0.5f;
-    float halfPitch = pitch * 0.5f;
-    float halfYaw = yaw * 0.5f;
+	float halfRoll = roll * 0.5f;
+	float halfPitch = pitch * 0.5f;
+	float halfYaw = yaw * 0.5f;
 
-    float sinRoll = sinf(halfRoll);
-    float cosRoll = cosf(halfRoll);
-    float sinPitch = sinf(halfPitch);
-    float cosPitch = cosf(halfPitch);
-    float sinYaw = sinf(halfYaw);
-    float cosYaw = cosf(halfYaw);
+	float sinRoll = sinf(halfRoll);
+	float cosRoll = cosf(halfRoll);
+	float sinPitch = sinf(halfPitch);
+	float cosPitch = cosf(halfPitch);
+	float sinYaw = sinf(halfYaw);
+	float cosYaw = cosf(halfYaw);
 
-    // qz * qy * qx (Roll * Yaw * Pitch)
-    return XMFLOAT4(
-        cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw,
-        sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw,
-        cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw,
-        cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw
-    );
+	// qz * qy * qx (Roll * Yaw * Pitch)
+	return XMFLOAT4(
+		cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw,
+		sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw,
+		cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw,
+		cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw
+	);
+}
 } //namespace Lunar

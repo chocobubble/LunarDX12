@@ -1,9 +1,15 @@
 #include "Camera.h"
+#include <DirectXMath.h>
+#include <algorithm>
+
+#include "MathUtils.h"
+
+using namespace DirectX;
 
 namespace Lunar
 {
 
-XMFLOAT4X4& Camera::GetViewMatrix() const
+const XMFLOAT4X4& Camera::GetViewMatrix()
 {
     if (m_viewDirty)
     {
@@ -11,10 +17,10 @@ XMFLOAT4X4& Camera::GetViewMatrix() const
         // 1. Get the world matrix of the camera.(W = RT)
         //   - The camera doesn't have a 'size', so the scaling would not be considered. 
         // 2. Reverse the world matrix. (V = (RT)^{-1}) 
-        XMMATRIX cameraRotaion = Lunar::MathUtils::CreateRotationMatrixFromQuaternion(XMLoadFloat4(&m_qRotation)); 
+        XMMATRIX cameraRotaion = Lunar::MathUtils::CreateRotationMatrixFromQuaternion(m_qRotation); 
         XMMATRIX transposedCameraRotation = XMMatrixTranspose(cameraRotaion);
-        XMVECTOR reversedCameraPosition = XMVectorNegate(XMLoadFloat4(&m_position));
-        XMMATRIX cameraTranslation = XMMatrixTranslationFromVector(reverseCameraPosition); 
+        XMVECTOR reversedCameraPosition = XMVectorNegate(XMLoadFloat3(&m_position));
+        XMMATRIX cameraTranslation = XMMatrixTranslationFromVector(reversedCameraPosition); 
         XMMATRIX viewMatrix = XMMatrixMultiply(transposedCameraRotation, cameraTranslation); 
         XMStoreFloat4x4(&m_viewMatrix, viewMatrix);
         m_viewDirty = false;
@@ -22,7 +28,7 @@ XMFLOAT4X4& Camera::GetViewMatrix() const
     return m_viewMatrix;
 }
 
-XMFLOAT4X4& Camera::GetProjMatrix() const
+const XMFLOAT4X4& Camera::GetProjMatrix()
 {
     if (m_projDirty)
     {
@@ -34,7 +40,7 @@ XMFLOAT4X4& Camera::GetProjMatrix() const
             0.0f, yScale, 0.0f, 0.0f,
             0.0f, 0.0f, m_farZ / distFarToScreen, 1.0f,
             0.0f, 0.0f, m_nearZ * m_farZ / distFarToScreen, 0.0f
-        }
+        };
         m_projDirty = false;
     }
     return m_projMatrix;
@@ -45,11 +51,12 @@ XMFLOAT3 Camera::GetPosition() const
     return m_position;
 }
 
+
 void Camera::UpdateViewDir()
 {
-    m_qRotation = Lunar::CreateRotationQuatFromRollPitchYaw(0.0f, m_pitch, m_yaw);
-    XMVECTOR forward = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), m_qRotation);
-    XMVECTOR right = XMVector3Normalize(XMVector3Cross(forward, m_worldUpDir));
+    m_qRotation = Lunar::MathUtils::CreateRotationQuatFromRollPitchYaw(0.0f, m_pitch, m_yaw);
+    XMVECTOR forward = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), XMLoadFloat4(&m_qRotation));
+    XMVECTOR right = XMVector3Normalize(XMVector3Cross(forward, XMLoadFloat3(&m_worldUpDir)));
     XMVECTOR up = XMVector3Normalize(XMVector3Cross(right, forward));
     XMStoreFloat3(&m_viewDir, forward);
     XMStoreFloat3(&m_upDir, up);

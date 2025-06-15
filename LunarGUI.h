@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <memory>
 #include "Logger.h"
+#include <any>
+#include <d3d12.h>
 
 namespace Lunar 
 {
@@ -29,11 +31,13 @@ private:
         
         template<typename T>
         T* GetAs() { return static_cast<T*>(dataPtr); }
+    	
+        template<typename T>
         T GetMinValue() const 
         {
             try 
             {
-                return any_cast<T>(min);
+                return std::any_cast<T>(min);
             }
             catch (const std::bad_any_cast& e)
             {
@@ -41,11 +45,13 @@ private:
                 return T();
             }
         }
+    	
+        template<typename T>
         T GetMaxValue() const
         {
             try
             {
-                return any_cast<T>(max);
+                return std::any_cast<T>(max);
             }
             catch (const std::bad_any_cast& e)
             {
@@ -67,12 +73,12 @@ public:
 	void Render();
 	void EndFrame();
     
-	void BindCheckbox(const std::string& id, bool value, std::function<void(bool)> onChange = nullptr) 
+	void BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange = nullptr) 
     {
         if (GetBoundValue<bool>(id)) 
         {
             LOG_ERROR("Value with ID '%s' already bound.", id);
-            return:
+            return;
         }
 
 		BoundValue boundValue;
@@ -137,7 +143,7 @@ public:
     }
 
 private:
-    bool m_initialize;
+    bool m_initialized;
 	std::unordered_map<std::string, BoundValue> m_boundValues;
 	std::unordered_map<std::string, std::function<void()>> m_callbacks;
 };

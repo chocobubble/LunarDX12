@@ -48,6 +48,7 @@ private:
     void OnMouseMove(float x, float y);
 	float GetAspectRatio() const;
 	void InitializeGeometry();
+	void CreateCamera();
 	
 	HWND m_mainWindow;
 	

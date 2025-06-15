@@ -4,6 +4,8 @@
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 #include "MainApp.h"
+
+#include "Camera.h"
 #include "Logger.h"
 #include "Utils.h"
 #include "LunarConstants.h"
@@ -254,7 +256,7 @@ void MainApp::CreateConstantBufferView()
 	BasicConstants constants;
 	constants.view = m_camera->GetViewMatrix();
 	constants.projection = m_camera->GetProjMatrix();
-	constants.eyePos = m_camera->GetPos();
+	constants.eyePos = m_camera->GetPosition();
 	constants.dummy = 0.0f;
 
 	memcpy(pCbvDataBegin, &constants, sizeof(BasicConstants));
@@ -724,6 +726,7 @@ void MainApp::Initialize()
 	InitMainWindow();
 	InitDirect3D();
 	InitializeCommandList();
+	CreateCamera();
 	CreateSwapChain();
 	CreateCBVDescriptorHeap();
 	CreateConstantBufferView();
@@ -838,11 +841,13 @@ bool MainApp::InitMainWindow()
 
 float MainApp::GetAspectRatio() const
 {
+	LOG_FUNCTION_ENTRY();
 	return static_cast<float>(m_displayWidth) / m_displayHeight;
 }
 
 void MainApp::InitializeGeometry()
 {
+	LOG_FUNCTION_ENTRY();
 	m_cube = std::make_unique<Cube>();
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
@@ -851,6 +856,12 @@ void MainApp::InitializeGeometry()
 	m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
 	m_cube->SetScale(0.5f);
 	m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
+}
+
+void MainApp::CreateCamera()
+{
+	LOG_FUNCTION_ENTRY();
+	m_camera = std::make_unique<Camera>();
 }
 
 } // namespace Lunar
