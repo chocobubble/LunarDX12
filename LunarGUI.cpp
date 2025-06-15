@@ -57,7 +57,9 @@ void LunarGui::BeginFrame()
 
 void LunarGui::Render() 
 {
+    BeginFrame();
 	ImGui::Begin("Settings");
+	ImGui::Text("FPS: %.2f", 1.0f / dt);
 
 	for (auto& pair : m_boundValues) 
 	{
@@ -94,6 +96,7 @@ void LunarGui::Render()
 	}
 
 	ImGui::End();
+    EndFrame();
 }
 
 void LunarGui::EndFrame() 
