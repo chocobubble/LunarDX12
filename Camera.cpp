@@ -74,4 +74,20 @@ void Camera::UpdateRotationQuatFromMouse(float dx, float dy)
     UpdateViewDir();
 }
 
+void Camera::UpdatePosition(float dx, float dy, float dz)
+{
+	XMVECTOR posVec = XMLoadFloat3(&m_position);
+	XMVECTOR rightVec = XMLoadFloat3(&m_rightDir);
+	XMVECTOR upVec = XMLoadFloat3(&m_upDir);
+	XMVECTOR viewVec = XMLoadFloat3(&m_viewDir);
+    
+	posVec = XMVectorAdd(posVec, XMVectorScale(rightVec, m_movementSpeed * dx));
+	posVec = XMVectorAdd(posVec, XMVectorScale(upVec, m_movementSpeed * dy));
+	posVec = XMVectorAdd(posVec, XMVectorScale(viewVec, m_movementSpeed * dz));
+    
+	XMStoreFloat3(&m_position, posVec);
+	
+    m_viewDirty = true;
+}
+
 } // namespace Lunar

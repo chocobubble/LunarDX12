@@ -589,6 +589,8 @@ int MainApp::Run()
 
 void MainApp::Update(double dt)
 {
+    ProcessInput(dt);
+
 	BYTE* pCbvDataBegin; 
 	m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin));
 
@@ -606,6 +608,37 @@ void MainApp::Update(double dt)
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 }
 
+void MainApp::ProcessInput(double dt)
+{
+    bool cameraDirty = false;
+    float cameraDeltaFront = 0.0;
+    float cameraDeltaRight = 0.0;
+    if (GetAsyncKeyState('W') & 0x8000) 
+    {
+        cameraDeltaFront += dt;
+        cameraDirty = true;
+    }
+    if (GetAsyncKeyState('S') & 0x8000)
+    {
+        cameraDeltaFront -= dt;
+        cameraDirty = true;
+    }
+    if (GetAsyncKeyState('A') & 0x8000)
+    {
+        cameraDeltaRight -= dt;
+        cameraDirty = true;
+    }
+    if (GetAsyncKeyState('D') & 0x8000)
+    {
+        cameraDeltaRight += dt;
+        cameraDirty = true;
+    }
+
+    if (cameraDirty)
+    {
+        m_camera->UpdatePosition(cameraDeltaRight, 0.0f, cameraDeltaFront);
+    }
+}
 
 void MainApp::Render(double dt)
 {

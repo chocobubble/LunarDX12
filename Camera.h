@@ -13,6 +13,7 @@ public:
 	DirectX::XMFLOAT3          GetPosition() const;
     void                       UpdateViewDir();
     void                       UpdateRotationQuatFromMouse(float dx, float dy);
+    void UpdatePosition(float dx, float dy, float dz);
 
 private:
 	DirectX::XMFLOAT3   m_position = {0.5f, 0.5f, -1.5f};
@@ -31,6 +32,7 @@ private:
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
     float m_sensitivity = Lunar::Constants::MOUSE_SENSITIVITY; 
+    float m_movementSpeed = Lunar::Constants::CAMERA_MOVE_SPEED;
 
     bool m_projDirty = true;
     bool m_viewDirty = true;

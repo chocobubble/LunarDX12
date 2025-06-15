@@ -14,7 +14,8 @@ static constexpr float ASPECT_RATIO = 1.78f;
 static constexpr float FOV_ANGLE = 45.0f;
 static constexpr float NEAR_PLANE = 0.1f;
 static constexpr float FAR_PLANE = 100.0f;
-static constexpr float MOUSE_SENSITIVITY = 0.0005f;
+static constexpr float MOUSE_SENSITIVITY = 0.005f;
+static constexpr float CAMERA_MOVE_SPEED = 1.0f;
 	
 }	
 }
