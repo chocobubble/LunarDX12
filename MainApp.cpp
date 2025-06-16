@@ -201,7 +201,7 @@ void MainApp::CreateCBVDescriptorHeap()
 	LOG_FUNCTION_ENTRY();
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {};
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	cbvHeapDesc.NumDescriptors = 2; // to add srvDesc
+	cbvHeapDesc.NumDescriptors = 3; // to add srvDesc
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(m_cbvHeap.GetAddressOf())))
@@ -884,12 +884,12 @@ void MainApp::Initialize()
 	InitDirect3D();
 	InitializeCommandList();
 	CreateFence();
-	CreateConstantBuffer();
 	InitializeTextures();
 	CreateCamera();
 	CreateSwapChain();
 	CreateCBVDescriptorHeap();
 	CreateConstantBufferView();
+	CreateConstantBuffer();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
 	CreateShaderResourceView();
@@ -1042,6 +1042,6 @@ void MainApp::InitializeTextures()
 
 void MainApp::CreateConstantBuffer()
 {
-	m_lightCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(Light));
+	m_lightCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(Light), m_cbvHeap.Get());
 }
 } // namespace Lunar

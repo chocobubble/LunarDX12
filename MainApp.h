@@ -68,6 +68,7 @@ private:
 	ComPtr<IDXGISwapChain1> m_swapChain;
 	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 	ComPtr<ID3D12DescriptorHeap> m_cbvHeap;
+	ComPtr<ID3D12DescriptorHeap> m_lightHeap;
 	ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	ComPtr<ID3D12RootSignature> m_rootSignature;
 	ComPtr<ID3DBlob> m_vsByteCode;

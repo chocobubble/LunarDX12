@@ -29,7 +29,7 @@ struct Light
 class ConstantBuffer
 {
 public:
-	ConstantBuffer(ID3D12Device* device, UINT elementByteSize);
+	ConstantBuffer(ID3D12Device* device, UINT elementByteSize, ID3D12DescriptorHeap* cbvHeap);
 	~ConstantBuffer();
 	void CopyData(void* data, UINT size);
 private:
