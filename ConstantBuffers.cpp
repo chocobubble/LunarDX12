@@ -44,7 +44,7 @@ ConstantBuffer::ConstantBuffer(ID3D12Device* device, UINT elementByteSize, ID3D1
 	
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = m_constantBuffer->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = sizeof(Light);
+	cbvDesc.SizeInBytes = elementByteSize;
 	
 	auto handle = cbvHeap->GetCPUDescriptorHandleForHeapStart();
 	handle.ptr += 2 * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV); // TODO : replace hard coded 2
