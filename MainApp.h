@@ -19,6 +19,7 @@ struct Vertex
 {
 	XMFLOAT3 pos;
 	XMFLOAT4 color;
+	XMFLOAT2 texCoord;
 };
 	
 class MainApp {
@@ -73,6 +74,7 @@ private:
 	ComPtr<ID3D12Fence> m_fence;
 	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
 	ComPtr<ID3D12Resource> m_uploadBuffer;
+	ComPtr<ID3D12Resource> m_textureUploadBuffer;
 	ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
 	ComPtr<ID3D12Resource> m_texture;
 

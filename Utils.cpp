@@ -22,7 +22,7 @@ std::string LunarException::ToString() const
 	return "[Error] " + m_function + " " + m_file + " " + std::to_string(m_line) + " error: " + msg;
 }
 
-ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename)
+ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, ComPtr<ID3D12Resource>& uploadBuffer)
 {
 	LOG_FUNCTION_ENTRY();
     int width, height, channels;
@@ -31,6 +31,7 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     {
         LOG_ERROR("Failed to load texture: ", filename);
     }
+	LOG_DEBUG("Texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
     D3D12_RESOURCE_DESC textureDesc = {};
     textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     textureDesc.Width = static_cast<UINT>(width);
@@ -108,8 +109,6 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     // - rowSizeInBytes: actual data size per row (width * bytes_per_pixel)
     // - uploadBufferSize: total memory needed for upload buffer with alignment
 
-    // upload buffer
-	ComPtr<ID3D12Resource> uploadBuffer;
     heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
 
     D3D12_RESOURCE_DESC uploadBufferDesc = {};

@@ -11,6 +11,7 @@
 #include "ConstantBuffers.h"
 #include "Cube.h"
 #include "LunarGui.h"
+#include <filesystem>
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -200,7 +201,7 @@ void MainApp::CreateCBVDescriptorHeap()
 	LOG_FUNCTION_ENTRY();
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {};
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	cbvHeapDesc.NumDescriptors = 1;
+	cbvHeapDesc.NumDescriptors = 2; // to add srvDesc
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(m_cbvHeap.GetAddressOf())))
@@ -311,8 +312,6 @@ void MainApp::CreateShaderResourceView()
 	srvHeapDesc.NumDescriptors = 1;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
-
 	/*
 	struct D3D12_SHADER_RESOURCE_VIEW_DESC {
 		DXGI_FORMAT Format;                    // Pixel format of the resource data
@@ -371,7 +370,8 @@ void MainApp::CreateShaderResourceView()
 	srvDesc.Texture2D.PlaneSlice = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
+	m_srvHandle = m_cbvHeap->GetCPUDescriptorHandleForHeapStart();
+	m_srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHandle);
 }
 
@@ -425,6 +425,39 @@ void MainApp::CreateRootSignature()
 	rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[1].DescriptorTable.pDescriptorRanges = &srvTable;
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	/*
+	typedef struct D3D12_STATIC_SAMPLER_DESC
+	{
+		D3D12_FILTER Filter;
+		D3D12_TEXTURE_ADDRESS_MODE AddressU;
+		D3D12_TEXTURE_ADDRESS_MODE AddressV;
+		D3D12_TEXTURE_ADDRESS_MODE AddressW;
+		FLOAT MipLODBias;
+		UINT MaxAnisotropy;
+		D3D12_COMPARISON_FUNC ComparisonFunc;
+		D3D12_STATIC_BORDER_COLOR BorderColor;
+		FLOAT MinLOD;
+		FLOAT MaxLOD;
+		UINT ShaderRegister;
+		UINT RegisterSpace;
+		D3D12_SHADER_VISIBILITY ShaderVisibility;
+	} 	D3D12_STATIC_SAMPLER_DESC;
+	*/
+	D3D12_STATIC_SAMPLER_DESC sampler = {};
+	sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	sampler.MipLODBias = 0;
+	sampler.MaxAnisotropy = 1;
+	sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	sampler.MinLOD = 0.0f;
+	sampler.MaxLOD = D3D12_FLOAT32_MAX;
+	sampler.ShaderRegister = 0;
+	sampler.RegisterSpace = 0;
+	sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	
 	/*
 	typedef struct D3D12_ROOT_SIGNATURE_DESC
@@ -438,10 +471,10 @@ void MainApp::CreateRootSignature()
 	*/
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-	rootSignatureDesc.NumParameters = 2;
+	rootSignatureDesc.NumParameters = _countof(rootParameters);
 	rootSignatureDesc.pParameters = rootParameters;
-	rootSignatureDesc.NumStaticSamplers = 0;
-	rootSignatureDesc.pStaticSamplers = nullptr;
+	rootSignatureDesc.NumStaticSamplers = 1;
+	rootSignatureDesc.pStaticSamplers = &sampler;
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 	
 	ComPtr<ID3DBlob> signature = nullptr;
@@ -507,7 +540,8 @@ void MainApp::BuildShadersAndInputLayout()
 	m_inputLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 
@@ -771,11 +805,14 @@ void MainApp::Render(double dt)
 	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, nullptr);
 
 	// Set Constant Buffer Descriptor heap
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get(), m_srvHeap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_cbvHeap.Get() };
 	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
 	m_commandList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
-	m_commandList->SetGraphicsRootDescriptorTable(0, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
+
+	// TODO: detach the srv to other heap
+	D3D12_GPU_DESCRIPTOR_HANDLE srvHandle = m_cbvHeap->GetGPUDescriptorHandleForHeapStart();
+	srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_commandList->SetGraphicsRootDescriptorTable(1, srvHandle);
 
 	// clear
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
@@ -829,19 +866,19 @@ void MainApp::Initialize()
 	InitMainWindow();
 	InitDirect3D();
 	InitializeCommandList();
+	CreateFence();
+	InitializeTextures();
 	CreateCamera();
 	CreateSwapChain();
 	CreateCBVDescriptorHeap();
 	CreateConstantBufferView();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
-	InitializeTextures();
 	CreateShaderResourceView();
 	CreateRootSignature();
 	BuildShadersAndInputLayout();
 	BuildPSO();
 	InitializeGeometry();
-	CreateFence();
 	InitGui();
 }
 
@@ -972,8 +1009,16 @@ void MainApp::CreateCamera()
 void MainApp::InitializeTextures()
 {
 	LOG_FUNCTION_ENTRY();
+	m_commandAllocator->Reset();
+	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
     
-	std::string texturePath = "Assets\\Textures\\black_tiling_15-1K\\tiling_15_basecolor-1K.png";
-	m_texture = Utils::LoadSimpleTexture(m_device.Get(), m_commandList.Get(), texturePath);
+	// std::string texturePath = "Assets\\Textures\\black_tiling_15-1K\\tiling_15_basecolor-1K.png";
+	// std::string texturePath = "Assets\\Textures\\black_tiling_15-1K\\tiling_15_ambientocclusion-1K.png";
+	std::string texturePath = "Assets\\Textures\\wall.jpg";
+	if (!std::filesystem::exists(texturePath))
+	{
+		LOG_ERROR("Texture file does not exist: ", texturePath);
+	}
+	m_texture = Utils::LoadSimpleTexture(m_device.Get(), m_commandList.Get(), texturePath, m_textureUploadBuffer);
 }
 } // namespace Lunar
