@@ -53,6 +53,7 @@ private:
 	void InitializeGeometry();
 	void CreateCamera();
 	void InitializeTextures();
+	void CreateConstantBuffer();
 	
 	HWND m_mainWindow;
 	
@@ -105,6 +106,8 @@ private:
     float m_lastMouseY = 0.0f;
 
     std::unique_ptr<class Camera> m_camera;
+
+	std::unique_ptr<class ConstantBuffer> m_lightCB;
 };
 
 } // namespace Lunar

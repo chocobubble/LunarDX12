@@ -867,6 +867,7 @@ void MainApp::Initialize()
 	InitDirect3D();
 	InitializeCommandList();
 	CreateFence();
+	CreateConstantBuffer();
 	InitializeTextures();
 	CreateCamera();
 	CreateSwapChain();
@@ -1020,5 +1021,10 @@ void MainApp::InitializeTextures()
 		LOG_ERROR("Texture file does not exist: ", texturePath);
 	}
 	m_texture = Utils::LoadSimpleTexture(m_device.Get(), m_commandList.Get(), texturePath, m_textureUploadBuffer);
+}
+
+void MainApp::CreateConstantBuffer()
+{
+	m_lightCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(Light));
 }
 } // namespace Lunar
