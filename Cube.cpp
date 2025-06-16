@@ -166,40 +166,40 @@ void Cube::CreateGeometry()
     // definite 8 vertices of a cube
     m_vertices = {
         // front (z = -0.5)
-        { XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(0.0f, 1.0f)},
-        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f)  },
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f)  },
-        { XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f)  },
+        { XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(0.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
+        { XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
     
         // back (z = 0.5)
-        { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f)},
-        { XMFLOAT3(0.5f,  -0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f) },
-        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f) },
-        { XMFLOAT3( -0.5f, 0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f)  },
+        { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3(0.5f,  -0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
+        { XMFLOAT3( -0.5f, 0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
     
         // top (y = 0.5)
-        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f) },
-        { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f) }, 
-        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f) }, 
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f)  }, 
+        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
+        { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, 
+        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, 
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, 
     
         // bottom (y = -0.5)
-        { XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f) },
-        { XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f)  }, 
-        { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f) }, 
-        { XMFLOAT3( -0.5f, -0.5f, 0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f) }, 
+        { XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
+        { XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f)  }, 
+        { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f) , XMFLOAT3(0.0f, -1.0f, 0.0f)}, 
+        { XMFLOAT3( -0.5f, -0.5f, 0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f)}, 
     
         // left (x = -0.5)
-        { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(0.0f, 1.0f) },
-        { XMFLOAT3(-0.5f, 0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(1.0f, 1.0f)  },
-        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(1.0f, 0.0f) },
-        { XMFLOAT3(-0.5f,  -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(0.0f, 0.0f)  },
+        { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(0.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3(-0.5f, 0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f)  },
+        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3(-0.5f,  -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f)  },
     
         // right (x = 0.5)
-        { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f) },
-        { XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f) },
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f) },
-        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f)  },
+        { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
+        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
     };
 
     m_indices = {

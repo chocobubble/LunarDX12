@@ -11,6 +11,7 @@ struct VertexIn
     float3 pos : POSITION;
     float4 color : COLOR;
 	float2 texCoord : TEXCOORD;
+	float3 normal : NORMAL;
 };
 
 struct PixelIn
@@ -18,6 +19,7 @@ struct PixelIn
     float4 pos : SV_POSITION;
     float4 color : COLOR;
 	float2 texCoord : TEXCOORD;
+	float3 normal : NORMAL;
 };
 
 PixelIn main(VertexIn vIn)
@@ -29,5 +31,6 @@ PixelIn main(VertexIn vIn)
 	pIn.pos = mul(pIn.pos, projection);
     pIn.color = vIn.color;
 	pIn.texCoord = vIn.texCoord;
+	pIn.normal = vIn.normal;
     return pIn;
 }

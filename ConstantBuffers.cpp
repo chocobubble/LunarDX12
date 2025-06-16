@@ -40,9 +40,7 @@ ConstantBuffer::ConstantBuffer(ID3D12Device* device, UINT elementByteSize)
 		IID_PPV_ARGS(m_constantBuffer.GetAddressOf())
 	))
 
-	BYTE* pCbvDataBegin = nullptr;
-
-	THROW_IF_FAILED(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin)))
+	THROW_IF_FAILED(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_mappedData)))
 }
 
 

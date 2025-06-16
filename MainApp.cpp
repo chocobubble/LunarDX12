@@ -407,7 +407,7 @@ void MainApp::CreateRootSignature()
 		D3D12_SHADER_VISIBILITY ShaderVisibility;
 	} 	D3D12_ROOT_PARAMETER;
 	*/
-	D3D12_ROOT_PARAMETER rootParameters[2];
+	D3D12_ROOT_PARAMETER rootParameters[3];
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[0].DescriptorTable.pDescriptorRanges = &cbvTable;
@@ -425,6 +425,12 @@ void MainApp::CreateRootSignature()
 	rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[1].DescriptorTable.pDescriptorRanges = &srvTable;
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	// for Light Constant Buffer
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[2].Descriptor.ShaderRegister = 1; // The first CB use 0 register
+	rootParameters[2].Descriptor.RegisterSpace = 0;
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	/*
 	typedef struct D3D12_STATIC_SAMPLER_DESC
@@ -541,7 +547,8 @@ void MainApp::BuildShadersAndInputLayout()
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 
@@ -707,12 +714,22 @@ void MainApp::Update(double dt)
 	XMStoreFloat4x4(&constants.model, worldMatrix);
 	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
 	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
-	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
-	float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
-	XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
+	constants.eyePos = m_camera->GetPosition();
+	// float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
+	// float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
+	// XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
 	// m_cube->SetRotation(rotation);
 
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
+
+	Light light = {};
+	light.Strength = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	light.FalloffStart = 0.1f;
+	light.Direction = XMFLOAT3(-0.5f, -0.5f, -0.5f);
+	light.FalloffEnd = 10.0f;
+	light.Position = XMFLOAT3(5.0f, 5.0f, 5.0f);
+	light.SpotPower = 100.0f;
+	m_lightCB->CopyData(&light, sizeof(Light));
 }
 
 void MainApp::ProcessInput(double dt)
