@@ -371,7 +371,7 @@ void MainApp::CreateShaderResourceView()
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
 	m_srvHandle = m_cbvHeap->GetCPUDescriptorHandleForHeapStart();
-	m_srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_srvHandle.ptr += 2 * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHandle);
 }
 
@@ -389,7 +389,7 @@ void MainApp::CreateRootSignature()
 	*/
 	D3D12_DESCRIPTOR_RANGE cbvTable = {};
 	cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	cbvTable.NumDescriptors = 1;
+	cbvTable.NumDescriptors = 2;
 	cbvTable.BaseShaderRegister = 0;
 	cbvTable.RegisterSpace = 0;
 	cbvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -407,7 +407,7 @@ void MainApp::CreateRootSignature()
 		D3D12_SHADER_VISIBILITY ShaderVisibility;
 	} 	D3D12_ROOT_PARAMETER;
 	*/
-	D3D12_ROOT_PARAMETER rootParameters[3];
+	D3D12_ROOT_PARAMETER rootParameters[2];
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[0].DescriptorTable.pDescriptorRanges = &cbvTable;
@@ -425,12 +425,6 @@ void MainApp::CreateRootSignature()
 	rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[1].DescriptorTable.pDescriptorRanges = &srvTable;
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-	// for Light Constant Buffer
-	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	rootParameters[2].Descriptor.ShaderRegister = 1; // The first CB use 0 register
-	rootParameters[2].Descriptor.RegisterSpace = 0;
-	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	/*
 	typedef struct D3D12_STATIC_SAMPLER_DESC
@@ -828,7 +822,7 @@ void MainApp::Render(double dt)
 
 	// TODO: detach the srv to other heap
 	D3D12_GPU_DESCRIPTOR_HANDLE srvHandle = m_cbvHeap->GetGPUDescriptorHandleForHeapStart();
-	srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	srvHandle.ptr += 2 * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_commandList->SetGraphicsRootDescriptorTable(1, srvHandle);
 
 	// clear
