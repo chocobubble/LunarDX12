@@ -1,8 +1,10 @@
 ﻿#include "Cube.h"
+
+#include "Logger.h"
 #include "MainApp.h"
 #include "Utils.h"
 
-namespace  Lunar
+namespace Lunar
 {
 Cube::Cube() :
 	m_color(1.0f, 1.0f, 1.0f, 1.0f),
@@ -163,53 +165,72 @@ void Cube::SetColor(const XMFLOAT4& color)
 
 void Cube::CreateGeometry()
 {
-    // definite 8 vertices of a cube
-    m_vertices = {
-        // front (z = -0.5)
-        { XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(0.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-        { XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f), XMFLOAT2(0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) },
-    
-        // back (z = 0.5)
-        { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3(0.5f,  -0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-        { XMFLOAT3( -0.5f, 0.5f, 0.5f), XMFLOAT4(0.0f, 0.5f, 1.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) },
-    
-        // top (y = 0.5)
-        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) },
-        { XMFLOAT3(-0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, 
-        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, 
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, 
-    
-        // bottom (y = -0.5)
-        { XMFLOAT3(-0.5f, -0.5f, -0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) },
-        { XMFLOAT3(0.5f, -0.5f, -0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f)  }, 
-        { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f) , XMFLOAT3(0.0f, -1.0f, 0.0f)}, 
-        { XMFLOAT3( -0.5f, -0.5f, 0.5f), XMFLOAT4(0.5f, 1.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f), XMFLOAT3(0.0f, -1.0f, 0.0f)}, 
-    
-        // left (x = -0.5)
-        { XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(0.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(-0.5f, 0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f)  },
-        { XMFLOAT3(-0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(1.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3(-0.5f,  -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.5f, 1.0f),  XMFLOAT2(0.0f, 0.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f)  },
-    
-        // right (x = 0.5)
-        { XMFLOAT3( 0.5f, -0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3( 0.5f, -0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3( 0.5f,  0.5f, -0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-        { XMFLOAT3( 0.5f,  0.5f, 0.5f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f),  XMFLOAT2(0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f) },
-    };
+	// definite 8 vertices of a cube for smooth normal
+	m_vertices = {
+		{ { -0.5f, -0.5f, -0.5f },    { 0.0f, 0.0f, 0.0f, 1.0f },   { 0.0f, 0.0f },   { 0.0f, 0.0f, 0.0f } }, // 0
+		{ { -0.5f, +0.5f, -0.5f },    { 0.0f, 1.0f, 0.0f, 1.0f },   { 0.0f, 1.0f },   { 0.0f, 0.0f, 0.0f } }, // 1
+		{ { +0.5f, +0.5f, -0.5f },    { 1.0f, 1.0f, 0.0f, 1.0f },   { 1.0f, 1.0f },   { 0.0f, 0.0f, 0.0f } }, // 2
+		{ { +0.5f, -0.5f, -0.5f },    { 1.0f, 0.0f, 0.0f, 1.0f },   { 1.0f, 0.0f },   { 0.0f, 0.0f, 0.0f } }, // 3
 
-    m_indices = {
-        0, 1, 2, 0, 2, 3, // front
-        4, 5, 6, 4, 6, 7, // back
-        8, 9, 10, 8, 10, 11, // top
-        12, 13, 14, 12, 14, 15, // bottom
-        16, 17, 18, 16, 18, 19, // left
-        20, 21, 22, 20, 22, 23 // right
-    };
+		{ { -0.5f, -0.5f, +0.5f },    { 0.0f, 0.0f, 1.0f, 1.0f },   { 0.0f, 0.0f },   { 0.0f, 0.0f, 0.0f } }, // 4
+		{ { -0.5f, +0.5f, +0.5f },    { 0.0f, 1.0f, 1.0f, 1.0f },   { 0.0f, 1.0f },   { 0.0f, 0.0f, 0.0f } }, // 5
+		{ { +0.5f, +0.5f, +0.5f },    { 1.0f, 1.0f, 1.0f, 1.0f },   { 1.0f, 1.0f },   { 0.0f, 0.0f, 0.0f } }, // 6
+		{ { +0.5f, -0.5f, +0.5f },    { 1.0f, 0.0f, 1.0f, 1.0f },   { 1.0f, 0.0f },   { 0.0f, 0.0f, 0.0f } }, // 7
+	};
+	
+	 m_indices = {
+		// front
+		0,1,2, 0,2,3,
+		// back
+		4,7,6, 4,6,5,
+		// top
+		1,5,6, 1,6,2,
+		// bottom
+		4,0,3, 4,3,7,
+		// left
+		4,5,1, 4,1,0,
+		// right
+		3,2,6, 3,6,7
+	};
+	
+
+	std::vector<XMFLOAT3> normalSum(m_vertices.size(), {0, 0, 0});
+	for (size_t i = 0; i < m_indices.size(); i += 3)
+	{
+		uint16_t index0 = m_indices[i];
+		uint16_t index1 = m_indices[i + 1];
+		uint16_t index2 = m_indices[i + 2];
+
+		Vertex& v0 = m_vertices[index0];
+		Vertex& v1 = m_vertices[index1];
+		Vertex& v2 = m_vertices[index2];
+
+		XMVECTOR p0 = XMLoadFloat3(&m_vertices[index0].pos);
+		XMVECTOR p1 = XMLoadFloat3(&m_vertices[index1].pos);
+		XMVECTOR p2 = XMLoadFloat3(&m_vertices[index2].pos);
+
+		XMVECTOR e1 = p1 - p0;
+		XMVECTOR e2 = p2 - p0;
+
+		XMVECTOR faceNormal = XMVector3Normalize(XMVector3Cross(e1, e2));
+
+		XMFLOAT3 fn;
+		XMStoreFloat3(&fn, faceNormal);
+		auto accumulate = [&normalSum, &fn](uint16_t idx) {
+			normalSum[idx].x += fn.x;
+			normalSum[idx].y += fn.y;
+			normalSum[idx].z += fn.z;
+		};
+		accumulate(index0);
+		accumulate(index1);
+		accumulate(index2);
+	}
+	for (size_t i = 0; i < m_vertices.size(); ++i)
+	{
+		LOG_DEBUG("normal.x : ", normalSum[i].x, ", normal.y : ", normalSum[i].y, ", normal.z : ", normalSum[i].z);
+		XMVECTOR normal = XMVector3Normalize(XMLoadFloat3(&normalSum[i]));
+		XMStoreFloat3(&m_vertices[i].normal, normal);
+	}
 }
 
 void Cube::UpdateWorldMatrix()
