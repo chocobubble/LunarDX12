@@ -407,7 +407,7 @@ void MainApp::CreateRootSignature()
 		D3D12_SHADER_VISIBILITY ShaderVisibility;
 	} 	D3D12_ROOT_PARAMETER;
 	*/
-	D3D12_ROOT_PARAMETER rootParameters[2];
+	D3D12_ROOT_PARAMETER rootParameters[3];
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[0].DescriptorTable.pDescriptorRanges = &cbvTable;
@@ -425,6 +425,11 @@ void MainApp::CreateRootSignature()
 	rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[1].DescriptorTable.pDescriptorRanges = &srvTable;
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[2].Descriptor.RegisterSpace = 0;
+	rootParameters[2].Descriptor.ShaderRegister = 2;
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	/*
 	typedef struct D3D12_STATIC_SAMPLER_DESC
@@ -716,14 +721,21 @@ void MainApp::Update(double dt)
 
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 
-	Light light = {};
+	LightConstants light = {};
 	light.Strength = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	light.FalloffStart = 0.1f;
 	light.Direction = XMFLOAT3(-0.5f, -0.5f, -0.5f);
-	light.FalloffEnd = 10.0f;
+	light.FalloffEnd = 100.0f;
 	light.Position = XMFLOAT3(5.0f, 5.0f, 5.0f);
-	light.SpotPower = 100.0f;
-	m_lightCB->CopyData(&light, sizeof(Light));
+	light.SpotPower = 1.0f;
+	m_lightCB->CopyData(&light, sizeof(LightConstants));
+
+	MaterialConstants material = {};
+	// material.DiffuseAlbedo = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
+	material.DiffuseAlbedo = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	material.FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	material.Roughness = 0.125f;
+	m_materialCB->CopyData(&material, sizeof(MaterialConstants));
 }
 
 void MainApp::ProcessInput(double dt)
@@ -825,8 +837,10 @@ void MainApp::Render(double dt)
 	srvHandle.ptr += 2 * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_commandList->SetGraphicsRootDescriptorTable(1, srvHandle);
 
+	m_commandList->SetGraphicsRootConstantBufferView(2, m_materialCB->GetResource()->GetGPUVirtualAddress());
+
 	// clear
-	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 
 	m_cube->Draw(m_commandList.Get());
@@ -1036,6 +1050,15 @@ void MainApp::InitializeTextures()
 
 void MainApp::CreateConstantBuffer()
 {
-	m_lightCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(Light), m_cbvHeap.Get());
+	m_lightCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(LightConstants), m_cbvHeap.Get());
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = m_lightCB->GetResource()->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = Utils::CalculateConstantBufferByteSize(sizeof(LightConstants));
+	
+	auto handle = m_cbvHeap->GetCPUDescriptorHandleForHeapStart();
+	handle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_device->CreateConstantBufferView(&cbvDesc, handle);
+	
+	m_materialCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(MaterialConstants), m_cbvHeap.Get());
 }
 } // namespace Lunar

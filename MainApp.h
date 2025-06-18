@@ -14,6 +14,7 @@ using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 namespace Lunar {
+class ConstantBuffer;
 
 struct Vertex
 {
@@ -109,7 +110,8 @@ private:
 
     std::unique_ptr<class Camera> m_camera;
 
-	std::unique_ptr<class ConstantBuffer> m_lightCB;
+	std::unique_ptr<ConstantBuffer> m_lightCB;
+	std::unique_ptr<ConstantBuffer> m_materialCB;
 };
 
 } // namespace Lunar

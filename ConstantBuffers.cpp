@@ -41,16 +41,6 @@ ConstantBuffer::ConstantBuffer(ID3D12Device* device, UINT elementByteSize, ID3D1
 	))
 
 	THROW_IF_FAILED(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_mappedData)))
-	
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = m_constantBuffer->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = elementByteSize;
-	
-	auto handle = cbvHeap->GetCPUDescriptorHandleForHeapStart();
-	handle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	
-	device->CreateConstantBufferView(
-		&cbvDesc, handle);
 }
 
 

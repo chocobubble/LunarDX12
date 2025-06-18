@@ -15,7 +15,7 @@ struct BasicConstants
 	float               dummy;
 };
 
-struct Light
+struct LightConstants
 {
 	DirectX::XMFLOAT3 Strength;
 	float             FalloffStart;
@@ -25,6 +25,13 @@ struct Light
 	float             SpotPower;
 };
 
+struct MaterialConstants
+{
+	DirectX::XMFLOAT4 DiffuseAlbedo;
+	DirectX::XMFLOAT3 FresnelR0;
+	float             Roughness;
+	
+};
 
 class ConstantBuffer
 {
@@ -32,6 +39,7 @@ public:
 	ConstantBuffer(ID3D12Device* device, UINT elementByteSize, ID3D12DescriptorHeap* cbvHeap);
 	~ConstantBuffer();
 	void CopyData(void* data, UINT size);
+	ID3D12Resource* GetResource() const { return m_constantBuffer.Get(); }
 private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_constantBuffer;
 	BYTE* m_mappedData = nullptr;
