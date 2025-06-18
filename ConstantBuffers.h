@@ -3,19 +3,12 @@
 #include <DirectXMath.h>
 #include <wrl/client.h>
 
+#include "LunarConstants.h"
+
 namespace Lunar
 {
 
-struct BasicConstants
-{
-	DirectX::XMFLOAT4X4 model;
-	DirectX::XMFLOAT4X4 view;
-	DirectX::XMFLOAT4X4 projection;
-	DirectX::XMFLOAT3   eyePos;
-	float               dummy;
-};
-
-struct LightConstants
+struct Light
 {
 	DirectX::XMFLOAT3 Strength;
 	float             FalloffStart;
@@ -24,13 +17,22 @@ struct LightConstants
 	DirectX::XMFLOAT3 Position;
 	float             SpotPower;
 };
+	
+struct BasicConstants
+{
+	DirectX::XMFLOAT4X4 model;
+	DirectX::XMFLOAT4X4 view;
+	DirectX::XMFLOAT4X4 projection;
+	DirectX::XMFLOAT3   eyePos;
+	float               dummy;
+	Light lights[Lunar::Constants::LIGHT_COUNT];
+};
 
 struct MaterialConstants
 {
 	DirectX::XMFLOAT4 DiffuseAlbedo;
 	DirectX::XMFLOAT3 FresnelR0;
 	float             Roughness;
-	
 };
 
 class ConstantBuffer

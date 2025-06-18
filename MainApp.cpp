@@ -389,7 +389,7 @@ void MainApp::CreateRootSignature()
 	*/
 	D3D12_DESCRIPTOR_RANGE cbvTable = {};
 	cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	cbvTable.NumDescriptors = 2;
+	cbvTable.NumDescriptors = 1;
 	cbvTable.BaseShaderRegister = 0;
 	cbvTable.RegisterSpace = 0;
 	cbvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -719,16 +719,21 @@ void MainApp::Update(double dt)
 	// XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
 	// m_cube->SetRotation(rotation);
 
+	m_pointLight->Position.x = m_pointLightPosX;
+	m_pointLight->Position.y = m_pointLightPosY;
+	m_pointLight->Position.z = m_pointLightPosZ;
+	constants.lights[1] = *m_pointLight;
+	
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 
-	LightConstants light = {};
-	light.Strength = XMFLOAT3(1.0f, 1.0f, 1.0f);
-	light.FalloffStart = 0.1f;
-	light.Direction = XMFLOAT3(-0.5f, -0.5f, -0.5f);
-	light.FalloffEnd = 100.0f;
-	light.Position = XMFLOAT3(5.0f, 5.0f, 5.0f);
-	light.SpotPower = 1.0f;
-	m_lightCB->CopyData(&light, sizeof(LightConstants));
+	// LightConstants light = {};
+	// light.Strength = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	// light.FalloffStart = 0.1f;
+	// light.Direction = XMFLOAT3(-0.5f, -0.5f, -0.5f);
+	// light.FalloffEnd = 100.0f;
+	// light.Position = XMFLOAT3(5.0f, 5.0f, 5.0f);
+	// light.SpotPower = 1.0f;
+	// m_lightCB->CopyData(&light, sizeof(LightConstants));
 
 	MaterialConstants material = {};
 	// material.DiffuseAlbedo = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
@@ -905,6 +910,7 @@ void MainApp::Initialize()
 	BuildShadersAndInputLayout();
 	BuildPSO();
 	InitializeGeometry();
+	CreateLights();
 	InitGui();
 }
 
@@ -1050,15 +1056,17 @@ void MainApp::InitializeTextures()
 
 void MainApp::CreateConstantBuffer()
 {
-	m_lightCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(LightConstants), m_cbvHeap.Get());
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = m_lightCB->GetResource()->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = Utils::CalculateConstantBufferByteSize(sizeof(LightConstants));
-	
-	auto handle = m_cbvHeap->GetCPUDescriptorHandleForHeapStart();
-	handle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	m_device->CreateConstantBufferView(&cbvDesc, handle);
-	
 	m_materialCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(MaterialConstants), m_cbvHeap.Get());
+}
+
+void MainApp::CreateLights()
+{
+	m_directionalLight = std::make_unique<Light>();
+	m_pointLight = std::make_unique<Light>();
+	m_spotLight = std::make_unique<Light>();
+
+	m_pointLight->FalloffEnd = 100.0f;
+	m_pointLight->FalloffStart = 0.1f;
+	m_pointLight->Strength = {10.0f, 10.0f, 10.0f};
 }
 } // namespace Lunar

@@ -14,7 +14,8 @@ using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 namespace Lunar {
-class ConstantBuffer;
+	struct Light;
+	class ConstantBuffer;
 
 struct Vertex
 {
@@ -56,6 +57,7 @@ private:
 	void CreateCamera();
 	void InitializeTextures();
 	void CreateConstantBuffer();
+	void CreateLights();
 	
 	HWND m_mainWindow;
 	
@@ -112,6 +114,13 @@ private:
 
 	std::unique_ptr<ConstantBuffer> m_lightCB;
 	std::unique_ptr<ConstantBuffer> m_materialCB;
+
+	std::unique_ptr<Light> m_directionalLight;
+	std::unique_ptr<Light> m_pointLight;
+	std::unique_ptr<Light> m_spotLight;
+	float m_pointLightPosX = 5.0f;
+	float m_pointLightPosY = 1.0f;
+	float m_pointLightPosZ = 0.0f;
 };
 
 } // namespace Lunar
