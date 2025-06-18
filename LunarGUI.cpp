@@ -139,38 +139,4 @@ bool LunarGui::RegisterCallback(const std::string& id, std::function<void()> cal
 	return true;
 }
 
-template <typename T>
-void LunarGui::BindSlider(const std::string& id, T* value, T* min, T* max, std::function<void(T*)> onChange)
-{
-	if (GetBoundValue<T>(id)) 
-	{
-		LOG_ERROR("Value with ID '%s' already bound.", id); 
-		return;
-	}
-
-	BoundValue boundValue;
-	boundValue.type = UIElementType::Slider;
-	boundValue.dataPtr = value;
-	boundValue.min = min;
-	boundValue.max = max;
-    
-	if (onChange) 
-	{
-		boundValue.onChange = [onChange](void* data) { onChange(static_cast<T*>(data)); };
-	}
-    
-	m_boundValues[id] = boundValue;
-}
-
-template <typename T>
-T* LunarGui::GetBoundValue(const std::string& id)
-{
-	auto it = m_boundValues.find(id);
-	if (it != m_boundValues.end()) 
-	{
-		return static_cast<T*>(it->second.dataPtr);
-	}
-	return nullptr;
-}
-
 }

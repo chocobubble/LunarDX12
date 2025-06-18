@@ -121,6 +121,8 @@ private:
 	float m_pointLightPosX = 5.0f;
 	float m_pointLightPosY = 1.0f;
 	float m_pointLightPosZ = 0.0f;
+
+	bool m_mouseMoving = false;
 };
 
 } // namespace Lunar

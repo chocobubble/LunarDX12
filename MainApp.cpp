@@ -56,7 +56,7 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_MOUSEMOVE:
 			// LOG_DEBUG("Mouse ", LOWORD(lParam), " ", HIWORD(lParam));
-            OnMouseMove(LOWORD(lParam), HIWORD(lParam));
+            if (m_mouseMoving) OnMouseMove(LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_LBUTTONUP:
 			LOG_DEBUG("Left mouse button");
@@ -768,6 +768,10 @@ void MainApp::ProcessInput(double dt)
         cameraDeltaRight += dt;
         cameraDirty = true;
     }
+	if (GetAsyncKeyState('F') & 0x8000)
+	{
+		m_mouseMoving = !m_mouseMoving;
+	}
 
     if (cameraDirty)
     {
@@ -896,6 +900,7 @@ void MainApp::Initialize()
 	InitMainWindow();
 	InitDirect3D();
 	InitializeCommandList();
+	InitGui();
 	CreateFence();
 	InitializeTextures();
 	CreateCamera();
@@ -911,7 +916,6 @@ void MainApp::Initialize()
 	BuildPSO();
 	InitializeGeometry();
 	CreateLights();
-	InitGui();
 }
 
 bool MainApp::InitDirect3D()
@@ -1068,5 +1072,9 @@ void MainApp::CreateLights()
 	m_pointLight->FalloffEnd = 100.0f;
 	m_pointLight->FalloffStart = 0.1f;
 	m_pointLight->Strength = {10.0f, 10.0f, 10.0f};
+
+	m_gui->BindSlider("point_light_pos_x", &m_pointLightPosX, -5.0f, 5.0f);
+	m_gui->BindSlider<float>("point_light_pos_y", &m_pointLightPosY, -5.0f, 5.0f);
+	m_gui->BindSlider<float>("point_light_pos_z", &m_pointLightPosZ, -5.0f, 5.0f);
 }
 } // namespace Lunar
