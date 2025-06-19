@@ -43,10 +43,13 @@ private:
 	void CreateFence();
 	void Render(double dt);
 	void Update(double dt);
+    void ProcessInput(double dt);
 	bool InitDirect3D();
 	bool InitMainWindow();
+    void OnMouseMove(float x, float y);
 	float GetAspectRatio() const;
 	void InitializeGeometry();
+	void CreateCamera();
 	
 	HWND m_mainWindow;
 	
@@ -89,7 +92,11 @@ private:
 	
 	std::unique_ptr<class Cube> m_cube;
 
-	XMFLOAT3 m_eyeWorld;
+    bool m_firstMouseMove = true;
+    float m_lastMouseX = 0.0f;
+    float m_lastMouseY = 0.0f;
+
+    std::unique_ptr<class Camera> m_camera;
 };
 
 } // namespace Lunar

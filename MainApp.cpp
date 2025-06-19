@@ -4,6 +4,8 @@
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 #include "MainApp.h"
+
+#include "Camera.h"
 #include "Logger.h"
 #include "Utils.h"
 #include "LunarConstants.h"
@@ -27,7 +29,6 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_displayWidth = 1280;
 	m_displayHeight = 720;
-	m_eyeWorld = XMFLOAT3(0.0f, 0.0f, 0.0f);
 }
 
 MainApp::~MainApp()
@@ -58,6 +59,7 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_MOUSEMOVE:
 			LOG_DEBUG("Mouse ", LOWORD(lParam), " ", HIWORD(lParam));
+            OnMouseMove(LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_LBUTTONUP:
 			LOG_DEBUG("Left mouse button");
@@ -73,6 +75,24 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return 0;
 	}
 	return ::DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+void MainApp::OnMouseMove(float x, float y)
+{
+    if (m_firstMouseMove) 
+    {
+        m_lastMouseX = x;
+        m_lastMouseY = y;
+        m_firstMouseMove = false;
+        return;
+    }
+
+    // TODO : should compare with threshold?
+    float dx = x - m_lastMouseX;
+    float dy = y - m_lastMouseY;
+	m_lastMouseX = x;
+	m_lastMouseY = y;
+    m_camera->UpdateRotationQuatFromMouse(dx, dy);
 }
 
 void MainApp::InitGui()
@@ -236,9 +256,9 @@ void MainApp::CreateConstantBufferView()
 	THROW_IF_FAILED(m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin)))
 
 	BasicConstants constants;
-	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
-	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
-	constants.eyeWorld = XMFLOAT3(1.0f, 1.0f, 0.0f);
+	constants.view = m_camera->GetViewMatrix();
+	constants.projection = m_camera->GetProjMatrix();
+	constants.eyePos = m_camera->GetPosition();
 	constants.dummy = 0.0f;
 
 	memcpy(pCbvDataBegin, &constants, sizeof(BasicConstants));
@@ -569,6 +589,8 @@ int MainApp::Run()
 
 void MainApp::Update(double dt)
 {
+    ProcessInput(dt);
+
 	BYTE* pCbvDataBegin; 
 	m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin));
 
@@ -576,16 +598,47 @@ void MainApp::Update(double dt)
 	XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
 	worldMatrix = XMMatrixTranspose(worldMatrix);
 	XMStoreFloat4x4(&constants.model, worldMatrix);
-	XMStoreFloat4x4(&constants.view, XMMatrixIdentity());
-	XMStoreFloat4x4(&constants.projection, XMMatrixIdentity());
+	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
+	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
 	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
 	float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
 	XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
-	m_cube->SetRotation(rotation);
+	// m_cube->SetRotation(rotation);
 
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
 }
 
+void MainApp::ProcessInput(double dt)
+{
+    bool cameraDirty = false;
+    float cameraDeltaFront = 0.0;
+    float cameraDeltaRight = 0.0;
+    if (GetAsyncKeyState('W') & 0x8000) 
+    {
+        cameraDeltaFront += dt;
+        cameraDirty = true;
+    }
+    if (GetAsyncKeyState('S') & 0x8000)
+    {
+        cameraDeltaFront -= dt;
+        cameraDirty = true;
+    }
+    if (GetAsyncKeyState('A') & 0x8000)
+    {
+        cameraDeltaRight -= dt;
+        cameraDirty = true;
+    }
+    if (GetAsyncKeyState('D') & 0x8000)
+    {
+        cameraDeltaRight += dt;
+        cameraDirty = true;
+    }
+
+    if (cameraDirty)
+    {
+        m_camera->UpdatePosition(cameraDeltaRight, 0.0f, cameraDeltaFront);
+    }
+}
 
 void MainApp::Render(double dt)
 {
@@ -708,6 +761,7 @@ void MainApp::Initialize()
 	InitMainWindow();
 	InitDirect3D();
 	InitializeCommandList();
+	CreateCamera();
 	CreateSwapChain();
 	CreateCBVDescriptorHeap();
 	CreateConstantBufferView();
@@ -822,11 +876,13 @@ bool MainApp::InitMainWindow()
 
 float MainApp::GetAspectRatio() const
 {
+	LOG_FUNCTION_ENTRY();
 	return static_cast<float>(m_displayWidth) / m_displayHeight;
 }
 
 void MainApp::InitializeGeometry()
 {
+	LOG_FUNCTION_ENTRY();
 	m_cube = std::make_unique<Cube>();
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
@@ -835,6 +891,12 @@ void MainApp::InitializeGeometry()
 	m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
 	m_cube->SetScale(0.5f);
 	m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
+}
+
+void MainApp::CreateCamera()
+{
+	LOG_FUNCTION_ENTRY();
+	m_camera = std::make_unique<Camera>();
 }
 
 } // namespace Lunar
