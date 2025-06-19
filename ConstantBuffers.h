@@ -1,18 +1,50 @@
 ﻿#pragma once
+#include <d3d12.h>
 #include <DirectXMath.h>
+#include <wrl/client.h>
 
-using namespace DirectX;
+#include "LunarConstants.h"
 
 namespace Lunar
 {
 
+struct Light
+{
+	DirectX::XMFLOAT3 Strength;
+	float             FalloffStart;
+	DirectX::XMFLOAT3 Direction;
+	float             FalloffEnd;
+	DirectX::XMFLOAT3 Position;
+	float             SpotPower;
+};
+	
 struct BasicConstants
 {
-	XMFLOAT4X4 model;
-	XMFLOAT4X4 view;
-	XMFLOAT4X4 projection;
-	XMFLOAT3 eyePos;
-	float dummy;
+	DirectX::XMFLOAT4X4 model;
+	DirectX::XMFLOAT4X4 view;
+	DirectX::XMFLOAT4X4 projection;
+	DirectX::XMFLOAT3   eyePos;
+	float               dummy;
+	Light lights[Lunar::Constants::LIGHT_COUNT];
+};
+
+struct MaterialConstants
+{
+	DirectX::XMFLOAT4 DiffuseAlbedo;
+	DirectX::XMFLOAT3 FresnelR0;
+	float             Roughness;
+};
+
+class ConstantBuffer
+{
+public:
+	ConstantBuffer(ID3D12Device* device, UINT elementByteSize, ID3D12DescriptorHeap* cbvHeap);
+	~ConstantBuffer();
+	void CopyData(void* data, UINT size);
+	ID3D12Resource* GetResource() const { return m_constantBuffer.Get(); }
+private:
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_constantBuffer;
+	BYTE* m_mappedData = nullptr;
 };
 	
 } // namespace Lunar

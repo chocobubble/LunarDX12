@@ -14,12 +14,15 @@ using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 namespace Lunar {
+	struct Light;
+	class ConstantBuffer;
 
 struct Vertex
 {
 	XMFLOAT3 pos;
 	XMFLOAT4 color;
 	XMFLOAT2 texCoord;
+	XMFLOAT3 normal;
 };
 	
 class MainApp {
@@ -53,6 +56,8 @@ private:
 	void InitializeGeometry();
 	void CreateCamera();
 	void InitializeTextures();
+	void CreateConstantBuffer();
+	void CreateLights();
 	
 	HWND m_mainWindow;
 	
@@ -66,6 +71,7 @@ private:
 	ComPtr<IDXGISwapChain1> m_swapChain;
 	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 	ComPtr<ID3D12DescriptorHeap> m_cbvHeap;
+	ComPtr<ID3D12DescriptorHeap> m_lightHeap;
 	ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	ComPtr<ID3D12RootSignature> m_rootSignature;
 	ComPtr<ID3DBlob> m_vsByteCode;
@@ -105,6 +111,18 @@ private:
     float m_lastMouseY = 0.0f;
 
     std::unique_ptr<class Camera> m_camera;
+
+	std::unique_ptr<ConstantBuffer> m_lightCB;
+	std::unique_ptr<ConstantBuffer> m_materialCB;
+
+	std::unique_ptr<Light> m_directionalLight;
+	std::unique_ptr<Light> m_pointLight;
+	std::unique_ptr<Light> m_spotLight;
+	float m_pointLightPosX = 5.0f;
+	float m_pointLightPosY = 1.0f;
+	float m_pointLightPosZ = 0.0f;
+
+	bool m_mouseMoving = false;
 };
 
 } // namespace Lunar

@@ -56,7 +56,7 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_MOUSEMOVE:
 			// LOG_DEBUG("Mouse ", LOWORD(lParam), " ", HIWORD(lParam));
-            OnMouseMove(LOWORD(lParam), HIWORD(lParam));
+            if (m_mouseMoving) OnMouseMove(LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_LBUTTONUP:
 			LOG_DEBUG("Left mouse button");
@@ -201,7 +201,7 @@ void MainApp::CreateCBVDescriptorHeap()
 	LOG_FUNCTION_ENTRY();
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {};
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	cbvHeapDesc.NumDescriptors = 2; // to add srvDesc
+	cbvHeapDesc.NumDescriptors = 3; // to add srvDesc
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(m_cbvHeap.GetAddressOf())))
@@ -371,7 +371,7 @@ void MainApp::CreateShaderResourceView()
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
 	m_srvHandle = m_cbvHeap->GetCPUDescriptorHandleForHeapStart();
-	m_srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_srvHandle.ptr += 2 * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHandle);
 }
 
@@ -407,7 +407,7 @@ void MainApp::CreateRootSignature()
 		D3D12_SHADER_VISIBILITY ShaderVisibility;
 	} 	D3D12_ROOT_PARAMETER;
 	*/
-	D3D12_ROOT_PARAMETER rootParameters[2];
+	D3D12_ROOT_PARAMETER rootParameters[3];
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[0].DescriptorTable.pDescriptorRanges = &cbvTable;
@@ -425,6 +425,11 @@ void MainApp::CreateRootSignature()
 	rootParameters[1].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[1].DescriptorTable.pDescriptorRanges = &srvTable;
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[2].Descriptor.RegisterSpace = 0;
+	rootParameters[2].Descriptor.ShaderRegister = 2;
+	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	/*
 	typedef struct D3D12_STATIC_SAMPLER_DESC
@@ -541,7 +546,8 @@ void MainApp::BuildShadersAndInputLayout()
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 }
 
@@ -707,12 +713,34 @@ void MainApp::Update(double dt)
 	XMStoreFloat4x4(&constants.model, worldMatrix);
 	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
 	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
-	float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
-	float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
-	XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
+	constants.eyePos = m_camera->GetPosition();
+	// float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
+	// float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
+	// XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
 	// m_cube->SetRotation(rotation);
 
+	m_pointLight->Position.x = m_pointLightPosX;
+	m_pointLight->Position.y = m_pointLightPosY;
+	m_pointLight->Position.z = m_pointLightPosZ;
+	constants.lights[1] = *m_pointLight;
+	
 	memcpy(pCbvDataBegin, &constants, sizeof(constants));
+
+	// LightConstants light = {};
+	// light.Strength = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	// light.FalloffStart = 0.1f;
+	// light.Direction = XMFLOAT3(-0.5f, -0.5f, -0.5f);
+	// light.FalloffEnd = 100.0f;
+	// light.Position = XMFLOAT3(5.0f, 5.0f, 5.0f);
+	// light.SpotPower = 1.0f;
+	// m_lightCB->CopyData(&light, sizeof(LightConstants));
+
+	MaterialConstants material = {};
+	// material.DiffuseAlbedo = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
+	material.DiffuseAlbedo = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	material.FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	material.Roughness = 0.125f;
+	m_materialCB->CopyData(&material, sizeof(MaterialConstants));
 }
 
 void MainApp::ProcessInput(double dt)
@@ -740,6 +768,10 @@ void MainApp::ProcessInput(double dt)
         cameraDeltaRight += dt;
         cameraDirty = true;
     }
+	if (GetAsyncKeyState('F') & 0x8000)
+	{
+		m_mouseMoving = !m_mouseMoving;
+	}
 
     if (cameraDirty)
     {
@@ -811,11 +843,13 @@ void MainApp::Render(double dt)
 
 	// TODO: detach the srv to other heap
 	D3D12_GPU_DESCRIPTOR_HANDLE srvHandle = m_cbvHeap->GetGPUDescriptorHandleForHeapStart();
-	srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	srvHandle.ptr += 2 * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_commandList->SetGraphicsRootDescriptorTable(1, srvHandle);
 
+	m_commandList->SetGraphicsRootConstantBufferView(2, m_materialCB->GetResource()->GetGPUVirtualAddress());
+
 	// clear
-	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 
 	m_cube->Draw(m_commandList.Get());
@@ -866,12 +900,14 @@ void MainApp::Initialize()
 	InitMainWindow();
 	InitDirect3D();
 	InitializeCommandList();
+	InitGui();
 	CreateFence();
 	InitializeTextures();
 	CreateCamera();
 	CreateSwapChain();
 	CreateCBVDescriptorHeap();
 	CreateConstantBufferView();
+	CreateConstantBuffer();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
 	CreateShaderResourceView();
@@ -879,7 +915,7 @@ void MainApp::Initialize()
 	BuildShadersAndInputLayout();
 	BuildPSO();
 	InitializeGeometry();
-	InitGui();
+	CreateLights();
 }
 
 bool MainApp::InitDirect3D()
@@ -1020,5 +1056,25 @@ void MainApp::InitializeTextures()
 		LOG_ERROR("Texture file does not exist: ", texturePath);
 	}
 	m_texture = Utils::LoadSimpleTexture(m_device.Get(), m_commandList.Get(), texturePath, m_textureUploadBuffer);
+}
+
+void MainApp::CreateConstantBuffer()
+{
+	m_materialCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(MaterialConstants), m_cbvHeap.Get());
+}
+
+void MainApp::CreateLights()
+{
+	m_directionalLight = std::make_unique<Light>();
+	m_pointLight = std::make_unique<Light>();
+	m_spotLight = std::make_unique<Light>();
+
+	m_pointLight->FalloffEnd = 100.0f;
+	m_pointLight->FalloffStart = 0.1f;
+	m_pointLight->Strength = {10.0f, 10.0f, 10.0f};
+
+	m_gui->BindSlider("point_light_pos_x", &m_pointLightPosX, -5.0f, 5.0f);
+	m_gui->BindSlider<float>("point_light_pos_y", &m_pointLightPosY, -5.0f, 5.0f);
+	m_gui->BindSlider<float>("point_light_pos_z", &m_pointLightPosZ, -5.0f, 5.0f);
 }
 } // namespace Lunar

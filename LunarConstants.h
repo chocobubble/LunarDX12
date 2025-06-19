@@ -16,6 +16,8 @@ static constexpr float NEAR_PLANE = 0.1f;
 static constexpr float FAR_PLANE = 100.0f;
 static constexpr float MOUSE_SENSITIVITY = 0.005f;
 static constexpr float CAMERA_MOVE_SPEED = 1.0f;
+
+static constexpr UINT LIGHT_COUNT = 3;
 	
 }	
 }

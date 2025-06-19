@@ -75,11 +75,40 @@ public:
     
 	void BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange = nullptr);
 
-    template<typename T>
-	void BindSlider(const std::string& id, T* value, T* min, T* max, std::function<void(T*)> onChange = nullptr);
+	template <typename T>
+	void BindSlider(const std::string& id, T* value, T min, T max, std::function<void(T*)> onChange = nullptr)
+	{
+		auto it = m_boundValues.find(id);
+		if (it != m_boundValues.end()) 
+		{
+			LOG_ERROR("Value with ID '%s' already bound.", id); 
+			return;
+		}
+
+		BoundValue boundValue;
+		boundValue.type = UIElementType::Slider;
+		boundValue.dataPtr = value;
+		boundValue.min = min;
+		boundValue.max = max;
     
-	template<typename T>
-	T* GetBoundValue(const std::string& id) ;
+		if (onChange) 
+		{
+			boundValue.onChange = [onChange](void* data) { onChange(static_cast<T*>(data)); };
+		}
+    
+		m_boundValues[id] = boundValue;
+	}
+
+	template <typename T>
+	T* GetBoundValue(const std::string& id)
+	{
+		auto it = m_boundValues.find(id);
+		if (it != m_boundValues.end()) 
+		{
+			return static_cast<T*>(it->second.dataPtr);
+		}
+		return nullptr;
+	}
 
     bool RegisterCallback(const std::string& id, std::function<void()> callback);
 
