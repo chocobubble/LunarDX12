@@ -93,3 +93,5 @@ docs/
 logs/
 
 *.ini
+
+Assets/

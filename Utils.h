@@ -2,8 +2,10 @@
 #include <exception>
 #include <string>
 #include <Windows.h> 
+#include <wrl/client.h>
+#include <d3d12.h>
 
-namespace  Lunar
+namespace Lunar
 {
 class LunarException
 {
@@ -29,6 +31,7 @@ public:
 		// Constant buffers must be a multiple of the minimum hardware allocation size (usually 256 bytes)
 		return (byteSize + 255) & ~255;
 	}	
+	static Microsoft::WRL::ComPtr<ID3D12Resource> LoadSimpleTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
 };
 	
 } // namespace Lunar

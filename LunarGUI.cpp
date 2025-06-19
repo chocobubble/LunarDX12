@@ -13,7 +13,7 @@ LunarGui::~LunarGui()
 	}
 }
 
-bool LunarGui::Initialize(HWND hwnd, ID3D12Device* device, int bufferCount, DXGI_FORMAT format, ID3D12DescriptorHeap* heap) 
+bool LunarGui::Initialize(HWND hwnd, ID3D12Device* device, UINT bufferCount, DXGI_FORMAT format, ID3D12DescriptorHeap* heap) 
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -55,9 +55,11 @@ void LunarGui::BeginFrame()
 	ImGui::NewFrame();
 }
 
-void LunarGui::Render() 
+void LunarGui::Render(float dt) 
 {
+    BeginFrame();
 	ImGui::Begin("Settings");
+	ImGui::Text("FPS: %.2f", 1.0f / dt);
 
 	for (auto& pair : m_boundValues) 
 	{
@@ -94,10 +96,81 @@ void LunarGui::Render()
 	}
 
 	ImGui::End();
+    EndFrame();
 }
 
 void LunarGui::EndFrame() 
 {
 	ImGui::Render();
 }
+
+void LunarGui::BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange)
+{
+	if (GetBoundValue<bool>(id)) 
+	{
+		LOG_ERROR("Value with ID '%s' already bound.", id);
+		return;
+	}
+
+	BoundValue boundValue;
+	boundValue.type = UIElementType::Checkbox;
+	boundValue.dataPtr = value;
+        
+
+	if (onChange) 
+	{
+		boundValue.onChange = [onChange](bool data) 
+		{
+			onChange(data);
+		};
+	}
+        
+	m_boundValues[id] = boundValue;
+}
+
+bool LunarGui::RegisterCallback(const std::string& id, std::function<void()> callback)
+{
+	if (m_callbacks.find(id) != m_callbacks.end()) 
+	{
+		LOG_ERROR("Callback with ID '%s' already registered.", id);
+		return false;
+	} 
+	m_callbacks[id] = callback;
+	return true;
+}
+
+template <typename T>
+void LunarGui::BindSlider(const std::string& id, T* value, T* min, T* max, std::function<void(T*)> onChange)
+{
+	if (GetBoundValue<T>(id)) 
+	{
+		LOG_ERROR("Value with ID '%s' already bound.", id); 
+		return;
+	}
+
+	BoundValue boundValue;
+	boundValue.type = UIElementType::Slider;
+	boundValue.dataPtr = value;
+	boundValue.min = min;
+	boundValue.max = max;
+    
+	if (onChange) 
+	{
+		boundValue.onChange = [onChange](void* data) { onChange(static_cast<T*>(data)); };
+	}
+    
+	m_boundValues[id] = boundValue;
+}
+
+template <typename T>
+T* LunarGui::GetBoundValue(const std::string& id)
+{
+	auto it = m_boundValues.find(id);
+	if (it != m_boundValues.end()) 
+	{
+		return static_cast<T*>(it->second.dataPtr);
+	}
+	return nullptr;
+}
+
 }

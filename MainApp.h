@@ -19,6 +19,7 @@ struct Vertex
 {
 	XMFLOAT3 pos;
 	XMFLOAT4 color;
+	XMFLOAT2 texCoord;
 };
 	
 class MainApp {
@@ -37,6 +38,7 @@ private:
 	void CreateConstantBufferView();
 	void CreateRTVDescriptorHeap();
 	void CreateRenderTargetView();
+	void CreateShaderResourceView();
 	void CreateRootSignature();
 	void BuildShadersAndInputLayout();
 	void BuildPSO();
@@ -50,6 +52,7 @@ private:
 	float GetAspectRatio() const;
 	void InitializeGeometry();
 	void CreateCamera();
+	void InitializeTextures();
 	
 	HWND m_mainWindow;
 	
@@ -63,6 +66,7 @@ private:
 	ComPtr<IDXGISwapChain1> m_swapChain;
 	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 	ComPtr<ID3D12DescriptorHeap> m_cbvHeap;
+	ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	ComPtr<ID3D12RootSignature> m_rootSignature;
 	ComPtr<ID3DBlob> m_vsByteCode;
 	ComPtr<ID3DBlob> m_psByteCode;
@@ -70,10 +74,13 @@ private:
 	ComPtr<ID3D12Fence> m_fence;
 	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
 	ComPtr<ID3D12Resource> m_uploadBuffer;
+	ComPtr<ID3D12Resource> m_textureUploadBuffer;
 	ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
+	ComPtr<ID3D12Resource> m_texture;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 
 	UINT m_displayWidth;
 	UINT m_displayHeight;
@@ -91,6 +98,7 @@ private:
 	Lunar::LunarTimer m_lunarTimer;
 	
 	std::unique_ptr<class Cube> m_cube;
+    std::unique_ptr<class LunarGui> m_gui;
 
     bool m_firstMouseMove = true;
     float m_lastMouseX = 0.0f;
