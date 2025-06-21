@@ -46,7 +46,7 @@ struct MaterialConstants
 class ConstantBuffer
 {
 public:
-	ConstantBuffer(ID3D12Device* device, UINT elementByteSize, ID3D12DescriptorHeap* cbvHeap);
+	ConstantBuffer(ID3D12Device* device, UINT elementByteSize);
 	~ConstantBuffer();
 	void CopyData(void* data, UINT size);
 	ID3D12Resource* GetResource() const { return m_constantBuffer.Get(); }

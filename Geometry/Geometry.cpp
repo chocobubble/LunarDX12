@@ -11,11 +11,11 @@ Geometry::Geometry()
     XMStoreFloat4x4(&m_world, XMMatrixIdentity());
 }
 
-void Geometry::Initialize(ID3D12Device* device, ID3D12DescriptorHeap* cbvHeap)
+void Geometry::Initialize(ID3D12Device* device)
 {
     CreateGeometry();  
     CreateBuffers(device); 
-    m_objectCB = std::make_unique<UploadBuffer<ObjectConstants>>(device, sizeof(ObjectConstants), cbvHeap);
+    m_objectCB = std::make_unique<UploadBuffer<ObjectConstants>>(device, sizeof(ObjectConstants));
 }
 
 void Geometry::Draw(ID3D12GraphicsCommandList* commandList)
@@ -25,7 +25,7 @@ void Geometry::Draw(ID3D12GraphicsCommandList* commandList)
         UpdateObjectConstants();
     }
     
-    BindObjectConstants(commandList, 1);
+    BindObjectConstants(commandList);
     commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
     commandList->IASetIndexBuffer(&m_indexBufferView);
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -89,11 +89,13 @@ void Geometry::UpdateObjectConstants()
     m_needsConstantBufferUpdate = false;
 }
 
-void Geometry::BindObjectConstants(ID3D12GraphicsCommandList* commandList, UINT rootParameterIndex)
+void Geometry::BindObjectConstants(ID3D12GraphicsCommandList* commandList)
 {
     if (m_objectConstantBuffer)
     {
-        commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, m_objectConstantBuffer->GetGPUVirtualAddress());
+        commandList->SetGraphicsRootConstantBufferView(
+            Lunar::Constants::OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX, 
+            m_objectConstantBuffer->GetGPUVirtualAddress());
     }
 }
 

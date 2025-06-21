@@ -7,7 +7,7 @@
 namespace Lunar
 {
 
-ConstantBuffer::ConstantBuffer(ID3D12Device* device, UINT elementByteSize, ID3D12DescriptorHeap* cbvHeap)
+ConstantBuffer::ConstantBuffer(ID3D12Device* device, UINT elementByteSize)
 {
 	elementByteSize = Utils::CalculateConstantBufferByteSize(elementByteSize);
 	
