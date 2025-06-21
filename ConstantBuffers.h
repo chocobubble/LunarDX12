@@ -18,6 +18,7 @@ struct Light
 	float             SpotPower;
 };
 	
+// Root Parameter CBV 1
 struct BasicConstants
 {
 	DirectX::XMFLOAT4X4 model;
@@ -28,6 +29,13 @@ struct BasicConstants
 	Light lights[Lunar::Constants::LIGHT_COUNT];
 };
 
+// Root Parameter CBV 2
+struct ObjectConstants
+{
+	DirectX::XMFLOAT4X4 World;
+};
+
+// Root Parameter CBV 3
 struct MaterialConstants
 {
 	DirectX::XMFLOAT4 DiffuseAlbedo;
