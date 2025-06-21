@@ -132,6 +132,11 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ConstantBuffers.cpp" />
     <ClCompile Include="Cube.cpp" />
+    <ClCompile Include="Geometry\Geometry.cpp" />
+    <ClCompile Include="Geometry\Cube.cpp" />
+    <ClCompile Include="Geometry\Plane.cpp" />
+    <ClCompile Include="Geometry\GeometryFactory.cpp" />
+    <ClCompile Include="Geometry\SceneRenderer.cpp" />
     <ClCompile Include="LunarConstants.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="LunarGUI.cpp" />
@@ -145,6 +150,12 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ConstantBuffers.h" />
     <ClInclude Include="Cube.h" />
+    <ClInclude Include="Geometry\Geometry.h" />
+    <ClInclude Include="Geometry\Vertex.h" />
+    <ClInclude Include="Geometry\Cube.h" />
+    <ClInclude Include="Geometry\Plane.h" />
+    <ClInclude Include="Geometry\GeometryFactory.h" />
+    <ClInclude Include="Geometry\SceneRenderer.h" />
     <ClInclude Include="LunarConstants.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="LunarGUI.h" />

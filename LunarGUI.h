@@ -15,7 +15,7 @@ namespace Lunar
 class LunarGui 
 {
 private:
-    enum class UIElementType 
+    enum class UIElementType : int8
     {
         Checkbox,
         Slider
@@ -74,7 +74,7 @@ public:
 	void EndFrame();
     
 	void BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange = nullptr);
-
+	
 	template <typename T>
 	void BindSlider(const std::string& id, T* value, T min, T max, std::function<void(T*)> onChange = nullptr)
 	{

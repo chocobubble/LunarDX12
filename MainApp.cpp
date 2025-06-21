@@ -1027,11 +1027,13 @@ void MainApp::InitializeGeometry()
 {
 	LOG_FUNCTION_ENTRY();
 	m_cube = std::make_unique<Cube>();
+	
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 	m_cube->Initialize(m_device.Get(), m_commandList.Get());
 	m_cube->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.5f));
 	m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	
 	m_cube->SetScale(0.5f);
 	m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
 }

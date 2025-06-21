@@ -10,20 +10,13 @@
 #include <memory>
 #include "LunarConstants.h"
 #include "LunarTimer.h"
+
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 namespace Lunar {
 	struct Light;
 	class ConstantBuffer;
-
-struct Vertex
-{
-	XMFLOAT3 pos;
-	XMFLOAT4 color;
-	XMFLOAT2 texCoord;
-	XMFLOAT3 normal;
-};
 	
 class MainApp {
 public:
