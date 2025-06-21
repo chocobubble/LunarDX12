@@ -3,22 +3,12 @@
 namespace Lunar
 {
 Plane::Plane(float width, float height, int widthSegments, int heightSegments)
-    : m_width(width), m_height(height), m_widthSegments(widthSegments), m_heightSegments(heightSegments)
-{
-    CreateGeometry();
-}
+    : m_width(width), m_height(height), m_widthSegments(widthSegments), m_heightSegments(heightSegments) { }
 
 void Plane::CreateGeometry()
 {
     CreatePlaneVertices();
     CreatePlaneIndices();
-}
-
-void Plane::SetDimensions(float width, float height)
-{
-    m_width = width;
-    m_height = height;
-    CreateGeometry();
 }
 
 void Plane::CreatePlaneVertices()

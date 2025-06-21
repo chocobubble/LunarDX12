@@ -1,5 +1,8 @@
 #include "Geometry.h"
 #include "../Utils.h" 
+#include "../SceneRenderer.h"  // Transform 
+
+using namespace DirectX;
 
 namespace Lunar
 {
@@ -11,6 +14,7 @@ Geometry::Geometry()
 void Geometry::Initialize(ID3D12Device* device)
 {
     CreateBuffers(device);
+    CreateGeometry();
 }
 
 void Geometry::Draw(ID3D12GraphicsCommandList* commandList)
@@ -21,21 +25,27 @@ void Geometry::Draw(ID3D12GraphicsCommandList* commandList)
     commandList->DrawIndexedInstanced(static_cast<UINT>(m_indices.size()), 1, 0, 0, 0);
 }
 
-void Geometry::SetPosition(const XMFLOAT3& position)
+void Geometry::SetTransform(const Transform& transform)
 {
-    m_position = position;
+    m_transform = transform;
+    UpdateWorldMatrix();
+}
+
+void Geometry::SetLocation(const XMFLOAT3& location)
+{
+    m_transform.Location = location;
     UpdateWorldMatrix();
 }
 
 void Geometry::SetRotation(const XMFLOAT3& rotation)
 {
-    m_rotation = rotation;
+    m_transform.Rotation = rotation;
     UpdateWorldMatrix();
 }
 
-void Geometry::SetScale(float scale)
+void Geometry::SetScale(const XMFLOAT3& scale)
 {
-    m_scale = scale;
+    m_transform.Scale = scale;
     UpdateWorldMatrix();
 }
 
@@ -46,9 +56,9 @@ void Geometry::SetColor(const XMFLOAT4& color)
 
 void Geometry::UpdateWorldMatrix()
 {
-    XMMATRIX S = XMMatrixScaling(m_scale, m_scale, m_scale);
-    XMMATRIX R = XMMatrixRotationRollPitchYaw(m_rotation.x, m_rotation.y, m_rotation.z);
-    XMMATRIX T = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
+    XMMATRIX S = XMMatrixScaling(m_transform.Scale.x, m_transform.Scale.y, m_transform.Scale.z);
+    XMMATRIX R = XMMatrixRotationRollPitchYaw(m_transform.Rotation.x, m_transform.Rotation.y, m_transform.Rotation.z);
+    XMMATRIX T = XMMatrixTranslation(m_transform.Location.x, m_transform.Location.y, m_transform.Location.z);
     
     XMMATRIX world = S * R * T;
     XMStoreFloat4x4(&m_world, world);
@@ -150,7 +160,7 @@ void Geometry::CreateBuffers(ID3D12Device* device)
 		IID_PPV_ARGS(m_indexBuffer.GetAddressOf())
 		))
 
-	// 인덱스 데이터 복사
+    // copy index data
 	BYTE* pIndexDataBegin = nullptr;
 	m_indexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pIndexDataBegin));
 	memcpy(pIndexDataBegin, m_indices.data(), ibByteSize);

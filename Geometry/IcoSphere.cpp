@@ -3,7 +3,7 @@ using namespace std;
 
 namespace Lunar 
 {
-void IcoSphere::IcoSphere(int subdivisionLevel) : m_subdivisionLevel(subdivisionLevel) {}
+void IcoSphere::IcoSphere(int subdivisionLevel = 2) : m_subdivisionLevel(subdivisionLevel) {}
 
 void IcoSphere::CreateGeometry()
 {

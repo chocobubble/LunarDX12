@@ -6,10 +6,6 @@ using namespace DirectX;
 
 namespace Lunar
 {
-Cube::Cube()
-{
-    CreateGeometry();
-}
 
 void Cube::CreateGeometry()
 {

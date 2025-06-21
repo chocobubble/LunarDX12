@@ -1056,6 +1056,7 @@ void MainApp::InitializeTextures()
 	if (!std::filesystem::exists(texturePath))
 	{
 		LOG_ERROR("Texture file does not exist: ", texturePath);
+        return;
 	}
 	m_texture = Utils::LoadSimpleTexture(m_device.Get(), m_commandList.Get(), texturePath, m_textureUploadBuffer);
 }

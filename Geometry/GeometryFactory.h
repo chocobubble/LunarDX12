@@ -16,6 +16,7 @@ class GeometryFactory
 public:
     static std::unique_ptr<Geometry> CreateCube();
     static std::unique_ptr<Geometry> CreatePlane(float width = 1.0f, float height = 1.0f, int widthSegments = 1, int heightSegments = 1);
+    static std::unique_ptr<Geometry> CreateSphere();
     
     static std::unique_ptr<Geometry> CreateGeometry(GeometryType type);
     

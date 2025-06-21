@@ -1,28 +1,39 @@
 #include "GeometryFactory.h"
 #include "Cube.h"
-#include "Sphere.h"
+#include "IcoSphere.h"
 #include "Plane.h"
 #include <algorithm>
 #include <cctype>
 
 namespace Lunar
 {
+std::unique_ptr<Geometry> GeometryFactory::CreatePlane()
+{
+    return std::make_unique<Cube>();
+}
 
 std::unique_ptr<Geometry> GeometryFactory::CreatePlane(float width, float height, int widthSegments, int heightSegments)
 {
     return std::make_unique<Plane>(width, height, widthSegments, heightSegments);
 }
 
+std::unique_ptr<Geometry> GeometryFactory::CreateSphere()
+{
+    return std::make_unique<IcoSphere>();
+}
+
 std::unique_ptr<Geometry> GeometryFactory::CreateGeometry(GeometryType type)
 {
     switch (type)
     {
-    case GeometryType::Sphere:
-        return CreateSphere();
-    case GeometryType::Plane:
-        return CreatePlane();
-    default:
-        return CreateCube(); 
+        case GeometryType::Cube:
+            return CreateCube();
+        case GeometryType::Sphere:
+            return CreateSphere();
+        case GeometryType::Plane:
+            return CreatePlane();
+        default:
+            return CreateCube(); 
     }
 }
 
@@ -36,12 +47,14 @@ std::string GeometryFactory::GeometryTypeToString(GeometryType type)
 {
     switch (type)
     {
-    case GeometryType::Sphere:
-        return "Sphere";
-    case GeometryType::Plane:
-        return "Plane";
-    default:
-        return "Unknown";
+        case GeometryType::Cube:
+            return "Cube";
+        case GeometryType::Sphere:
+            return "Sphere";
+        case GeometryType::Plane:
+            return "Plane";
+        default:
+            return "Unknown";
     }
 }
 
@@ -51,7 +64,9 @@ GeometryType GeometryFactory::StringToGeometryType(const std::string& typeName)
     std::transform(lowerTypeName.begin(), lowerTypeName.end(), lowerTypeName.begin(),
         [](unsigned char c) { return std::tolower(c); });
 
-    if (lowerTypeName == "sphere")
+    if (lowerTypeName == "cube")
+        return GeometryType::Cube;
+    else if (lowerTypeName == "sphere")
         return GeometryType::Sphere;
     else if (lowerTypeName == "plane")
         return GeometryType::Plane;

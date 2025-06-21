@@ -6,7 +6,7 @@ namespace Lunar
 class Icosphere : public Geometry
 {
 public:
-    Icosphere(int subdivisionLevel);
+    Icosphere(int subdivisionLevel = 2);
     ~Icosphere() = default;
     
     void CreateGeometry() override;

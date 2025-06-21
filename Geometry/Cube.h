@@ -6,7 +6,7 @@ namespace Lunar
 class Cube : public Geometry
 {
 public:
-    Cube();
+    Cube() = default;
     ~Cube() = default;
     
     void CreateGeometry() override;

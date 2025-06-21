@@ -11,7 +11,6 @@ public:
     
     void CreateGeometry() override;
     
-    void SetDimensions(float width, float height);
     float GetWidth() const { return m_width; }
     float GetHeight() const { return m_height; }
     
