@@ -25,6 +25,7 @@ struct BasicConstants
 	DirectX::XMFLOAT4X4 view;
 	DirectX::XMFLOAT4X4 projection;
 	DirectX::XMFLOAT3   eyePos;
+    DirectX::XMFLOAT4   ambientLight;
 	float               dummy;
 	Light lights[Lunar::Constants::LIGHT_COUNT];
 };

@@ -3,6 +3,8 @@
 #include <imgui.h>
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
+#include <filesystem>
+
 #include "MainApp.h"
 #include "Camera.h"
 #include "Logger.h"
@@ -11,7 +13,7 @@
 #include "ConstantBuffers.h"
 #include "Cube.h"
 #include "LunarGui.h"
-#include <filesystem>
+#include "LightingSystem.h"
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -30,6 +32,7 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_displayWidth = 1280;
 	m_displayHeight = 720;
+    m_lightingSystem = make_unique<LunarLightingSystem>();
 }
 
 MainApp::~MainApp()
@@ -643,9 +646,6 @@ void MainApp::Update(double dt)
 {
     ProcessInput(dt);
 
-	BYTE* pCbvDataBegin; 
-	m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pCbvDataBegin));
-
 	BasicConstants constants = {};
 	XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
 	worldMatrix = XMMatrixTranspose(worldMatrix);
@@ -653,15 +653,8 @@ void MainApp::Update(double dt)
 	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
 	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
 	constants.eyePos = m_camera->GetPosition();
-	// float t = fmod(m_lunarTimer.GetTotalTime() * 0.3, 1.0f);
-	// float angle = fmod(t * XM_2PI, XM_2PI) - XM_PI;
-	// XMFLOAT3 rotation = XMFLOAT3(angle, angle * 0.5, angle * 0.2);
-	// m_cube->SetRotation(rotation);
 
-	m_pointLight->Position.x = m_pointLightPosX;
-	m_pointLight->Position.y = m_pointLightPosY;
-	m_pointLight->Position.z = m_pointLightPosZ;
-	constants.lights[1] = *m_pointLight;
+    m_lightingSystem->UpdateLightData(constants);
 	
     m_basicCB->CopyData(&constants, sizeof(BasicConstants));
 }
@@ -834,7 +827,6 @@ void MainApp::Initialize()
 	BuildShadersAndInputLayout();
 	BuildPSO();
 	InitializeGeometry();
-	CreateLights();
 }
 
 bool MainApp::InitDirect3D()
@@ -985,18 +977,4 @@ void MainApp::CreateConstantBuffer()
     m_basicCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(BasicConstants));
 }
 
-void MainApp::CreateLights()
-{
-	m_directionalLight = std::make_unique<Light>();
-	m_pointLight = std::make_unique<Light>();
-	m_spotLight = std::make_unique<Light>();
-
-	m_pointLight->FalloffEnd = 100.0f;
-	m_pointLight->FalloffStart = 0.1f;
-	m_pointLight->Strength = {10.0f, 10.0f, 10.0f};
-
-	m_gui->BindSlider("point_light_pos_x", &m_pointLightPosX, -5.0f, 5.0f);
-	m_gui->BindSlider<float>("point_light_pos_y", &m_pointLightPosY, -5.0f, 5.0f);
-	m_gui->BindSlider<float>("point_light_pos_z", &m_pointLightPosZ, -5.0f, 5.0f);
-}
 } // namespace Lunar

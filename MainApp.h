@@ -13,7 +13,8 @@
 #include "LunarTimer.h"
 
 namespace Lunar {
-struct Light;
+    
+class LightingSystem;
 class ConstantBuffer;
 class Camera;
 class LunarGui;
@@ -71,7 +72,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_uploadBuffer;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_textureUploadBuffer;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
@@ -95,7 +95,6 @@ private:
 
 	Lunar::LunarTimer m_lunarTimer;
 	
-	std::unique_ptr<class Cube> m_cube;
     std::unique_ptr<LunarGui> m_gui;
 
     bool m_firstMouseMove = true;
@@ -106,12 +105,7 @@ private:
 
     std::unique_ptr<ConstantBuffer> m_basicCB;
 
-	std::unique_ptr<Light> m_directionalLight;
-	std::unique_ptr<Light> m_pointLight;
-	std::unique_ptr<Light> m_spotLight;
-	float m_pointLightPosX = 5.0f;
-	float m_pointLightPosY = 1.0f;
-	float m_pointLightPosZ = 0.0f;
+    std::unique_ptr<LightingSystem> m_lightingSystem;
 
 	bool m_mouseMoving = false;
 };

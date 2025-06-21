@@ -7,7 +7,7 @@ namespace Constants
 {
 	
 static constexpr DXGI_FORMAT SWAP_CHAIN_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM;
-static constexpr UINT SAMPLE_COUNT = 1;  // MSAA 사용하지 않음
+static constexpr UINT SAMPLE_COUNT = 1;  // Not Use MSAA
 static constexpr UINT BUFFER_COUNT = 2;
 
 static constexpr float ASPECT_RATIO = 1.78f;
