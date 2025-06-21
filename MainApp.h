@@ -105,7 +105,6 @@ private:
     std::unique_ptr<Camera> m_camera;
 
     std::unique_ptr<ConstantBuffer> m_basicCB;
-	std::unique_ptr<ConstantBuffer> m_materialCB;
 
 	std::unique_ptr<Light> m_directionalLight;
 	std::unique_ptr<Light> m_pointLight;

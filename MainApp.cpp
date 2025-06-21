@@ -664,13 +664,6 @@ void MainApp::Update(double dt)
 	constants.lights[1] = *m_pointLight;
 	
     m_basicCB->CopyData(&constants, sizeof(BasicConstants));
-
-	MaterialConstants material = {};
-	// material.DiffuseAlbedo = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
-	material.DiffuseAlbedo = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
-	material.FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
-	material.Roughness = 0.125f;
-	m_materialCB->CopyData(&material, sizeof(MaterialConstants));
 }
 
 void MainApp::ProcessInput(double dt)
@@ -774,11 +767,6 @@ void MainApp::Render(double dt)
     m_commandList->SetGraphicsRootConstantBufferView(
         Lunar::Constants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
         m_basicCB->GetResource()->GetGPUVirtualAddress());
-
-    // TODO: move to Material Manager 
-	m_commandList->SetGraphicsRootConstantBufferView(
-        Lunar::Constants::MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX,
-        m_materialCB->GetResource()->GetGPUVirtualAddress());
 
 	// clear
 	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -995,7 +983,6 @@ void MainApp::InitializeTextures()
 void MainApp::CreateConstantBuffer()
 {
     m_basicCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(BasicConstants));
-	m_materialCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(MaterialConstants));
 }
 
 void MainApp::CreateLights()

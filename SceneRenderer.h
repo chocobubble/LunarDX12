@@ -7,6 +7,7 @@
 #include <DirectXMath.h>
 
 class Geometry;
+class MaterialManager;
 struct ID3D12Device;
 struct ID3D12GraphicsCommandList;
 
@@ -41,7 +42,7 @@ struct GeometryEntry
 class SceneRenderer
 {
 public:
-    SceneRenderer() = default;
+    SceneRenderer();
     ~SceneRenderer() = default;
     
     bool AddCube(const std::string& Name, const Transform& SpawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
@@ -70,8 +71,8 @@ public:
     
 private:
     std::map<RenderLayer, std::vector<std::shared_ptr<GeometryEntry>>> m_layeredGeometries;
-    
     std::unordered_map<std::string, std::shared_ptr<GeometryEntry>> m_geometriesByName;
+    std::unique_ptr<MaterialManager> m_materialManager;
     
     void ApplyTransformToGeometry(Geometry* geometry, const Transform& transform);
     std::shared_ptr<GeometryEntry> FindGeometryEntry(const std::string& Name);

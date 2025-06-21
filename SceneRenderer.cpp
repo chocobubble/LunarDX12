@@ -1,11 +1,17 @@
 #include "SceneRenderer.h"
 #include "Geometry/GeometryFactory.h"
+#include "MaterialManager.h"
 
 using namespace DirectX;
 using namespace std;
 
 namespace Lunar
 {
+
+SceneRenderer::SceneRenderer()
+{
+    m_materialManager = make_unique<MaterialManager>();
+}
 
 bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform, RenderLayer layer)
 {
@@ -155,6 +161,8 @@ void SceneRenderer::RenderLayer(ID3D12GraphicsCommandList* commandList, RenderLa
         {
             if (entry->IsVisible)
             {
+                string materialName = entry->GeometryData->GetMaterialName();
+                m_materialManager->BindConstantBuffer(commandList, materialName);
                 entry->GeometryData->Draw(commandList);
             }
         }
