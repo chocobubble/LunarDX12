@@ -64,13 +64,13 @@ void Plane::CreatePlaneIndices()
             int bottomLeft = (i + 1) * verticesPerRow + j;
             int bottomRight = bottomLeft + 1;
 
-            m_indices.push_back(topLeft);
             m_indices.push_back(bottomLeft);
+            m_indices.push_back(topLeft);
             m_indices.push_back(topRight);
 
             m_indices.push_back(topRight);
-            m_indices.push_back(bottomLeft);
             m_indices.push_back(bottomRight);
+            m_indices.push_back(bottomLeft);
         }
     }
 }
