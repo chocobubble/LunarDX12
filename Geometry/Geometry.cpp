@@ -73,7 +73,7 @@ void Geometry::UpdateWorldMatrix()
     XMMATRIX T = XMMatrixTranslation(m_transform.Location.x, m_transform.Location.y, m_transform.Location.z);
     
     XMMATRIX world = S * R * T;
-    XMStoreFloat4x4(&m_objectConstants.World, world);
+    XMStoreFloat4x4(&m_objectConstants.World, XMMatrixTranspose(world));
 }
 
 void Geometry::UpdateObjectConstants()
