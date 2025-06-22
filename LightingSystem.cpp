@@ -1,5 +1,11 @@
 #include "LightingSystem.h"
+
+#include "ConstantBuffers.h"
+#include "LunarConstants.h"
 #include "Utils.h"
+
+using namespace DirectX;
+using namespace std;
 
 namespace Lunar
 {
@@ -117,6 +123,15 @@ const LightData* LightingSystem::GetLight(const std::string& name) const
     }
     return nullptr;
 }
+LightData* LightingSystem::GetLight(const std::string& name)
+{
+	auto it = m_lightNameToIndex.find(name);
+	if (it != m_lightNameToIndex.end() && it->second < m_lights.size())
+	{
+		return &m_lights[it->second]->data;
+	}
+	return nullptr;
+}
 
 uint32_t LightingSystem::GetLightIndex(const std::string& name) const
 {
@@ -128,27 +143,31 @@ bool LightingSystem::UpdateLightData(BasicConstants& basicConstants)
 {
     if (!m_needsUpdate) return false;
 
-    LightData lights[Lunar::Constants::LIGHT_COUNT];
-
+	// FIXME
     for (size_t i = 0; i < m_lights.size(); ++i)
     {
-        lights[i] = m_lights[i]->data;
+        basicConstants.lights[i] = m_lights[i]->data;
     }
 
-    basicConstants.lights = lights;
     basicConstants.ambientLight = m_ambientLight;
 
     m_needsUpdate = false;
     return true;
 }
 
-void LightSystem::SetAmbientLight(const XMFLOAT4& ambientLight)
+void LightingSystem::SetAmbientLight(const XMFLOAT4& ambientLight)
 {
     m_ambientLight = ambientLight;
     m_needsUpdate = true;
 }
 
-void AddLight(const string& name, const LightData& data, LightType type)
+LightType LightingSystem::GetLightType(const std::string& name) const
+{
+	uint32_t index = GetLightIndex(name);
+	return m_lights[index]->lightType;
+}
+
+void LightingSystem::AddLight(const string& name, const LightData& data, LightType type)
 {
     LightEntry lightEntry = {
         type,
@@ -158,6 +177,6 @@ void AddLight(const string& name, const LightData& data, LightType type)
         true
     };
     m_lightNameToIndex[name] = m_lights.size();
-    m_lights.push_back(lightEntry);
+    m_lights.push_back(make_unique<LightEntry>(lightEntry));
 }
 }

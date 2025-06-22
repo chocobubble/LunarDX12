@@ -11,9 +11,12 @@
 #include "Utils.h"
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
-#include "Cube.h"
 #include "LunarGui.h"
 #include "LightingSystem.h"
+
+using namespace std;
+using namespace DirectX;
+using namespace Microsoft::WRL;
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -32,7 +35,7 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_displayWidth = 1280;
 	m_displayHeight = 720;
-    m_lightingSystem = make_unique<LunarLightingSystem>();
+    m_lightingSystem = make_unique<LightingSystem>();
 }
 
 MainApp::~MainApp()
@@ -333,11 +336,11 @@ void MainApp::CreateRootSignature()
 	} 	D3D12_DESCRIPTOR_RANGE;
 	*/
 	D3D12_DESCRIPTOR_RANGE srvTable = {};
-	cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	cbvTable.NumDescriptors = 1;
-	cbvTable.BaseShaderRegister = 0;
-	cbvTable.RegisterSpace = 0;
-	cbvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	srvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	srvTable.NumDescriptors = 1;
+	srvTable.BaseShaderRegister = 0;
+	srvTable.RegisterSpace = 0;
+	srvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	
 	/*
 	typedef struct D3D12_ROOT_PARAMETER
@@ -647,12 +650,13 @@ void MainApp::Update(double dt)
     ProcessInput(dt);
 
 	BasicConstants constants = {};
-	XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
-	worldMatrix = XMMatrixTranspose(worldMatrix);
-	XMStoreFloat4x4(&constants.model, worldMatrix);
-	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
-	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
-	constants.eyePos = m_camera->GetPosition();
+	// FIXME
+	// XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
+	// worldMatrix = XMMatrixTranspose(worldMatrix);
+	// XMStoreFloat4x4(&constants.model, worldMatrix);
+	// XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
+	// XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
+	// constants.eyePos = m_camera->GetPosition();
 
     m_lightingSystem->UpdateLightData(constants);
 	
@@ -765,7 +769,8 @@ void MainApp::Render(double dt)
 	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 
-	m_cube->Draw(m_commandList.Get());
+	// FIXME
+	// m_cube->Draw(m_commandList.Get());
 
 	// resource barrier - transition to the present state
 	barrier = {};
@@ -937,16 +942,17 @@ float MainApp::GetAspectRatio() const
 void MainApp::InitializeGeometry()
 {
 	LOG_FUNCTION_ENTRY();
-	m_cube = std::make_unique<Cube>();
-	
-	m_commandAllocator->Reset();
-	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
-	m_cube->Initialize(m_device.Get(), m_commandList.Get());
-	m_cube->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.5f));
-	m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	
-	m_cube->SetScale(0.5f);
-	m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
+	// FIXME
+	// m_cube = std::make_unique<Cube>();
+	//
+	// m_commandAllocator->Reset();
+	// m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+	// m_cube->Initialize(m_device.Get(), m_commandList.Get());
+	// m_cube->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.5f));
+	// m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
+	//
+	// m_cube->SetScale(0.5f);
+	// m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
 }
 
 void MainApp::CreateCamera()

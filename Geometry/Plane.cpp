@@ -1,5 +1,7 @@
 #include "Plane.h"
 
+using namespace DirectX;
+
 namespace Lunar
 {
 Plane::Plane(float width, float height, int widthSegments, int heightSegments)

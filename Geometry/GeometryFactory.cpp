@@ -7,7 +7,7 @@
 
 namespace Lunar
 {
-std::unique_ptr<Geometry> GeometryFactory::CreatePlane()
+std::unique_ptr<Geometry> GeometryFactory::CreateCube()
 {
     return std::make_unique<Cube>();
 }

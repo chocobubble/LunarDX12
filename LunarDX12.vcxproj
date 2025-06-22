@@ -131,9 +131,9 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ConstantBuffers.cpp" />
-    <ClCompile Include="Cube.cpp" />
     <ClCompile Include="Geometry\Geometry.cpp" />
     <ClCompile Include="Geometry\Cube.cpp" />
+    <ClCompile Include="Geometry\IcoSphere.cpp" />
     <ClCompile Include="Geometry\Plane.cpp" />
     <ClCompile Include="Geometry\GeometryFactory.cpp" />
     <ClCompile Include="Geometry\SceneRenderer.cpp" />
@@ -143,24 +143,27 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainApp.cpp" />
     <ClCompile Include="LunarTimer.cpp" />
+    <ClCompile Include="MaterialManager.cpp" />
     <ClCompile Include="MathUtils.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ConstantBuffers.h" />
-    <ClInclude Include="Cube.h" />
     <ClInclude Include="Geometry\Geometry.h" />
+    <ClInclude Include="Geometry\IcoSphere.h" />
+    <ClInclude Include="Geometry\Transform.h" />
     <ClInclude Include="Geometry\Vertex.h" />
     <ClInclude Include="Geometry\Cube.h" />
     <ClInclude Include="Geometry\Plane.h" />
     <ClInclude Include="Geometry\GeometryFactory.h" />
-    <ClInclude Include="Geometry\SceneRenderer.h" />
+    <ClInclude Include="LightingSystem.h" />
     <ClInclude Include="LunarConstants.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="LunarGUI.h" />
     <ClInclude Include="MainApp.h" />
     <ClInclude Include="LunarTimer.h" />
+    <ClInclude Include="MaterialManager.h" />
     <ClInclude Include="MathUtils.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

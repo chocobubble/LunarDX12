@@ -1,23 +1,34 @@
 #pragma once
+#include <unordered_map>
+
 #include "Geometry.h"
 
 namespace Lunar
 {
-class Icosphere : public Geometry
+class IcoSphere : public Geometry
 {
 public:
-    Icosphere(int subdivisionLevel = 2);
-    ~Icosphere() = default;
+    IcoSphere() = default;
+    ~IcoSphere() = default;
     
-    void CreateGeometry() override;
-
-    float GetWidth() const { return m_width; }
-    float GetHeight() const { return m_height; }
+    void     CreateGeometry() override;
+    uint16_t GetMiddlePoint(UINT p1, UINT p2);
+    void     Subdivide();
+    void     CalculateNormals();
+    void     CalculateTexCoords();
+    void     CalculateColors();
+    void     SetSubDivisionLevel(int subdivisionLevel) { m_subdivisionLevel = subdivisionLevel; }
     
 private:
-    int m_subdivisionLevel = 2;
-    std::unordered_map<pair<uint16_t, uint16_t>, uint16_t> m_cachedMiddlePoints;
-    
-    std::tuple<float, float> GetMiddlePoint(float x1, float y1, float x2, float y2) const;
+	// struct for pair hashing
+	struct PairHash {
+		size_t operator()(const std::pair<uint16_t,uint16_t>& p) const noexcept {
+			return (size_t(p.first) << 16) | p.second;
+		}
+	};
+    std::unordered_map<std::pair<UINT, UINT>, UINT, PairHash> m_middlePointCache;
+    int                                                         m_subdivisionLevel = 2;
+	
+    std::tuple<float, float> GetMiddlePoint(UINT p1, UINT p2) const;
 };
-}
+} // namespace Luanr

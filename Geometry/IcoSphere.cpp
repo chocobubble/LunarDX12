@@ -1,10 +1,10 @@
+#include "IcoSphere.h"
 
 using namespace std;
+using namespace DirectX;
 
 namespace Lunar 
 {
-void IcoSphere::IcoSphere(int subdivisionLevel = 2) : m_subdivisionLevel(subdivisionLevel) {}
-
 void IcoSphere::CreateGeometry()
 {
     float goldenRatio = 1.618;
@@ -55,17 +55,17 @@ uint16_t IcoSphere::GetMiddlePoint(UINT p1, UINT p2)
     auto it = m_middlePointCache.find(key);
     if (it != m_middlePointCache.end()) return it->second;
 
-    XMVECTOR pos1 = XMStoreFloat3(&vertices[p1].position); 
-    XMVECTOR pos2 = XMStoreFloat3(&vertices[p2].position); 
+    XMVECTOR pos1 = XMLoadFloat3(&m_vertices[p1].pos); 
+    XMVECTOR pos2 = XMLoadFloat3(&m_vertices[p2].pos); 
     XMVECTOR middle = XMVectorScale(XMVectorAdd(pos1, pos2), 0.5f);
 
     // normalize for unit sphere
     middle = XMVector3Normalize(middle);
 
     Vertex middleVertex;
-    XMStoreFloat3(&middleVertex.position, middle);
+    XMStoreFloat3(&middleVertex.pos, middle);
     middleVertex.color = {1, 1, 1, 1};
-    middleVertex.normal = {0, 0};
+    middleVertex.normal = {0, 0, 0};
     middleVertex.texCoord = {0, 0};
 
     uint16_t newIndex = static_cast<uint16_t>(m_vertices.size());
@@ -95,7 +95,7 @@ void IcoSphere::Subdivide()
     }
 
     m_indices = move(newIndices);
-    m_cachedMiddlePoints.clear();
+    m_middlePointCache.clear();
 }
 
 void IcoSphere::CalculateNormals()
@@ -104,7 +104,7 @@ void IcoSphere::CalculateNormals()
     // because the radius of a sphere is 1
     for (auto& vertex : m_vertices)
     {
-        vertex.normal = vertex.position;
+        vertex.normal = vertex.pos;
     }
 }
 
@@ -112,7 +112,7 @@ void IcoSphere::CalculateTexCoords()
 {
     for (auto& vertex : m_vertices)
     {
-        XMVECTOR pos = XMLoadFloat3(&vertex.position);
+        XMVECTOR pos = XMLoadFloat3(&vertex.pos);
         float x = XMVectorGetX(pos);
         float y = XMVectorGetY(pos);
         float z = XMVectorGetZ(pos);

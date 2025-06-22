@@ -15,7 +15,7 @@ namespace Lunar
 class LunarGui 
 {
 private:
-    enum class UIElementType : int8
+    enum class UIElementType : int8_t
     {
         Checkbox,
         Slider

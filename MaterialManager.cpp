@@ -6,48 +6,54 @@
 #include "LunarConstants.h"
 #include "Logger.h"
 
-using std;
-using DirectX;
+using namespace std;
+using namespace DirectX;
 
 namespace Lunar
 {
 
 MaterialManager::MaterialManager()
 {
-    CreateMaterial();
 }
 
-void MaterialManager::Initialize()
+void MaterialManager::Initialize(ID3D12Device* device)
 {
+    CreateMaterials(device);
 }
 
-void MaterialManager::CreateMaterial()
+void MaterialManager::CreateMaterials(ID3D12Device* device)
 {
-    MaterialEntry entry = {
-        { { 0.2f, 0.6f, 0.2f, 1.0f }, // diffuse
-        { 0.01f, 0.01f, 0.01f }, // FresnelR0
-        0.125f }, // Roughness
-        std::make_shared<ConstantBuffer>(sizeof(MaterialConstants))
-    }
+    auto createMaterial = [&](string name, XMFLOAT4 diffuse, XMFLOAT3 fresnelR0, float roughness) {
+        MaterialConstants material = {
+            diffuse,
+            fresnelR0,
+            roughness
+        };
+        m_materialMap[name] = {
+            material,
+            std::make_unique<ConstantBuffer>(device, sizeof(MaterialConstants))
+        };
+    };
+	createMaterial("default", XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f), XMFLOAT3(0.01f, 0.01f, 0.01f), 0.125f);
 }
 
 void MaterialManager::UpdateMaterial(const std::string& name, const MaterialConstants& material)
 {
-    auto it = m_materials.find(name);
-    if (it == m_materials.end())
+    auto it = m_materialMap.find(name);
+    if (it == m_materialMap.end())
     {
         LOG_ERROR("Material ", name, " not found");
         return;
     }
-    const MaterialEntry& entry = it->second;
+    MaterialEntry& entry = it->second;
     entry.material = material;
-    entry.constantBuffer->CopyData(material, sizeof(MaterialConstants));
+    entry.constantBuffer->CopyData(&(entry.material), sizeof(MaterialConstants));
 } 
 
-void MaterialManager::BindConstantBuffer(const std::string& name, ID3D12GraphicsCommandList* commandList);
+void MaterialManager::BindConstantBuffer(const std::string& name, ID3D12GraphicsCommandList* commandList)
 {
-    auto it = m_materials.find(name);
-    if (it == m_materials.end())
+    auto it = m_materialMap.find(name);
+    if (it == m_materialMap.end())
     {
         LOG_ERROR("Material ", name, " not found");
         return;
@@ -55,17 +61,18 @@ void MaterialManager::BindConstantBuffer(const std::string& name, ID3D12Graphics
     const MaterialEntry& entry = it->second;
     commandList->SetGraphicsRootConstantBufferView(
         Lunar::Constants::MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX, 
-        entry.constantBuffer->GetGPUVirtualAddress()); 
+        entry.constantBuffer->GetResource()->GetGPUVirtualAddress()); 
 } 
 
-const MaterialEntry& MaterialManager::GetMaterial(const std::string& name) const
+const MaterialConstants& MaterialManager::GetMaterial(const std::string& name) const
 {
-    if (m_materials.find(name) == m_materials.end())
-    {
-        LOG_ERROR("Material ", name, " not found");
-        return m_materials["default"];
-    }
-    return m_materials[name];
+	auto it = m_materialMap.find(name);
+	if (it == m_materialMap.end())
+	{
+		LOG_ERROR("Material ", name, " not found");
+		return MaterialConstants();
+	}
+    return it->second.material;
 }
 
 } // namespace Lunar

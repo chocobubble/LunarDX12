@@ -5,10 +5,11 @@
 
 namespace Lunar
 {
-enum class GeometryType : int8
+enum class GeometryType : int8_t
 {
     Cube,
     Sphere,
+	Plane
 };
 
 class GeometryFactory

@@ -5,11 +5,12 @@
 #include <memory>
 #include <d3d12.h>
 #include <DirectXMath.h>
-#include <wrl/client.h>
-#include "ConstantBuffers.h"
+
+// #include "ConstantBuffers.h"
 
 namespace Lunar
 {
+struct BasicConstants;
 enum class LightType
 {
     Directional,
@@ -43,9 +44,9 @@ public:
     const LightData* GetLight(const std::string& name) const;
     uint32_t GetLightIndex(const std::string& name) const;
 
-    void UpdateLightData(BasicConstants& basicConstants);
+    bool UpdateLightData(BasicConstants& basicConstants);
 
-    void SetAmbientLight(const DirectX::XMFLOAT3& ambientColor);
+    void SetAmbientLight(const DirectX::XMFLOAT4& ambientLight);
     DirectX::XMFLOAT4 GetAmbientLight() const { return m_ambientLight; }
 
 private:
@@ -68,5 +69,6 @@ private:
 
     LightType GetLightType(const std::string& name) const;
     void AddLight(const std::string& name, const LightData& lightData, LightType type);
+    LightData* GetLight(const std::string& name);
 };
 }

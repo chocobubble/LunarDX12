@@ -5,9 +5,9 @@ namespace Lunar
 {
 struct Vertex
 {
-    XMFLOAT3 pos;
-    XMFLOAT4 color;
-    XMFLOAT2 texCoord;
-    XMFLOAT3 normal;
+    DirectX::XMFLOAT3 pos;
+    DirectX::XMFLOAT4 color;
+    DirectX::XMFLOAT2 texCoord;
+    DirectX::XMFLOAT3 normal;
 };
 }

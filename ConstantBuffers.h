@@ -3,20 +3,11 @@
 #include <DirectXMath.h>
 #include <wrl/client.h>
 
+#include "LightingSystem.h"
 #include "LunarConstants.h"
 
 namespace Lunar
 {
-
-struct Light
-{
-	DirectX::XMFLOAT3 Strength;
-	float             FalloffStart;
-	DirectX::XMFLOAT3 Direction;
-	float             FalloffEnd;
-	DirectX::XMFLOAT3 Position;
-	float             SpotPower;
-};
 	
 // Root Parameter CBV 1
 struct BasicConstants
@@ -27,7 +18,7 @@ struct BasicConstants
 	DirectX::XMFLOAT3   eyePos;
     DirectX::XMFLOAT4   ambientLight;
 	float               dummy;
-	Light lights[Lunar::Constants::LIGHT_COUNT];
+	LightData lights[Lunar::Constants::LIGHT_COUNT];
 };
 
 // Root Parameter CBV 2
