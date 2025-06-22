@@ -2,6 +2,8 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 
+using namespace std;
+
 namespace Lunar
 {
 LunarGui::LunarGui() : m_initialized(false) { }
@@ -63,7 +65,7 @@ void LunarGui::Render(float dt)
 
 	for (auto& pair : m_boundValues) 
 	{
-		const std::string& id = pair.first;
+		const string& id = pair.first;
 		BoundValue& value = pair.second;
     
 		if (value.type == UIElementType::Checkbox) 
@@ -77,19 +79,58 @@ void LunarGui::Render(float dt)
 		}
 		else if (value.type == UIElementType::Slider)
 		{
-			float* floatValue = static_cast<float*>(value.dataPtr);
-			float minValue = value.GetMinValue<float>();
-			float maxValue = value.GetMaxValue<float>();
-			if (ImGui::SliderFloat(id.c_str(), floatValue, minValue, maxValue) && value.onChange) 
-			{
-				value.onChange(value.dataPtr);
-			}
+            switch (value.GetDataType())
+            {
+                case DataType::Int:
+                {
+                    int* intValue = static_cast<int*>(value.dataPtr);
+                    int minValue = value.GetMinValue<int>();
+                    int maxValue = value.GetMaxValue<int>();
+                    if (ImGui::SliderInt(id.c_str(), intValue, minValue, maxValue) && value.onChange)
+                    {
+                        value.onChange(value.dataPtr);
+                    }
+                    break;
+                }
+                case DataType::Float:
+                {
+                    float* floatValue = static_cast<float*>(value.dataPtr);
+                    float minValue = value.GetMinValue<float>();
+                    float maxValue = value.GetMaxValue<float>();
+                    if (ImGui::SliderFloat(id.c_str(), floatValue, minValue, maxValue) && value.onChange)
+                    {
+                        value.onChange(value.dataPtr);
+                    }
+                    break;
+                }
+                case DataType::Float3:
+                {
+                    float* dataPtr = static_cast<float*>(value.dataPtr);
+                    float minValue = value.GetMinValue<float>();
+                    float maxValue = value.GetMaxValue<float>();
+                    if (ImGui::SliderFloat3(id.c_str(), &dataPtr->x, minValue, maxValue) && value.onChange)
+                    {
+                        value.onChange(value.dataPtr);
+                    } 
+                }
+                default:
+                    LOG_ERROR("Invalid data type for slider.");
+                    break;
+            }
 		}
+        else if (value.type == UIElementType::ListBox)
+        {
+            vector<string>* items = static_cast<vector<string>*>(value.dataPtr);
+            if (ImGui::ListBox(id.c_str(), &value.selectedValue, items.data(), value.maxValue) && value.onChange)
+            {
+                value.onChange(value.dataPtr);
+            }
+        }
 	}
 
 	for (auto& pair : m_callbacks) 
 	{
-		const std::string& id = pair.first;
+		const string& id = pair.first;
 		auto& callback = pair.second;
     
 		if (ImGui::Button(id.c_str())) callback(); 
@@ -104,7 +145,7 @@ void LunarGui::EndFrame()
 	ImGui::Render();
 }
 
-void LunarGui::BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange)
+void LunarGui::BindCheckbox(const string& id, bool* value, function<void(bool)> onChange)
 {
 	if (GetBoundValue<bool>(id)) 
 	{
@@ -128,7 +169,29 @@ void LunarGui::BindCheckbox(const std::string& id, bool* value, std::function<vo
 	m_boundValues[id] = boundValue;
 }
 
-bool LunarGui::RegisterCallback(const std::string& id, std::function<void()> callback)
+void LunarGui::BindListBox(const string& id, const vector<string>* value, function<void(vector<string>*)> onChange = nullptr)
+{
+    auto it = m_boundValues.find(id);
+    if (it != m_boundValues.end())
+    {
+        LOG_ERROR("Value with ID '%s' already bound.", id);
+        return;
+    }
+
+    BoundValue boundValue;
+    boundValue.type = UIElementType::Checkbox;
+    boundValue.dataPtr = value;
+    boundValue.max = items.size();
+
+    if (onChange)
+    {
+        boundValue.onChange = [onChange](void* data) { onChange(static_cast<vector<string>*>(data)); };
+    }
+
+    m_boundValues[id] = boundValue;
+}
+
+bool LunarGui::RegisterCallback(const string& id, function<void()> callback)
 {
 	if (m_callbacks.find(id) != m_callbacks.end()) 
 	{

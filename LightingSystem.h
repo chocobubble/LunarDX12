@@ -49,6 +49,8 @@ public:
     void SetAmbientLight(const DirectX::XMFLOAT4& ambientLight);
     DirectX::XMFLOAT4 GetAmbientLight() const { return m_ambientLight; }
 
+    std::vector<int> GetLightIndices() const;
+
 private:
     struct LightEntry
     {

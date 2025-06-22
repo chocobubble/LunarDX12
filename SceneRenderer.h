@@ -51,11 +51,13 @@ public:
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
     bool SetGeometryTransform(const std::string& name, const Transform& newTransform);
+    bool SetGeometryLocation(const std::string& name, const DirectX::XMFLOAT3& newLocation);
     bool SetGeometryVisibility(const std::string& name, bool visible);
     
     bool DoesGeometryExist(const std::string& name) const;
     const Transform GetGeometryTransform(const std::string& name) const;
     const GeometryEntry* GetGeometryEntry(const std::string& name) const;
+    std::vector<std::string> GetGeometryNames() const;
     
 private:
     std::map<RenderLayer, std::vector<std::shared_ptr<GeometryEntry>>> m_layeredGeometries;

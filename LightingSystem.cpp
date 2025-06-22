@@ -161,6 +161,16 @@ void LightingSystem::SetAmbientLight(const XMFLOAT4& ambientLight)
     m_needsUpdate = true;
 }
 
+vector<int> LightingSystem::GetLightIndices() const
+{
+    vector<int> indices;
+    for (const auto& light : m_lights)
+    {
+        indices.push_back(light->index);
+    }
+    return indices;
+}
+
 LightType LightingSystem::GetLightType(const std::string& name) const
 {
 	uint32_t index = GetLightIndex(name);

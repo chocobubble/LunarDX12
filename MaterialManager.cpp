@@ -75,4 +75,15 @@ const MaterialConstants& MaterialManager::GetMaterial(const std::string& name) c
     return it->second.material;
 }
 
+
+std::vector<std::string> MaterialManager::GetMaterialNames() const
+{
+    std::vector<std::string> names;
+    for (auto& it : m_materialMap)
+    {
+        names.push_back(it.first);
+    }
+    return names;
+}
+
 } // namespace Lunar

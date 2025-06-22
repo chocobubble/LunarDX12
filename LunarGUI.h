@@ -18,16 +18,26 @@ private:
     enum class UIElementType : int8_t
     {
         Checkbox,
-        Slider
+        Slider,
+        ListBox
+    };
+
+    enum class DataType {
+        Float,
+        Int,
+        Bool,
+        Float3
     };
 
     struct BoundValue 
     {
         UIElementType type = UIElementType::Checkbox;
+        DataType dataType = DataType::Float;
         void* dataPtr;
         std::function<void(void*)> onChange;
         std::any min;
         std::any max;
+        int selectedValue = 0;
         
         template<typename T>
         T* GetAs() { return static_cast<T*>(dataPtr); }
@@ -90,6 +100,19 @@ public:
 		boundValue.dataPtr = value;
 		boundValue.min = min;
 		boundValue.max = max;
+
+        if constexpr (std::is_same_v<T, float>)
+        {
+            boundValue.dataType = DataType::Float;
+        }
+        else if constexpr (std::is_same_v<T, int>)
+        {
+            boundValue.dataType = DataType::Int;
+        }
+        else if constexpr (std::is_same_v<T, XMFLOAT3>)
+        {
+            boundValue.dataType = DataType::Float3;
+        }
     
 		if (onChange) 
 		{
@@ -98,6 +121,8 @@ public:
     
 		m_boundValues[id] = boundValue;
 	}
+
+    void BindListBox(const std::string& id, T* value, const std::vector<std::string>& items, std::function<void(T*)> onChange = nullptr);
 
 	template <typename T>
 	T* GetBoundValue(const std::string& id)

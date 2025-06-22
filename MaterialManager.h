@@ -26,6 +26,7 @@ public:
     void UpdateMaterial(const std::string& name, const MaterialConstants& materialData); 
     void BindConstantBuffer(const std::string& name, ID3D12GraphicsCommandList* commandList);
     const MaterialConstants& GetMaterial(const std::string& name) const;
+    std::vector<std::string> GetMaterialNames() const;
 
 private:
     std::unordered_map<std::string, MaterialEntry> m_materialMap;

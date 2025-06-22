@@ -100,6 +100,21 @@ const Transform SceneRenderer::GetGeometryTransform(const string& name) const
     }
 }
 
+bool SceneRenderer::SetGeometryLocation(const string& name, const XMFLOAT3& newLocation)
+{
+    Geometry* geometry = GetGeometryByName(name);
+    if (geometry)
+    {
+        geometry->SetLocation();
+        return true;
+    }
+    else
+    {
+        LOG_ERROR("Geometry with name " + name + " not found")
+        return false;
+    }
+}
+
 bool SceneRenderer::SetGeometryVisibility(const string& name, bool visible)
 {
     auto entry = GetGeometryEntry(name);
@@ -168,6 +183,17 @@ const GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name) const
 {
     auto it = m_geometriesByName.find(name);
     return (it != m_geometriesByName.end()) ? it->second : nullptr;
+}
+
+std::vector<std::string> SceneRenderer::GetGeometryNames() const
+{
+    std::vector<std::string> names;
+    for (const auto& [name, entry] : m_geometriesByName)
+    {
+        names.push_back(name);
+    }
+
+    return names;
 }
 
 }
