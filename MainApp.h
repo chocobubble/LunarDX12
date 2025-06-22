@@ -101,7 +101,7 @@ private:
 
     std::unique_ptr<Camera> m_camera;
 
-    std::unique_ptr<SceneRenderer> m_sceneRenderer
+    std::unique_ptr<SceneRenderer> m_sceneRenderer;
 
 	bool m_mouseMoving = false;
 };

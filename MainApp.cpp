@@ -12,6 +12,7 @@
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
 #include "LunarGui.h"
+#include "SceneRenderer.h"
 #include "Geometry/Transform.h"
 
 using namespace std;
@@ -35,6 +36,8 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_displayWidth = 1280;
 	m_displayHeight = 720;
+
+	m_sceneRenderer = make_unique<SceneRenderer>();
 }
 
 MainApp::~MainApp()
@@ -657,7 +660,7 @@ void MainApp::Update(double dt)
 	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
 	constants.eyePos = m_camera->GetPosition();
 
-    m_sceneRenderer->Update(dt, constants);
+    m_sceneRenderer->UpdateScene(dt, constants);
 }
 
 void MainApp::ProcessInput(double dt)
@@ -761,7 +764,7 @@ void MainApp::Render(double dt)
 	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 
-    m_sceneRenderer->RenderScene(m_commandList);
+    m_sceneRenderer->RenderScene(m_commandList.Get());
 
 	// resource barrier - transition to the present state
 	barrier = {};
@@ -815,7 +818,6 @@ void MainApp::Initialize()
 	CreateCamera();
 	CreateSwapChain();
 	CreateSRVDescriptorHeap();
-	CreateConstantBuffer();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
 	CreateShaderResourceView();
@@ -933,6 +935,7 @@ float MainApp::GetAspectRatio() const
 void MainApp::InitializeGeometry()
 {
 	LOG_FUNCTION_ENTRY();
+	
     // TODO: Check really need this resetting?
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
@@ -943,11 +946,12 @@ void MainApp::InitializeGeometry()
     m_sceneRenderer->AddCube("Cube1", transform, RenderLayer::World);
     transform.Location = XMFLOAT3(0.0f, -0.5f, 0.0f);
     transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
-    m_sceneRenderer->AddPlane("Plane0", transform, RenderLayer::World);
+    m_sceneRenderer->AddPlane("Plane0", transform, 10.0f, 10.0f, RenderLayer::World);
     transform.Location = XMFLOAT3(2.0f, 0.5f, 0.0f);
     transform.Scale = XMFLOAT3(0.5f, 0.5f, 0.5f);
     m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
 
+	m_sceneRenderer->InitializeScene(m_device.Get(), m_commandList.Get(), m_gui.get());
 }
 
 void MainApp::CreateCamera()

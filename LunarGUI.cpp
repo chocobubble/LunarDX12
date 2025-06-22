@@ -1,8 +1,10 @@
 ﻿#include "LunarGui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
+#include <DirectXMath.h>
 
 using namespace std;
+using namespace DirectX;
 
 namespace Lunar
 {
@@ -66,64 +68,65 @@ void LunarGui::Render(float dt)
 	for (auto& pair : m_boundValues) 
 	{
 		const string& id = pair.first;
-		BoundValue& value = pair.second;
+		BoundValue&value = pair.second;
     
-		if (value.type == UIElementType::Checkbox) 
+		if (value.ElementType == UIElementType::Checkbox) 
 		{
-			bool* boolValue = static_cast<bool*>(value.dataPtr);
+			bool* boolValue = static_cast<bool*>(value.DataPtr);
 			// ImGui::Checkbox returns true if the value changed.
-			if (ImGui::Checkbox(id.c_str(), boolValue) && value.onChange) 
+			if (ImGui::Checkbox(id.c_str(), boolValue) && value.OnChange) 
 			{
-				value.onChange(value.dataPtr);
+				value.OnChange(value.DataPtr);
 			}
 		}
-		else if (value.type == UIElementType::Slider)
+		else if (value.ElementType == UIElementType::Slider)
 		{
-            switch (value.GetDataType())
+            switch (value.DataType)
             {
                 case DataType::Int:
                 {
-                    int* intValue = static_cast<int*>(value.dataPtr);
+                    int* intValue = static_cast<int*>(value.DataPtr);
                     int minValue = value.GetMinValue<int>();
                     int maxValue = value.GetMaxValue<int>();
-                    if (ImGui::SliderInt(id.c_str(), intValue, minValue, maxValue) && value.onChange)
+                    if (ImGui::SliderInt(id.c_str(), intValue, minValue, maxValue) && value.OnChange)
                     {
-                        value.onChange(value.dataPtr);
+                        value.OnChange(value.DataPtr);
                     }
                     break;
                 }
                 case DataType::Float:
                 {
-                    float* floatValue = static_cast<float*>(value.dataPtr);
+                    float* floatValue = static_cast<float*>(value.DataPtr);
                     float minValue = value.GetMinValue<float>();
                     float maxValue = value.GetMaxValue<float>();
-                    if (ImGui::SliderFloat(id.c_str(), floatValue, minValue, maxValue) && value.onChange)
+                    if (ImGui::SliderFloat(id.c_str(), floatValue, minValue, maxValue) && value.OnChange)
                     {
-                        value.onChange(value.dataPtr);
+                        value.OnChange(value.DataPtr);
                     }
                     break;
                 }
                 case DataType::Float3:
                 {
-                    float* dataPtr = static_cast<float*>(value.dataPtr);
-                    float minValue = value.GetMinValue<float>();
-                    float maxValue = value.GetMaxValue<float>();
-                    if (ImGui::SliderFloat3(id.c_str(), &dataPtr->x, minValue, maxValue) && value.onChange)
+                    float* dataPtr = reinterpret_cast<float*>(value.DataPtr);
+                    auto minValue = value.GetMinValue<XMFLOAT3>();
+                    auto maxValue = value.GetMaxValue<XMFLOAT3>();
+                    if (ImGui::SliderFloat3(id.c_str(), dataPtr, minValue.x, maxValue.x) && value.OnChange)
                     {
-                        value.onChange(value.dataPtr);
-                    } 
+                        value.OnChange(value.DataPtr);
+                    }
+                	break;
                 }
                 default:
                     LOG_ERROR("Invalid data type for slider.");
                     break;
             }
 		}
-        else if (value.type == UIElementType::ListBox)
+        else if (value.ElementType == UIElementType::ListBox)
         {
-            vector<string>* items = static_cast<vector<string>*>(value.dataPtr);
-            if (ImGui::ListBox(id.c_str(), &value.selectedValue, items.data(), value.maxValue) && value.onChange)
+	        const char* const* items = static_cast<const char* const*>(value.DataPtr);
+            if (ImGui::ListBox(id.c_str(), value.SelectedValue, items, value.GetMaxValue<int>()) && value.OnChange)
             {
-                value.onChange(value.dataPtr);
+                value.OnChange(value.DataPtr);
             }
         }
 	}
@@ -154,13 +157,13 @@ void LunarGui::BindCheckbox(const string& id, bool* value, function<void(bool)> 
 	}
 
 	BoundValue boundValue;
-	boundValue.type = UIElementType::Checkbox;
-	boundValue.dataPtr = value;
+	boundValue.ElementType = UIElementType::Checkbox;
+	boundValue.DataPtr = value;
         
 
 	if (onChange) 
 	{
-		boundValue.onChange = [onChange](bool data) 
+		boundValue.OnChange = [onChange](bool data) 
 		{
 			onChange(data);
 		};
@@ -169,7 +172,7 @@ void LunarGui::BindCheckbox(const string& id, bool* value, function<void(bool)> 
 	m_boundValues[id] = boundValue;
 }
 
-void LunarGui::BindListBox(const string& id, const vector<string>* value, function<void(vector<string>*)> onChange = nullptr)
+void LunarGui::BindListBox(const string& id, int* value, vector<string>* items, function<void(vector<string>*)> onChange)
 {
     auto it = m_boundValues.find(id);
     if (it != m_boundValues.end())
@@ -179,13 +182,14 @@ void LunarGui::BindListBox(const string& id, const vector<string>* value, functi
     }
 
     BoundValue boundValue;
-    boundValue.type = UIElementType::Checkbox;
-    boundValue.dataPtr = value;
-    boundValue.max = items.size();
+    boundValue.ElementType = UIElementType::Checkbox;
+	boundValue.SelectedValue = value;
+    boundValue.DataPtr = items;
+    boundValue.Max = items->size();
 
     if (onChange)
     {
-        boundValue.onChange = [onChange](void* data) { onChange(static_cast<vector<string>*>(data)); };
+        boundValue.OnChange = [onChange](void* data) { onChange(static_cast<vector<string>*>(data)); };
     }
 
     m_boundValues[id] = boundValue;

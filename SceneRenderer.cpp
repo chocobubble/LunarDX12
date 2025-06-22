@@ -1,9 +1,9 @@
 #include "SceneRenderer.h"
 #include "Geometry/GeometryFactory.h"
 #include "MaterialManager.h"
-#include "SceneViewModel.h
 #include "LightingSystem.h"
 #include "ConstantBuffers.h"
+#include "LunarGUI.h"
 
 using namespace DirectX;
 using namespace std;
@@ -13,6 +13,8 @@ namespace Lunar
 
 SceneRenderer::SceneRenderer()
 {
+	m_layeredGeometries.clear();
+	m_geometriesByName.clear();
     m_materialManager = make_unique<MaterialManager>();
     m_sceneViewModel = make_unique<SceneViewModel>();
     m_lightingSystem = make_unique<LightingSystem>();
@@ -22,12 +24,13 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandL
 {
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(ConstantBuffer));
     m_lightingSystem->Initialize(device, Lunar::Constants::LIGHT_COUNT);
-    m_sceneViewModel->Initialize(gui, this)
+    m_sceneViewModel->Initialize(gui, this);
+	m_materialManager->Initialize(device);
     for (auto& [layer, geometryEntries] : m_layeredGeometries)
     {
         for (auto& entry : geometryEntries)
         {
-            entry->GeometryData->Initialize(device, commandList);
+            entry->GeometryData->Initialize(device);
         }
     }
 }
@@ -42,7 +45,7 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
 {
     commandList->SetGraphicsRootConstantBufferView(
         Lunar::Constants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
-        m_basicCB->Resource()->GetGPUVirtualAddress());
+        m_basicCB->GetResource()->GetGPUVirtualAddress());
     RenderLayers(commandList);
 }
 
@@ -57,7 +60,7 @@ bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform,
     auto cube = GeometryFactory::CreateCube();
     cube->SetTransform(spawnTransform);
     
-    auto entry = make_shared<GeometryEntry>(move(cube), name, layer);
+    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(cube), name, layer});
     
     m_layeredGeometries[layer].push_back(entry);
     m_geometriesByName[name] = entry;
@@ -76,7 +79,7 @@ bool SceneRenderer::AddSphere(const string& name, const Transform& spawnTransfor
     auto sphere = GeometryFactory::CreateSphere();
     sphere->SetTransform(spawnTransform);
     
-    auto entry = make_shared<GeometryEntry>(move(sphere), name, layer);
+    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(sphere), name, layer});
     
     m_layeredGeometries[layer].push_back(entry);
     m_geometriesByName[name] = entry;
@@ -95,7 +98,7 @@ bool SceneRenderer::AddPlane(const string& name, const Transform& spawnTransform
     auto plane = GeometryFactory::CreatePlane(width, height);
     plane->SetTransform(spawnTransform);
     
-    auto entry = make_shared<GeometryEntry>(move(plane), name, layer);
+    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(plane), name, layer});
     
     // TODO: Need a debugging system to check the entry are in both containers
     m_layeredGeometries[layer].push_back(entry);
@@ -106,7 +109,7 @@ bool SceneRenderer::AddPlane(const string& name, const Transform& spawnTransform
 
 bool SceneRenderer::SetGeometryTransform(const string& name, const Transform& newTransform)
 {
-    Geometry* geometry = GetGeometryByName(name);
+    Geometry* geometry = GetGeometryEntry(name)->GeometryData.get();
     if (geometry)
     {
         geometry->SetTransform(newTransform);
@@ -114,36 +117,36 @@ bool SceneRenderer::SetGeometryTransform(const string& name, const Transform& ne
     }
     else
     {
-        LOG_ERROR("Geometry with name " + name + " not found")
+        LOG_ERROR("Geometry with name " + name + " not found");
         return false;
     }
 }
 
 const Transform SceneRenderer::GetGeometryTransform(const string& name) const
 {
-    const Geometry* geometry = GetGeometryByName(name);
+    Geometry* geometry = GetGeometryEntry(name)->GeometryData.get();
     if (geometry)
     {
         return geometry->GetTransform();
     }
     else 
     {
-        LOG_ERROR("Geometry with name " + name + " not found")
+        LOG_ERROR("Geometry with name " + name + " not found");
         return Transform(); 
     }
 }
 
 bool SceneRenderer::SetGeometryLocation(const string& name, const XMFLOAT3& newLocation)
 {
-    Geometry* geometry = GetGeometryByName(name);
+    Geometry* geometry = GetGeometryEntry(name)->GeometryData.get();
     if (geometry)
     {
-        geometry->SetLocation();
+        geometry->SetLocation(newLocation);
         return true;
     }
     else
     {
-        LOG_ERROR("Geometry with name " + name + " not found")
+        LOG_ERROR("Geometry with name " + name + " not found");
         return false;
     }
 }
@@ -158,7 +161,7 @@ bool SceneRenderer::SetGeometryVisibility(const string& name, bool visible)
     }
     else 
     {
-        LOG_ERROR("Geometry Entry with Geometry name " + name + " not found")
+        LOG_ERROR("Geometry Entry with Geometry name " + name + " not found");
         return false;
     }
 }
@@ -169,7 +172,7 @@ bool SceneRenderer::GetGeometryVisibility(const string& name) const
     return entry ? entry->IsVisible : false;
 }
 
-bool SceneRenderer::DoesGeometryExist(const string& name) const
+bool SceneRenderer::DoesGeometryExist(const std::string& name) const
 {
     return m_geometriesByName.find(name) != m_geometriesByName.end();
 }
@@ -178,12 +181,12 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
 {
     for (auto& it : m_layeredGeometries)
     {
-        for (auto& entry : it->second)
+        for (auto& entry : it.second)
         {
             if (entry->IsVisible)
             {
                 string materialName = entry->GeometryData->GetMaterialName();
-                m_materialManager->BindConstantBuffer(commandList, materialName);
+                m_materialManager->BindConstantBuffer(materialName, commandList);
                 entry->GeometryData->Draw(commandList);
             }
         }
@@ -193,13 +196,13 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
 GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name)
 {
     auto it = m_geometriesByName.find(name);
-    return (it != m_geometriesByName.end()) ? it->second : nullptr;
+    return (it != m_geometriesByName.end()) ? it->second.get() : nullptr;
 }
 
 const GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name) const
 {
     auto it = m_geometriesByName.find(name);
-    return (it != m_geometriesByName.end()) ? it->second : nullptr;
+    return (it != m_geometriesByName.end()) ? it->second.get() : nullptr;
 }
 
 std::vector<std::string> SceneRenderer::GetGeometryNames() const

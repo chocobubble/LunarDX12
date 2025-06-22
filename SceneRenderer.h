@@ -1,4 +1,5 @@
 #pragma once
+#include <d3d12.h>
 #include <vector>
 #include <memory>
 #include <map>
@@ -6,30 +7,26 @@
 #include <string>
 #include <DirectXMath.h>
 
-class Geometry;
-class MaterialManager;
-class SceneViewModel;
-class LightingSystem;
-class ConstantBuffer;
-struct ID3D12Device;
-struct ID3D12GraphicsCommandList;
+#include "MaterialManager.h"
+#include "SceneViewModel.h"
+#include "Geometry/Transform.h"
+#include "Geometry/Geometry.h"
 
 namespace Lunar
 {
-enum class RenderLayer : int32
+class LunarGui;
+// class Geometry;
+class LightingSystem;
+class ConstantBuffer;
+struct BasicConstants;
+
+enum class RenderLayer
 {
     Background = 0,
     World = 1,
     Translucent = 2,
     UI = 3,
     COUNT = 4 // for looping enum
-};
-
-struct Transform
-{
-    DirectX::XMFLOAT3 Location = {0.0f, 0.0f, 0.0f};
-    DirectX::XMFLOAT3 Rotation = {0.0f, 0.0f, 0.0f};
-    DirectX::XMFLOAT3 Scale = {1.0f, 1.0f, 1.0f};
 };
 
 struct GeometryEntry
@@ -46,7 +43,7 @@ public:
     SceneRenderer();
     ~SceneRenderer() = default;
 
-    void InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
+    void InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, LunarGui* gui);
     void UpdateScene(float deltaTime, BasicConstants& basicConstants);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
@@ -62,9 +59,9 @@ public:
     const Transform GetGeometryTransform(const std::string& name) const;
     const GeometryEntry* GetGeometryEntry(const std::string& name) const;
     std::vector<std::string> GetGeometryNames() const;
-    const MaterialManager* GetMaterialManager() const;
-    const SceneViewModel* GetSceneViewModel() const;
-    const LightingSystem* GetLightingSystem() const;
+    const MaterialManager* GetMaterialManager() const { return m_materialManager.get();}
+    const SceneViewModel* GetSceneViewModel() const { return m_sceneViewModel.get(); }
+    const LightingSystem* GetLightingSystem() const { return m_lightingSystem.get(); }
     
 private:
     std::map<RenderLayer, std::vector<std::shared_ptr<GeometryEntry>>> m_layeredGeometries;
@@ -74,7 +71,7 @@ private:
     std::unique_ptr<LightingSystem> m_lightingSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;
     
-    void RenderLayers(ID3D12GraphicsCommandList* commandList, RenderLayer layer);
+    void RenderLayers(ID3D12GraphicsCommandList* commandList);
     bool GetGeometryVisibility(const std::string& name) const;
     GeometryEntry* GetGeometryEntry(const std::string& name);
 };

@@ -1,13 +1,14 @@
 ﻿#pragma once
 
-#include "imgui.h"
 #include <string>
 #include <functional>
 #include <unordered_map>
-#include <memory>
-#include "Logger.h"
 #include <any>
 #include <d3d12.h>
+#include <DirectXMath.h>
+
+#include "imgui.h"
+#include "Logger.h"
 
 namespace Lunar 
 {
@@ -31,23 +32,23 @@ private:
 
     struct BoundValue 
     {
-        UIElementType type = UIElementType::Checkbox;
-        DataType dataType = DataType::Float;
-        void* dataPtr;
-        std::function<void(void*)> onChange;
-        std::any min;
-        std::any max;
-        int selectedValue = 0;
+        UIElementType ElementType = UIElementType::Checkbox;
+        DataType DataType = DataType::Float;
+        void* DataPtr;
+        std::function<void(void*)> OnChange;
+        std::any Min;
+        std::any Max;
+        int* SelectedValue;
         
         template<typename T>
-        T* GetAs() { return static_cast<T*>(dataPtr); }
+        T* GetAs() { return static_cast<T*>(DataPtr); }
     	
         template<typename T>
         T GetMinValue() const 
         {
             try 
             {
-                return std::any_cast<T>(min);
+                return std::any_cast<T>(Min);
             }
             catch (const std::bad_any_cast& e)
             {
@@ -61,7 +62,7 @@ private:
         {
             try
             {
-                return std::any_cast<T>(max);
+                return std::any_cast<T>(Max);
             }
             catch (const std::bad_any_cast& e)
             {
@@ -96,33 +97,37 @@ public:
 		}
 
 		BoundValue boundValue;
-		boundValue.type = UIElementType::Slider;
-		boundValue.dataPtr = value;
-		boundValue.min = min;
-		boundValue.max = max;
+		boundValue.ElementType = UIElementType::Slider;
+		boundValue.DataPtr = value;
+		boundValue.Min = std::any(min);
+		boundValue.Max = std::any(max);
 
         if constexpr (std::is_same_v<T, float>)
         {
-            boundValue.dataType = DataType::Float;
+            boundValue.DataType = DataType::Float;
         }
         else if constexpr (std::is_same_v<T, int>)
         {
-            boundValue.dataType = DataType::Int;
+            boundValue.DataType = DataType::Int;
         }
-        else if constexpr (std::is_same_v<T, XMFLOAT3>)
+        else if constexpr (std::is_same_v<T, DirectX::XMFLOAT3>)
         {
-            boundValue.dataType = DataType::Float3;
+            boundValue.DataType = DataType::Float3;
         }
+		else
+		{
+			LOG_ERROR(typeid(T).name(), " is not supported.");
+		}
     
 		if (onChange) 
 		{
-			boundValue.onChange = [onChange](void* data) { onChange(static_cast<T*>(data)); };
+			boundValue.OnChange = [onChange](void* data) { onChange(static_cast<T*>(data)); };
 		}
     
 		m_boundValues[id] = boundValue;
 	}
 
-    void BindListBox(const std::string& id, T* value, const std::vector<std::string>& items, std::function<void(T*)> onChange = nullptr);
+    void BindListBox(const std::string& id, int* value, std::vector<std::string>* items, std::function<void(std::vector<std::string>*)> onChange = nullptr);
 
 	template <typename T>
 	T* GetBoundValue(const std::string& id)
@@ -130,7 +135,7 @@ public:
 		auto it = m_boundValues.find(id);
 		if (it != m_boundValues.end()) 
 		{
-			return static_cast<T*>(it->second.dataPtr);
+			return static_cast<T*>(it->second.DataPtr);
 		}
 		return nullptr;
 	}
