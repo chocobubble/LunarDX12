@@ -11,8 +11,6 @@ class MaterialManager;
 struct ID3D12Device;
 struct ID3D12GraphicsCommandList;
 
-using namespace DirectX;
-
 namespace Lunar
 {
 enum class RenderLayer : int32
@@ -26,9 +24,9 @@ enum class RenderLayer : int32
 
 struct Transform
 {
-    XMFLOAT3 Location = {0.0f, 0.0f, 0.0f};
-    XMFLOAT3 Rotation = {0.0f, 0.0f, 0.0f};
-    XMFLOAT3 Scale = {1.0f, 1.0f, 1.0f};
+    DirectX::XMFLOAT3 Location = {0.0f, 0.0f, 0.0f};
+    DirectX::XMFLOAT3 Rotation = {0.0f, 0.0f, 0.0f};
+    DirectX::XMFLOAT3 Scale = {1.0f, 1.0f, 1.0f};
 };
 
 struct GeometryEntry
@@ -45,37 +43,27 @@ public:
     SceneRenderer();
     ~SceneRenderer() = default;
     
-    bool AddCube(const std::string& Name, const Transform& SpawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
-    bool AddSphere(const std::string& Name, const Transform& SpawnTransform = Transform(), float radius = 1.0f, RenderLayer layer = RenderLayer::World);
-    bool AddPlane(const std::string& Name, const Transform& SpawnTransform = Transform(), float width = 10.0f, float height = 10.0f, RenderLayer layer = RenderLayer::World);
-    
-    const Geometry* FindGeometryByName(const std::string& Name) const;
-    
-    bool SetGeometryTransform(const std::string& Name, const Transform& NewTransform);
-    
-    Transform GetGeometryTransform(const std::string& Name) const;
-    
-    bool SetGeometryVisibility(const std::string& Name, bool bVisible);
-    bool GetGeometryVisibility(const std::string& Name) const;
-    
-    bool RemoveGeometry(const std::string& Name);
-    bool DoesGeometryExist(const std::string& Name) const;
-    std::vector<std::string> GetAllGeometryNames() const;
-    
+    bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
+    bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
+    bool AddPlane(const std::string& name, const Transform& spawnTransform = Transform(), float width = 10.0f, float height = 10.0f, RenderLayer layer = RenderLayer::World);
+
     void InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
-    void RenderLayer(ID3D12GraphicsCommandList* commandList, RenderLayer layer);
     
-    void ClearScene();
-    size_t GetGeometryCount() const;
+    bool SetGeometryTransform(const std::string& name, const Transform& newTransform);
+    bool SetGeometryVisibility(const std::string& name, bool visible);
+    
+    bool DoesGeometryExist(const std::string& name) const;
+    const Transform GetGeometryTransform(const std::string& name) const;
+    const GeometryEntry* GetGeometryEntry(const std::string& name) const;
     
 private:
     std::map<RenderLayer, std::vector<std::shared_ptr<GeometryEntry>>> m_layeredGeometries;
     std::unordered_map<std::string, std::shared_ptr<GeometryEntry>> m_geometriesByName;
     std::unique_ptr<MaterialManager> m_materialManager;
     
-    void ApplyTransformToGeometry(Geometry* geometry, const Transform& transform);
-    std::shared_ptr<GeometryEntry> FindGeometryEntry(const std::string& Name);
-    std::shared_ptr<const GeometryEntry> FindGeometryEntry(const std::string& Name) const;
+    void RenderLayers(ID3D12GraphicsCommandList* commandList, RenderLayer layer);
+    bool GetGeometryVisibility(const std::string& name) const;
+    GeometryEntry* GetGeometryEntry(const std::string& name);
 };
 }

@@ -22,7 +22,7 @@ bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform,
     }
     
     auto cube = GeometryFactory::CreateCube();
-    ApplyTransformToGeometry(cube.get(), spawnTransform);
+    cube->SetTransform(spawnTransform);
     
     auto entry = make_shared<GeometryEntry>(move(cube), name, layer);
     
@@ -32,7 +32,7 @@ bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform,
     return true;
 }
 
-bool SceneRenderer::AddSphere(const string& name, const Transform& spawnTransform, float radius, RenderLayer layer)
+bool SceneRenderer::AddSphere(const string& name, const Transform& spawnTransform, RenderLayer layer)
 {
     if (DoesGeometryExist(name))
     {
@@ -41,7 +41,7 @@ bool SceneRenderer::AddSphere(const string& name, const Transform& spawnTransfor
     }
     
     auto sphere = GeometryFactory::CreateSphere();
-    ApplyTransformToGeometry(sphere.get(), spawnTransform);
+    sphere->SetTransform(spawnTransform);
     
     auto entry = make_shared<GeometryEntry>(move(sphere), name, layer);
     
@@ -60,7 +60,7 @@ bool SceneRenderer::AddPlane(const string& name, const Transform& spawnTransform
     }
     
     auto plane = GeometryFactory::CreatePlane(width, height);
-    ApplyTransformToGeometry(plane.get(), spawnTransform);
+    plane->SetTransform(spawnTransform);
     
     auto entry = make_shared<GeometryEntry>(move(plane), name, layer);
     
@@ -71,18 +71,12 @@ bool SceneRenderer::AddPlane(const string& name, const Transform& spawnTransform
     return true;
 }
 
-const Geometry* SceneRenderer::FindGeometryByName(const string& Name) const
-{
-    auto entry = FindGeometryEntry(Name);
-    return entry ? entry->GeometryData.get() : nullptr;
-}
-
 bool SceneRenderer::SetGeometryTransform(const string& name, const Transform& newTransform)
 {
-    Geometry* geometry = FindGeometryByName(name);
+    Geometry* geometry = GetGeometryByName(name);
     if (geometry)
     {
-        ApplyTransformToGeometry(geometry, newTransform);
+        geometry->SetTransform(newTransform);
         return true;
     }
     else
@@ -92,23 +86,23 @@ bool SceneRenderer::SetGeometryTransform(const string& name, const Transform& ne
     }
 }
 
-Transform SceneRenderer::GetGeometryTransform(const string& Name) const
+const Transform SceneRenderer::GetGeometryTransform(const string& name) const
 {
-    const Geometry* geometry = FindGeometryByName(Name);
+    const Geometry* geometry = GetGeometryByName(name);
     if (geometry)
     {
         return geometry->GetTransform();
     }
     else 
     {
-        LOG_ERROR("Geometry with name " + Name + " not found")
+        LOG_ERROR("Geometry with name " + name + " not found")
         return Transform(); 
     }
 }
 
 bool SceneRenderer::SetGeometryVisibility(const string& name, bool visible)
 {
-    auto entry = FindGeometryEntry(name);
+    auto entry = GetGeometryEntry(name);
     if (entry)
     {
         entry->IsVisible = visible;
@@ -123,7 +117,7 @@ bool SceneRenderer::SetGeometryVisibility(const string& name, bool visible)
 
 bool SceneRenderer::GetGeometryVisibility(const string& name) const
 {
-    auto entry = FindGeometryEntry(name);
+    auto entry = GetGeometryEntry(name);
     return entry ? entry->IsVisible : false;
 }
 
@@ -145,17 +139,12 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandL
 
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
 {
-    for (int i = 0; i < static_cast<int>(RenderLayer::COUNT); ++i)
-    {
-        RenderLayer layer = static_cast<RenderLayer>(i);
-        RenderLayer(commandList, layer);
-    }
+    RenderLayers(commandList);
 }
 
-void SceneRenderer::RenderLayer(ID3D12GraphicsCommandList* commandList, RenderLayer layer)
+void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
 {
-    auto it = m_layeredGeometries.find(layer);
-    if (it != m_layeredGeometries.end())
+    for (auto& it : m_layeredGeometries)
     {
         for (auto& entry : it->second)
         {
@@ -169,26 +158,13 @@ void SceneRenderer::RenderLayer(ID3D12GraphicsCommandList* commandList, RenderLa
     }
 }
 
-void SceneRenderer::ApplyTransformToGeometry(const string& name, const Transform& transform)
-{
-    Geometry* geometry = FindGeometryByName(name);
-    if (geometry)
-    {
-        geometry->SetTransform(transform);
-    }
-    else
-    {
-        LOG_ERROR("Geometry with name " + name + " not found")
-    }
-}
-
-shared_ptr<GeometryEntry> SceneRenderer::FindGeometryEntry(const string& name)
+GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name)
 {
     auto it = m_geometriesByName.find(name);
     return (it != m_geometriesByName.end()) ? it->second : nullptr;
 }
 
-shared_ptr<const GeometryEntry> SceneRenderer::FindGeometryEntry(const string& name) const
+const GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name) const
 {
     auto it = m_geometriesByName.find(name);
     return (it != m_geometriesByName.end()) ? it->second : nullptr;
