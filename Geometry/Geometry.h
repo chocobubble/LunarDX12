@@ -48,7 +48,6 @@ protected:
     std::vector<uint16_t> m_indices;
 
 	ObjectConstants m_objectConstants;
-    // DirectX::XMFLOAT4X4 m_world = {};  
     Transform m_transform;  
     DirectX::XMFLOAT4 m_color = {1.0f, 1.0f, 1.0f, 1.0f};  // TODO: delete 
     

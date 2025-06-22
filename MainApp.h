@@ -14,8 +14,8 @@
 
 namespace Lunar {
     
-class LightingSystem;
 class ConstantBuffer;
+class SceneRenderer;
 class Camera;
 class LunarGui;
 	
@@ -104,7 +104,7 @@ private:
 
     std::unique_ptr<ConstantBuffer> m_basicCB;
 
-    std::unique_ptr<LightingSystem> m_lightingSystem;
+    std::unique_ptr<SceneRenderer> m_sceneRenderer
 
 	bool m_mouseMoving = false;
 };

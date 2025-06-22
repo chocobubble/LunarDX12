@@ -1,6 +1,8 @@
 #include "SceneRenderer.h"
 #include "Geometry/GeometryFactory.h"
 #include "MaterialManager.h"
+#include "SceneViewModel.h
+#include "LightingSystem.h"
 
 using namespace DirectX;
 using namespace std;
@@ -11,6 +13,30 @@ namespace Lunar
 SceneRenderer::SceneRenderer()
 {
     m_materialManager = make_unique<MaterialManager>();
+    m_sceneViewModel = make_unique<SceneViewModel>();
+    m_lightingSystem = make_unique<LightingSystem>();
+}
+
+void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, LunarGui* gui)
+{
+    m_lightingSystem->Initialize(device, Lunar::Constants::LIGHT_COUNT);
+    m_sceneViewModel->Initialize(gui, this)
+    for (auto& [layer, geometryEntries] : m_layeredGeometries)
+    {
+        for (auto& entry : geometryEntries)
+        {
+            entry->GeometryData->Initialize(device, commandList);
+        }
+    }
+}
+
+void SceneRenderer::UpdateScene(float deltaTime)
+{
+}
+
+void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
+{
+    RenderLayers(commandList);
 }
 
 bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform, RenderLayer layer)
@@ -139,22 +165,6 @@ bool SceneRenderer::GetGeometryVisibility(const string& name) const
 bool SceneRenderer::DoesGeometryExist(const string& name) const
 {
     return m_geometriesByName.find(name) != m_geometriesByName.end();
-}
-
-void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
-{
-    for (auto& [layer, geometryEntries] : m_layeredGeometries)
-    {
-        for (auto& entry : geometryEntries)
-        {
-            entry->GeometryData->Initialize(device, commandList);
-        }
-    }
-}
-
-void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
-{
-    RenderLayers(commandList);
 }
 
 void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)

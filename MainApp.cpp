@@ -12,7 +12,7 @@
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
 #include "LunarGui.h"
-#include "LightingSystem.h"
+#include "Geometry/Transform.h"
 
 using namespace std;
 using namespace DirectX;
@@ -35,7 +35,6 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_displayWidth = 1280;
 	m_displayHeight = 720;
-    m_lightingSystem = make_unique<LightingSystem>();
 }
 
 MainApp::~MainApp()
@@ -654,13 +653,13 @@ void MainApp::Update(double dt)
 	// XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
 	// worldMatrix = XMMatrixTranspose(worldMatrix);
 	// XMStoreFloat4x4(&constants.model, worldMatrix);
-	// XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
-	// XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
-	// constants.eyePos = m_camera->GetPosition();
+	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
+	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
+	constants.eyePos = m_camera->GetPosition();
 
-    m_lightingSystem->UpdateLightData(constants);
-	
     m_basicCB->CopyData(&constants, sizeof(BasicConstants));
+
+    m_sceneRenderer->Update(dt);
 }
 
 void MainApp::ProcessInput(double dt)
@@ -705,7 +704,6 @@ void MainApp::Render(double dt)
 	THROW_IF_FAILED(m_swapChain.As(&swapChain3));
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
 
-	// m_commandAllocator.Reset();
 	m_commandAllocator->Reset(); // Cautions!
 	m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get());
 
@@ -771,6 +769,7 @@ void MainApp::Render(double dt)
 
 	// FIXME
 	// m_cube->Draw(m_commandList.Get());
+    m_sceneRenderer->RenderScene(m_commandList);
 
 	// resource barrier - transition to the present state
 	barrier = {};
@@ -943,16 +942,21 @@ void MainApp::InitializeGeometry()
 {
 	LOG_FUNCTION_ENTRY();
 	// FIXME
-	// m_cube = std::make_unique<Cube>();
-	//
-	// m_commandAllocator->Reset();
-	// m_commandList->Reset(m_commandAllocator.Get(), nullptr);
-	// m_cube->Initialize(m_device.Get(), m_commandList.Get());
-	// m_cube->SetPosition(XMFLOAT3(0.0f, 0.0f, 0.5f));
-	// m_cube->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	//
-	// m_cube->SetScale(0.5f);
-	// m_cube->SetColor(XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
+    // TODO: Check really need this resetting?
+	m_commandAllocator->Reset();
+	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+    Transform transform = {};
+    transform.Location = XMFLOAT3(0.0f, 0.5f, 0.5f);
+    m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::World);
+    transform.Location = XMFLOAT3(0.0f, 2.5f, 0.5f);
+    m_sceneRenderer->AddCube("Cube1", transform, RenderLayer::World);
+    transform.Location = XMFLOAT3(0.0f, -0.5f, 0.0f);
+    transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
+    m_sceneRenderer->AddPlane("Plane0", transform, RenderLayer::World);
+    transform.Location = XMFLOAT3(2.0f, 0.5f, 0.0f);
+    transform.Scale = XMFLOAT3(0.5f, 0.5f, 0.5f);
+    m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
+
 }
 
 void MainApp::CreateCamera()

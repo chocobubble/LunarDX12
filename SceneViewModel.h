@@ -17,7 +17,7 @@ public:
     SceneViewModel() = default;
     ~SceneViewModel() = default;
 
-    void Initialize(LunarGui* gui, SceneRenderer* sceneRenderer, MaterialManager* materialManager, LightingSystem* LightingSystem);
+    void Initialize(LunarGui* gui, SceneRenderer* sceneRenderer);
 
 private:
     std::string m_selectedGeometryName = "default";  

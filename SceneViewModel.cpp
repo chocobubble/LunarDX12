@@ -8,12 +8,12 @@
 namespace Lunar
 {
 
-void SceneViewModel::Initialize(LunarGui* gui, SceneRenderer* sceneRenderer, MaterialManager* materialManager, LightingSystem* LightingSystem) 
+void SceneViewModel::Initialize(LunarGui* gui, SceneRenderer* sceneRenderer)
 {
     gui = make_unique<LunarGui>();
     m_geometryNames = sceneRenderer->GetGeometryNames();
-    m_materialNames = materialManager->GetMaterialNames();
-    m_lights = LightingSystem->GetLightIndices();
+    m_materialNames = sceneRenderer->GetMaterialManager()->GetMaterialNames();
+    m_lights = sceneRenderer->GetLightingSystem()->GetLightIndices();
 
     // geometry
     gui->BindListBox("Geometry", &m_selectedGeometryIndex, &m_geometryNames, 
