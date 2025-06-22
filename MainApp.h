@@ -49,7 +49,6 @@ private:
 	void InitializeGeometry();
 	void CreateCamera();
 	void InitializeTextures();
-	void CreateConstantBuffer();
 	void CreateLights();
 	
 	HWND m_mainWindow;
@@ -101,8 +100,6 @@ private:
     float m_lastMouseY = 0.0f;
 
     std::unique_ptr<Camera> m_camera;
-
-    std::unique_ptr<ConstantBuffer> m_basicCB;
 
     std::unique_ptr<SceneRenderer> m_sceneRenderer
 

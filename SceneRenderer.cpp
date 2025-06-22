@@ -3,6 +3,7 @@
 #include "MaterialManager.h"
 #include "SceneViewModel.h
 #include "LightingSystem.h"
+#include "ConstantBuffers.h"
 
 using namespace DirectX;
 using namespace std;
@@ -19,6 +20,7 @@ SceneRenderer::SceneRenderer()
 
 void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, LunarGui* gui)
 {
+    m_basicCB = make_unique<ConstantBuffer>(device, sizeof(ConstantBuffer));
     m_lightingSystem->Initialize(device, Lunar::Constants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this)
     for (auto& [layer, geometryEntries] : m_layeredGeometries)
@@ -30,12 +32,17 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandL
     }
 }
 
-void SceneRenderer::UpdateScene(float deltaTime)
+void SceneRenderer::UpdateScene(float deltaTime, BasicConstants& basicConstants)
 {
+    m_lightingSystem->UpdateLightData(basicConstants);
+    m_basicCB->CopyData(&basicConstants, sizeof(BasicConstants));
 }
 
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
 {
+    commandList->SetGraphicsRootConstantBufferView(
+        Lunar::Constants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
+        m_basicCB->Resource()->GetGPUVirtualAddress());
     RenderLayers(commandList);
 }
 

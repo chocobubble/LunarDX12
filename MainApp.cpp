@@ -657,9 +657,7 @@ void MainApp::Update(double dt)
 	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
 	constants.eyePos = m_camera->GetPosition();
 
-    m_basicCB->CopyData(&constants, sizeof(BasicConstants));
-
-    m_sceneRenderer->Update(dt);
+    m_sceneRenderer->Update(dt, constants);
 }
 
 void MainApp::ProcessInput(double dt)
@@ -759,16 +757,10 @@ void MainApp::Render(double dt)
 	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	m_commandList->SetGraphicsRootDescriptorTable(0, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
 
-    m_commandList->SetGraphicsRootConstantBufferView(
-        Lunar::Constants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
-        m_basicCB->GetResource()->GetGPUVirtualAddress());
-
 	// clear
 	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 
-	// FIXME
-	// m_cube->Draw(m_commandList.Get());
     m_sceneRenderer->RenderScene(m_commandList);
 
 	// resource barrier - transition to the present state
@@ -941,7 +933,6 @@ float MainApp::GetAspectRatio() const
 void MainApp::InitializeGeometry()
 {
 	LOG_FUNCTION_ENTRY();
-	// FIXME
     // TODO: Check really need this resetting?
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
@@ -980,11 +971,6 @@ void MainApp::InitializeTextures()
         return;
 	}
 	m_texture = Utils::LoadSimpleTexture(m_device.Get(), m_commandList.Get(), texturePath, m_textureUploadBuffer);
-}
-
-void MainApp::CreateConstantBuffer()
-{
-    m_basicCB = std::make_unique<ConstantBuffer>(m_device.Get(), sizeof(BasicConstants));
 }
 
 } // namespace Lunar

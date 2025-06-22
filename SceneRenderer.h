@@ -10,6 +10,7 @@ class Geometry;
 class MaterialManager;
 class SceneViewModel;
 class LightingSystem;
+class ConstantBuffer;
 struct ID3D12Device;
 struct ID3D12GraphicsCommandList;
 
@@ -46,7 +47,7 @@ public:
     ~SceneRenderer() = default;
 
     void InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
-    void UpdateScene(float deltaTime);
+    void UpdateScene(float deltaTime, BasicConstants& basicConstants);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
     bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
@@ -71,6 +72,7 @@ private:
     std::unique_ptr<MaterialManager> m_materialManager;
     std::unique_ptr<SceneViewModel> m_sceneViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
+    std::unique_ptr<ConstantBuffer> m_basicCB;
     
     void RenderLayers(ID3D12GraphicsCommandList* commandList, RenderLayer layer);
     bool GetGeometryVisibility(const std::string& name) const;
