@@ -10,11 +10,16 @@ struct Light
 
 cbuffer BasicConstants : register(b0)
 {
-	float4x4 model;
 	float4x4 view;
 	float4x4 projection;
 	float3 eyePos;
+	float4 ambientLight;
 	Light lights[3];
+}
+
+cbuffer ObjectConstants : register(b1)
+{
+	float4x4 world;
 }
 
 struct VertexIn
@@ -38,7 +43,8 @@ PixelIn main(VertexIn vIn)
 {
     PixelIn pIn;
 	float4 pos = float4(vIn.pos, 1.0f);
-	pIn.pos = mul(pos, model);
+	// pIn.pos = mul(pos, model);
+	pIn.pos = mul(pos, world);
 	pIn.posW = pIn.pos;
 	pIn.pos = mul(pIn.pos, view);
 	pIn.pos = mul(pIn.pos, projection);

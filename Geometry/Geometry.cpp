@@ -13,6 +13,7 @@ Geometry::Geometry()
 
 void Geometry::Initialize(ID3D12Device* device)
 {
+	LOG_FUNCTION_ENTRY();
     CreateGeometry();  
     CreateBuffers(device); 
     m_objectCB = std::make_unique<ConstantBuffer>(device, sizeof(ObjectConstants));

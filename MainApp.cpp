@@ -652,10 +652,6 @@ void MainApp::Update(double dt)
     ProcessInput(dt);
 
 	BasicConstants constants = {};
-	// FIXME
-	// XMMATRIX worldMatrix = XMLoadFloat4x4(&m_cube->GetWorldMatrix());
-	// worldMatrix = XMMatrixTranspose(worldMatrix);
-	// XMStoreFloat4x4(&constants.model, worldMatrix);
 	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
 	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
 	constants.eyePos = m_camera->GetPosition();

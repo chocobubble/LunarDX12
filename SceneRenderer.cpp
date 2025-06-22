@@ -22,7 +22,7 @@ SceneRenderer::SceneRenderer()
 
 void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, LunarGui* gui)
 {
-    m_basicCB = make_unique<ConstantBuffer>(device, sizeof(ConstantBuffer));
+    m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
     m_lightingSystem->Initialize(device, Lunar::Constants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this);
 	m_materialManager->Initialize(device);

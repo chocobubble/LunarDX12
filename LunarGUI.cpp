@@ -114,7 +114,7 @@ void LunarGui::Render(float dt)
                     {
                         value.OnChange(value.DataPtr);
                     }
-                	break;
+                    break;
                 }
                 default:
                     LOG_ERROR("Invalid data type for slider.");
@@ -182,10 +182,10 @@ void LunarGui::BindListBox(const string& id, int* value, vector<string>* items, 
     }
 
     BoundValue boundValue;
-    boundValue.ElementType = UIElementType::Checkbox;
+    boundValue.ElementType = UIElementType::ListBox;
 	boundValue.SelectedValue = value;
     boundValue.DataPtr = items;
-    boundValue.Max = items->size();
+    boundValue.Max = any(static_cast<int>(items->size()));
 
     if (onChange)
     {
