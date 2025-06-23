@@ -254,6 +254,46 @@ void MainApp::CreateRenderTargetView()
 		m_rtvHandle.ptr += m_renderTargetViewDescriptorSize;
 	}
 }
+	
+void MainApp::CreateDSVDescriptorHeap()
+{
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(m_dsvHeap.GetAddressOf())));
+}
+
+void MainApp::CreateDepthStencilView()
+{
+	D3D12_RESOURCE_DESC depthStencilDesc = {};
+	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthStencilDesc.Width = m_displayWidth;
+	depthStencilDesc.Height = m_displayHeight;
+	depthStencilDesc.DepthOrArraySize = 1;
+	depthStencilDesc.MipLevels = 1;
+	depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilDesc.SampleDesc.Count = 1;
+	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+	depthOptimizedClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+	depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+	D3D12_HEAP_PROPERTIES heapProps = {};
+	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	THROW_IF_FAILED(m_device->CreateCommittedResource(
+		&heapProps,
+		D3D12_HEAP_FLAG_NONE,
+		&depthStencilDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthOptimizedClearValue,
+		IID_PPV_ARGS(m_depthStencilBuffer.GetAddressOf())));
+
+	m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+}
 
 void MainApp::CreateShaderResourceView()
 {
@@ -586,7 +626,7 @@ void MainApp::BuildPSO()
 	psoDesc.RasterizerState = rasterizerDesc;
 
 	// Default Depth Stencil Desc
-	psoDesc.DepthStencilState.DepthEnable = FALSE;
+	psoDesc.DepthStencilState.DepthEnable = true;
 	psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 	psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 	psoDesc.DepthStencilState.StencilEnable = FALSE;
@@ -749,7 +789,8 @@ void MainApp::Render(double dt)
 	// Set Render Target
 	D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 	renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
-	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, nullptr);
+	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
 
 	// Set Constant Buffer Descriptor heap
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_srvHeap.Get() };
@@ -759,6 +800,7 @@ void MainApp::Render(double dt)
 	// clear
 	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
+	m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
     m_sceneRenderer->RenderScene(m_commandList.Get());
 
@@ -815,7 +857,9 @@ void MainApp::Initialize()
 	CreateSwapChain();
 	CreateSRVDescriptorHeap();
 	CreateRTVDescriptorHeap();
+	CreateDSVDescriptorHeap();
 	CreateRenderTargetView();
+	CreateDepthStencilView();
 	CreateShaderResourceView();
 	CreateRootSignature();
 	BuildShadersAndInputLayout();
