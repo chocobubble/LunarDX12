@@ -35,7 +35,7 @@ void PipelineStateManager::Initialize(ID3D12Device* device)
 	BuildPSOs(device);
 }
 
-ComPtr<ID3DBlob> PipelineStateManager::CompileShader(const std::string& shaderName, const std::string& target)
+ComPtr<ID3DBlob> PipelineStateManager::CompileShader(const std::string& shaderName, const std::string& target) const
 {
 	ComPtr<ID3DBlob> byteCode = nullptr;
 	ComPtr<ID3DBlob> errors = nullptr;
@@ -219,7 +219,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	psoDesc.VS.BytecodeLength = m_shaderMap["basicVS"]->GetBufferSize();
 	psoDesc.PS.pShaderBytecode = m_shaderMap["basicPS"]->GetBufferPointer();
 	psoDesc.PS.BytecodeLength = m_shaderMap["basicPS"]->GetBufferSize();
-	psoDesc.InputLayout = { m_inputLayout.data(), (UINT)m_inputLayout.size() };
+	psoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
 
 	// Default Blend State
 	psoDesc.BlendState.AlphaToCoverageEnable = FALSE;

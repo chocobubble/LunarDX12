@@ -13,7 +13,7 @@ public:
 	PipelineStateManager();
 	~PipelineStateManager() = default;
 	void Initialize(ID3D12Device* device);
-	Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(const std::string& shaderName, const std::string& target);
+	Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(const std::string& shaderName, const std::string& target) const;
 	void CreateRootSignature(ID3D12Device* device);
 	void BuildPSOs(ID3D12Device* device);
 	ID3D12RootSignature* GetRootSignature() const { return m_rootSignature.Get(); }

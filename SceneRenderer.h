@@ -21,11 +21,11 @@ struct BasicConstants;
 
 enum class RenderLayer
 {
-    Background = 0,
-    World = 1,
-    Translucent = 2,
-    UI = 3,
-    COUNT = 4 // for looping enum
+    Background,
+    World,
+	Mirror,
+    Translucent,
+    UI
 };
 
 struct GeometryEntry
