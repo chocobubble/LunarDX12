@@ -32,6 +32,12 @@ public:
 		return (byteSize + 255) & ~255;
 	}	
 	static Microsoft::WRL::ComPtr<ID3D12Resource> LoadSimpleTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
+	static UINT GetDisplayWidth() { return m_displayWidth; }
+	static UINT GetDisplayHeight() { return m_displayHeight; }
+	static float GetAspectRatio() { return static_cast<float>(m_displayWidth) / m_displayHeight; }
+private:
+	inline static UINT m_displayWidth = 1280;
+	inline static UINT m_displayHeight = 720;
 };
 	
 } // namespace Lunar

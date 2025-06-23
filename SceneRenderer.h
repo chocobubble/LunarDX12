@@ -15,7 +15,6 @@
 namespace Lunar
 {
 class LunarGui;
-// class Geometry;
 class LightingSystem;
 class ConstantBuffer;
 struct BasicConstants;

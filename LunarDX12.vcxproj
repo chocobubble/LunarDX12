@@ -146,6 +146,7 @@
     <ClCompile Include="LunarTimer.cpp" />
     <ClCompile Include="MaterialManager.cpp" />
     <ClCompile Include="MathUtils.cpp" />
+    <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="LunarTimer.h" />
     <ClInclude Include="MaterialManager.h" />
     <ClInclude Include="MathUtils.h" />
+    <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
     <ClInclude Include="Utils.h" />
