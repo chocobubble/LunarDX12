@@ -16,6 +16,7 @@ cbuffer BasicConstants : register(b0)
 	float4x4 view;
 	float4x4 projection;
 	float3 eyePos;
+	int textureIndex;
 	float4 ambientLight;
 	Light lights[3];
 }
@@ -102,8 +103,11 @@ float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toE
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
-	// FIXME : Lighting system looks bad. 
-	float3 tmp = (0.0, 0.0, 0.0); 
+	// FIXME : Lighting system looks bad.
+	// if (textureIndex > 0) return g_texture.Sample(g_sampler, pIn.texCoord);
+	// float3 tmp = textureIndex >= 0 ? g_texture.Sample(g_sampler, pIn.texCoord) : (0.0, 0.0, 0.0); 
+	float3 tmp = (0.0, 0.0, 0.0);
+	
 	// float3 lightVector = normalize(-direction);
 	// float3 toEye = normalize(eyePos - pIn.posW);
 	// tmp += ComputeDirectionalLight(lightVector, pIn.normal, toEye, lightStrength);

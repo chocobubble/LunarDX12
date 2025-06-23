@@ -409,12 +409,12 @@ void MainApp::Update(double dt)
 {
     ProcessInput(dt);
 
-	BasicConstants constants = {};
+	BasicConstants& constants = m_sceneRenderer->GetBasicConstants();
 	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
 	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
 	constants.eyePos = m_camera->GetPosition();
 
-    m_sceneRenderer->UpdateScene(dt, constants);
+    m_sceneRenderer->UpdateScene(dt);
 }
 
 void MainApp::ProcessInput(double dt)
@@ -514,7 +514,7 @@ void MainApp::Render(double dt)
 	m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
-	m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
+	// m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
 	m_sceneRenderer->RenderScene(m_commandList.Get());
 	
 	// Set Constant Buffer Descriptor heap
@@ -702,11 +702,13 @@ void MainApp::InitializeGeometry()
 	mirrorTransform.Location = XMFLOAT3(2.0f, 0.0f, 3.0f);
 	mirrorTransform.Rotation = XMFLOAT3(-XM_PIDIV2, 0.0f, 0.0f);
 	m_sceneRenderer->AddPlane("Mirror0", mirrorTransform, 0.1f, 0.2f, RenderLayer::Mirror);
+	mirrorTransform.Location = XMFLOAT3(2.0f, 0.0f, 2.0f);
+	m_sceneRenderer->AddPlane("Test0", mirrorTransform, 0.2f, 0.4f, RenderLayer::Reflect);
     transform.Location = XMFLOAT3(2.0f, 0.5f, 0.0f);
     transform.Scale = XMFLOAT3(0.5f, 0.5f, 0.5f);
     m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
 
-	m_sceneRenderer->InitializeScene(m_device.Get(), m_commandList.Get(), m_gui.get());
+	m_sceneRenderer->InitializeScene(m_device.Get(), m_gui.get(), m_pipelineStateManager.get());
 }
 
 void MainApp::CreateCamera()

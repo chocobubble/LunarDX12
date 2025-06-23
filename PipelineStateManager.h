@@ -18,6 +18,7 @@ public:
 	void BuildPSOs(ID3D12Device* device);
 	ID3D12RootSignature* GetRootSignature() const { return m_rootSignature.Get(); }
 	ID3D12PipelineState* GetPSO(const std::string& psoName) const;
+	
 private:
 	std::unordered_map<std::string, std::vector<D3D12_INPUT_ELEMENT_DESC>> m_inputLayoutMap;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> m_shaderMap;

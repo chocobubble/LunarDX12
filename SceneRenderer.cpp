@@ -4,6 +4,7 @@
 #include "LightingSystem.h"
 #include "ConstantBuffers.h"
 #include "LunarGUI.h"
+#include "PipelineStateManager.h"
 
 using namespace DirectX;
 using namespace std;
@@ -20,8 +21,9 @@ SceneRenderer::SceneRenderer()
     m_lightingSystem = make_unique<LightingSystem>();
 }
 
-void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, LunarGui* gui)
+void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager)
 {
+	m_pipelineStateManager = pipelineManager;
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
     m_lightingSystem->Initialize(device, Lunar::Constants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this);
@@ -35,10 +37,10 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandL
     }
 }
 
-void SceneRenderer::UpdateScene(float deltaTime, BasicConstants& basicConstants)
+void SceneRenderer::UpdateScene(float deltaTime)
 {
-    m_lightingSystem->UpdateLightData(basicConstants);
-    m_basicCB->CopyData(&basicConstants, sizeof(BasicConstants));
+    m_lightingSystem->UpdateLightData(m_basicConstants);
+    m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
@@ -181,6 +183,24 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
 {
     for (auto& it : m_layeredGeometries)
     {
+    	if (it.first == RenderLayer::Mirror)
+    	{
+    		m_basicConstants.textureIndex = 0;
+    		commandList->OMSetStencilRef(1);
+    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
+    	}
+    	else if (it.first == RenderLayer::Reflect)
+    	{
+    		m_basicConstants.textureIndex = 1;
+    		commandList->OMSetStencilRef(1);
+    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
+    	}
+    	else
+    	{
+    		m_basicConstants.textureIndex = 0;
+    		commandList->OMSetStencilRef(0);	
+    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
+    	}
         for (auto& entry : it.second)
         {
             if (entry->IsVisible)
