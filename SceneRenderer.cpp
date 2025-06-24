@@ -194,6 +194,26 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     		m_basicConstants.textureIndex = 1;
     		commandList->OMSetStencilRef(1);
     		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
+		    
+    		for (auto& entry : m_layeredGeometries[RenderLayer::World])
+    		{
+    			if (entry->IsVisible)
+    			{
+    				XMVECTOR mirrorPlane = XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
+    				XMMATRIX R = XMMatrixReflect(mirrorPlane);
+    				Geometry* geometry = entry->GeometryData.get();
+    				XMFLOAT4X4 geometryWorld = geometry->GetWorldMatrix();
+    				XMMATRIX W = XMMatrixTranspose(XMLoadFloat4x4(&geometryWorld));
+    				XMMATRIX reflectedWorld = R * W;
+    				XMFLOAT4X4 reflectedWorldMatrix;
+    				XMStoreFloat4x4(&reflectedWorldMatrix, XMMatrixTranspose(reflectedWorld));
+    				geometry->SetWorldMatrix(reflectedWorldMatrix);
+    				string materialName = entry->GeometryData->GetMaterialName();
+    				m_materialManager->BindConstantBuffer(materialName, commandList);
+    				entry->GeometryData->Draw(commandList);
+    				geometry->SetWorldMatrix(geometryWorld);
+    			}
+    		}
     	}
     	else
     	{

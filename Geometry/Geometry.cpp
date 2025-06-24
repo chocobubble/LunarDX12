@@ -33,6 +33,12 @@ void Geometry::Draw(ID3D12GraphicsCommandList* commandList)
     commandList->DrawIndexedInstanced(static_cast<UINT>(m_indices.size()), 1, 0, 0, 0);
 }
 
+void Geometry::SetWorldMatrix(DirectX::XMFLOAT4X4 worldMatrix)
+{
+	m_objectConstants.World = worldMatrix;
+	m_needsConstantBufferUpdate = true;
+}
+
 void Geometry::SetTransform(const Transform& transform)
 {
     m_transform = transform;

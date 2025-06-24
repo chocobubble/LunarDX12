@@ -24,7 +24,8 @@ public:
     
     virtual void Initialize(ID3D12Device* device);
     virtual void Draw(ID3D12GraphicsCommandList* commandList);
-    
+
+	void SetWorldMatrix(DirectX::XMFLOAT4X4 worldMatrix);
     void SetTransform(const Transform& transform);
     void SetLocation(const DirectX::XMFLOAT3& location);
     void SetRotation(const DirectX::XMFLOAT3& rotation);
@@ -32,7 +33,7 @@ public:
     void SetColor(const DirectX::XMFLOAT4& color);  // TODO: delete
     void SetMaterialName(const std::string& materialName);
     
-    const DirectX::XMFLOAT4X4& GetWorldMatrix() const { return m_objectConstants.World; }
+    DirectX::XMFLOAT4X4 GetWorldMatrix() { return m_objectConstants.World; }
     const Transform& GetTransform() const { return m_transform; }
     const DirectX::XMFLOAT3& GetLocation() const { return m_transform.Location; }
     const DirectX::XMFLOAT3& GetRotation() const { return m_transform.Rotation; }

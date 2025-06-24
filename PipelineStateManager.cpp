@@ -301,7 +301,8 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	for (UINT i = 1; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
 		psoDesc.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
     
-	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+	// psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
     
 	psoDesc.SampleDesc.Count = Lunar::Constants::SAMPLE_COUNT;
 	psoDesc.SampleDesc.Quality = 0;
@@ -315,7 +316,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		IID_PPV_ARGS(m_psoMap["opaque"].GetAddressOf())))
 
 	// PSO for marking stencil mirror
-	{
+	
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 		psoDesc.DepthStencilState.StencilEnable = true;
 
@@ -338,12 +339,13 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		psoDesc.DepthStencilState.BackFace = stencilOp;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
 			IID_PPV_ARGS(m_psoMap["mirror"].GetAddressOf())))
-	}
+	
 
 	// PSO for reflected objects
-	{
+	
+		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+		psoDesc.RasterizerState.FrontCounterClockwise = false;
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		D3D12_DEPTH_STENCILOP_DESC stencilOp = {};
 		stencilOp.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 		stencilOp.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
 		stencilOp.StencilPassOp = D3D12_STENCIL_OP_KEEP;
@@ -352,7 +354,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		psoDesc.DepthStencilState.BackFace = stencilOp;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
 			IID_PPV_ARGS(m_psoMap["reflect"].GetAddressOf())))
-	}
+	
 }
 
 ID3D12PipelineState* PipelineStateManager::GetPSO(const std::string& psoName) const

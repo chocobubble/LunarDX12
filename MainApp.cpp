@@ -693,17 +693,11 @@ void MainApp::InitializeGeometry()
     Transform transform = {};
     transform.Location = XMFLOAT3(0.0f, 0.5f, 0.5f);
     m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::World);
-    transform.Location = XMFLOAT3(0.0f, 2.5f, 0.5f);
-    m_sceneRenderer->AddCube("Cube1", transform, RenderLayer::World);
-    transform.Location = XMFLOAT3(0.0f, -0.5f, 0.0f);
-    transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
-    m_sceneRenderer->AddPlane("Plane0", transform, 10.0f, 10.0f, RenderLayer::World);
+	transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
 	Transform mirrorTransform = transform;
 	mirrorTransform.Location = XMFLOAT3(2.0f, 0.0f, 3.0f);
 	mirrorTransform.Rotation = XMFLOAT3(-XM_PIDIV2, 0.0f, 0.0f);
 	m_sceneRenderer->AddPlane("Mirror0", mirrorTransform, 0.1f, 0.2f, RenderLayer::Mirror);
-	mirrorTransform.Location = XMFLOAT3(2.0f, 0.0f, 2.0f);
-	m_sceneRenderer->AddPlane("Test0", mirrorTransform, 0.2f, 0.4f, RenderLayer::Reflect);
     transform.Location = XMFLOAT3(2.0f, 0.5f, 0.0f);
     transform.Scale = XMFLOAT3(0.5f, 0.5f, 0.5f);
     m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
