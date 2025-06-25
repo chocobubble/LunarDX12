@@ -20,23 +20,23 @@ void main(point GeometryInput gIn[1], inout TriangleStream<PixelInput> stream, u
 	PixelInput pIn;
 	pIn.primID = primID;
 	
-	// top right
-	pIn.posH = gIn[0].posH + float4(width, height, 0.0, 0.0);
-	pIn.uv = float2(1.0, 0.0);
-	stream.Append(pIn);
-
 	// top left
 	pIn.posH = gIn[0].posH + float4(-width, height, 0.0, 0.0);
 	pIn.uv = float2(0.0, 0.0);
 	stream.Append(pIn);
 
-	// bottom right
-	pIn.posH = gIn[0].posH + float4(width, -height, 0.0, 0.0);
-	pIn.uv = float2(1.0, 1.0);
+	// top right
+	pIn.posH = gIn[0].posH + float4(width, height, 0.0, 0.0);
+	pIn.uv = float2(1.0, 0.0);
 	stream.Append(pIn);
 
 	// bottom left
 	pIn.posH = gIn[0].posH + float4(-width, -height, 0.0, 0.0);
 	pIn.uv = float2(0.0, 1.0);
+	stream.Append(pIn);
+	
+	// bottom right
+	pIn.posH = gIn[0].posH + float4(width, -height, 0.0, 0.0);
+	pIn.uv = float2(1.0, 1.0);
 	stream.Append(pIn);
 }
