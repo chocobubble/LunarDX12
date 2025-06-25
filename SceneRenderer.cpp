@@ -214,19 +214,16 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     {
     	if (it.first == RenderLayer::Mirror)
     	{
-    		m_basicConstants.textureIndex = 0;
     		commandList->OMSetStencilRef(1);
     		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
     	}
     	else if (it.first == RenderLayer::Reflect)
     	{
-    		m_basicConstants.textureIndex = 0;
     		commandList->OMSetStencilRef(1);
     		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
     	}
     	else
     	{
-    		m_basicConstants.textureIndex = 0;
     		commandList->OMSetStencilRef(0);	
     		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
     	}

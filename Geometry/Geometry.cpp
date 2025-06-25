@@ -73,6 +73,17 @@ void Geometry::SetColor(const XMFLOAT4& color)
     m_color = color;
 }
 
+void Geometry::SetTextureIndex(int index)
+{
+	m_objectConstants.textureIndex = index;
+	m_needsConstantBufferUpdate = true;
+}
+
+void Geometry::SetMaterialName(const std::string& materialName)
+{
+	m_materialName = materialName;
+}
+
 void Geometry::UpdateWorldMatrix()
 {
     XMMATRIX S = XMMatrixScaling(m_transform.Scale.x, m_transform.Scale.y, m_transform.Scale.z);

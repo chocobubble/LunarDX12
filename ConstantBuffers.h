@@ -15,7 +15,7 @@ struct BasicConstants
 	DirectX::XMFLOAT4X4 view;
 	DirectX::XMFLOAT4X4 projection;
 	DirectX::XMFLOAT3   eyePos;
-	int                 textureIndex;
+	float dummy;
     DirectX::XMFLOAT4   ambientLight;
 	LightData lights[Lunar::Constants::LIGHT_COUNT];
 };
@@ -24,6 +24,8 @@ struct BasicConstants
 struct ObjectConstants
 {
 	DirectX::XMFLOAT4X4 World;
+	int textureIndex;
+	float dummy[3];
 };
 
 // Root Parameter CBV 3
