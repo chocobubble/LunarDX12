@@ -9,8 +9,10 @@
 #include "LunarConstants.h"
 #include "LunarTimer.h"
 
-namespace Lunar {
+namespace Lunar
+{
 	
+class TextureManager;
 class PipelineStateManager;
 class ConstantBuffer;
 class SceneRenderer;
@@ -29,12 +31,10 @@ private:
 	void InitGui();
 	void InitializeCommandList();
 	void CreateSwapChain();
-	void CreateSRVDescriptorHeap();
 	void CreateRTVDescriptorHeap();
 	void CreateRenderTargetView();
 	void CreateDSVDescriptorHeap();
 	void CreateDepthStencilView();
-	void CreateShaderResourceView();
 	void CreateFence();
 	void Render(double dt);
 	void Update(double dt);
@@ -57,7 +57,6 @@ private:
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swapChain;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_lightHeap;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
@@ -71,7 +70,6 @@ private:
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 
 	UINT m_renderTargetViewDescriptorSize;
 	UINT m_fenceValue;
@@ -94,6 +92,7 @@ private:
 
     std::unique_ptr<SceneRenderer> m_sceneRenderer;
 	std::unique_ptr<PipelineStateManager> m_pipelineStateManager;
+	std::unique_ptr<TextureManager> m_textureManager;
 
 	bool m_mouseMoving = false;
 };

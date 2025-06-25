@@ -149,6 +149,7 @@
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
+    <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -172,6 +173,7 @@
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
+    <ClInclude Include="TextureManager.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
