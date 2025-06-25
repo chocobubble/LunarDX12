@@ -186,6 +186,8 @@ void Geometry::CreateBuffers(ID3D12Device* device)
 	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
 	m_vertexBufferView.SizeInBytes = vbByteSize;
 
+	if (m_indices.empty()) return;
+	
 	const UINT ibByteSize = static_cast<UINT>(m_indices.size() * sizeof(uint16_t));
 	D3D12_RESOURCE_DESC ibDesc = {};
 	ibDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -225,4 +227,4 @@ void Geometry::CreateBuffers(ID3D12Device* device)
 	m_indexBufferView.SizeInBytes = ibByteSize;
 }
 
-}
+} // namespace Lunar

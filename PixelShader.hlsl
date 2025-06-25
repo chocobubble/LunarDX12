@@ -1,7 +1,3 @@
-Texture2D g_textureWall : register(t0);
-Texture2D g_textureTree1 : register(t1);
-Texture2D g_textureTree2 : register(t2);
-SamplerState g_sampler : register(s0);
 
 struct Light
 {
@@ -111,9 +107,6 @@ float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toE
 float4 main(PixelIn pIn) : SV_TARGET
 {
 	// FIXME : Lighting system looks bad.
-	if (textureIndex == 1) return g_textureWall.Sample(g_sampler, pIn.texCoord);
-	if (textureIndex == 2) return g_textureTree1.Sample(g_sampler, pIn.texCoord);
-	if (textureIndex == 3) return g_textureTree2.Sample(g_sampler, pIn.texCoord);
 	// float3 tmp = textureIndex >= 0 ? g_texture.Sample(g_sampler, pIn.texCoord) : (0.0, 0.0, 0.0); 
 	float3 tmp = (0.0, 0.0, 0.0);
 	

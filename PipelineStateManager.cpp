@@ -21,7 +21,10 @@ PipelineStateManager::PipelineStateManager()
 			"default", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }, 
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }}
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }},
+		},
+		{
+			"billboard", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }}
 		}
 	};
 }
@@ -32,6 +35,9 @@ void PipelineStateManager::Initialize(ID3D12Device* device)
 
 	m_shaderMap["basicVS"] = CompileShader("VertexShader", "vs_5_0");
 	m_shaderMap["basicPS"] = CompileShader("PixelShader", "ps_5_0");
+	m_shaderMap["billboardVS"] = CompileShader("BillboardVertexShader", "vs_5_0");
+	m_shaderMap["billboardGS"] = CompileShader("BillboardGeometryShader", "gs_5_0");
+	m_shaderMap["billboardPS"] = CompileShader("BillboardPixelShader", "ps_5_0");
 	BuildPSOs(device);
 }
 
@@ -316,7 +322,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		IID_PPV_ARGS(m_psoMap["opaque"].GetAddressOf())))
 
 	// PSO for marking stencil mirror
-	
+	{
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 		psoDesc.DepthStencilState.StencilEnable = true;
 
@@ -339,13 +345,15 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		psoDesc.DepthStencilState.BackFace = stencilOp;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
 			IID_PPV_ARGS(m_psoMap["mirror"].GetAddressOf())))
+	}
 	
 
 	// PSO for reflected objects
-	
+	{
 		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 		psoDesc.RasterizerState.FrontCounterClockwise = true;
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		D3D12_DEPTH_STENCILOP_DESC stencilOp = {};
 		stencilOp.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 		stencilOp.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
 		stencilOp.StencilPassOp = D3D12_STENCIL_OP_KEEP;
@@ -354,6 +362,24 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		psoDesc.DepthStencilState.BackFace = stencilOp;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
 			IID_PPV_ARGS(m_psoMap["reflect"].GetAddressOf())))
+	}
+
+	// PSO for billboard
+	{
+		m_inputLayout = m_inputLayoutMap["billboard"];
+		psoDesc.VS.pShaderBytecode = m_shaderMap["billboardVS"]->GetBufferPointer();
+		psoDesc.VS.BytecodeLength = m_shaderMap["billboardVS"]->GetBufferSize();
+		psoDesc.GS.pShaderBytecode = m_shaderMap["billboardGS"]->GetBufferPointer();
+		psoDesc.GS.BytecodeLength = m_shaderMap["billboardGS"]->GetBufferSize();
+		psoDesc.PS.pShaderBytecode = m_shaderMap["billboardPS"]->GetBufferPointer();
+		psoDesc.PS.BytecodeLength = m_shaderMap["billboardPS"]->GetBufferSize();
+		psoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
+		psoDesc.RasterizerState.FrontCounterClockwise = false;
+		psoDesc.DepthStencilState.StencilEnable = false;
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
+			IID_PPV_ARGS(m_psoMap["billboard"].GetAddressOf())))
+	}
 	
 }
 

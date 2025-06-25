@@ -617,6 +617,7 @@ void MainApp::InitializeGeometry()
 	mirrorTransform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	mirrorTransform.Rotation = XMFLOAT3(-XM_PIDIV2, 0.0f, 0.0f);
 	m_sceneRenderer->AddPlane("Mirror0", mirrorTransform, 0.1f, 0.2f, RenderLayer::Mirror);
+	m_sceneRenderer->AddTree("Tree0");
 
 	m_sceneRenderer->InitializeScene(m_device.Get(), m_gui.get(), m_pipelineStateManager.get());
 }
