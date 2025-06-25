@@ -4,7 +4,9 @@
 #include "LightingSystem.h"
 #include "ConstantBuffers.h"
 #include "LunarGUI.h"
+#include "MathUtils.h"
 #include "PipelineStateManager.h"
+#include "Geometry/Plane.h"
 
 using namespace DirectX;
 using namespace std;
@@ -35,6 +37,33 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
             entry->GeometryData->Initialize(device);
         }
     }
+
+	if (m_layeredGeometries.find(RenderLayer::Mirror) != m_layeredGeometries.end())
+	{
+		auto mirror = m_geometriesByName.find("Mirror0");
+		Plane* plane = static_cast<Plane*>(mirror->second->GeometryData.get());
+		XMFLOAT4 mirrorPlane = plane->GetPlaneEquation();
+		XMMATRIX R = MathUtils::MakeReflectionMatrix(mirrorPlane.x, mirrorPlane.y, mirrorPlane.z, mirrorPlane.w);
+		for (auto& entry : m_layeredGeometries[RenderLayer::World])
+		{
+			LOG_DEBUG("Processing: " + entry->Name);
+			Geometry* geometry = entry->GeometryData.get();	
+			XMFLOAT4X4 geometryWorld = geometry->GetWorldMatrix();
+			XMMATRIX W = XMMatrixTranspose(XMLoadFloat4x4(&geometryWorld));
+			XMMATRIX reflectedWorld =  W * R;
+			XMFLOAT4X4 reflectedWorldMatrix;
+			XMStoreFloat4x4(&reflectedWorldMatrix, XMMatrixTranspose(reflectedWorld));
+			
+			auto reflectedGeometry = move(GeometryFactory::CloneGeometry(geometry));
+			reflectedGeometry->SetWorldMatrix(reflectedWorldMatrix);
+			
+			reflectedGeometry->Initialize(device);
+			string reflectedName = entry->Name + "_reflected";
+			auto reflectedEntry = make_shared<GeometryEntry>(GeometryEntry{move(reflectedGeometry), reflectedName, RenderLayer::Reflect});
+			m_layeredGeometries[RenderLayer::Reflect].push_back(reflectedEntry);
+			m_geometriesByName[reflectedName] = reflectedEntry;
+		}
+	}
 }
 
 void SceneRenderer::UpdateScene(float deltaTime)
@@ -189,40 +218,11 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     		commandList->OMSetStencilRef(1);
     		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
     	}
-    	else if (it.first == RenderLayer::World)
-    	{
-    		continue;
-    	}
     	else if (it.first == RenderLayer::Reflect)
     	{
     		m_basicConstants.textureIndex = 0;
-    		// commandList->OMSetStencilRef(1);
-    		// commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
-    		commandList->OMSetStencilRef(0);
-    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
-
-    		auto mirror = m_geometriesByName.find("Mirror0");
-    		Plane* plane = static_cast<Plane*>(mirror->second->GeometryData.get());
-    		XMFLOAT4 mirrorPlane = plane->GetPlaneEquation();
-    		XMMATRIX R = MathUtils::MakeReflectionMatrix(mirrorPlane.x, mirrorPlane.y, mirrorPlane.z, mirrorPlane.w);
-    		for (auto& entry : m_layeredGeometries[RenderLayer::World])
-    		{
-    			if (entry->IsVisible)
-    			{
-    				LOG_DEBUG(entry->Name);
-    				Geometry* geometry = entry->GeometryData.get();	
-    				XMFLOAT4X4 geometryWorld = geometry->GetWorldMatrix();
-    				XMMATRIX W = XMMatrixTranspose(XMLoadFloat4x4(&geometryWorld));
-    				XMMATRIX reflectedWorld = W * R;
-    				XMFLOAT4X4 reflectedWorldMatrix;
-    				XMStoreFloat4x4(&reflectedWorldMatrix, XMMatrixTranspose(reflectedWorld));
-    				geometry->SetWorldMatrix(reflectedWorldMatrix);
-    				string materialName = entry->GeometryData->GetMaterialName();
-    				m_materialManager->BindConstantBuffer(materialName, commandList);
-    				entry->GeometryData->Draw(commandList);
-    				geometry->SetWorldMatrix(geometryWorld);
-    			}
-    		}
+    		commandList->OMSetStencilRef(1);
+    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
     	}
     	else
     	{

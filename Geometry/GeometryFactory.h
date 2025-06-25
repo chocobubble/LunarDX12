@@ -22,6 +22,7 @@ public:
     static std::unique_ptr<Geometry> CreateGeometry(GeometryType type);
     
     static std::unique_ptr<Geometry> CreateGeometry(const std::string& typeName);
+	static std::unique_ptr<Geometry> CloneGeometry(const Geometry* original);
     
     static std::string GeometryTypeToString(GeometryType type);
     static GeometryType StringToGeometryType(const std::string& typeName);

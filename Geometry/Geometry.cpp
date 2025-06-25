@@ -9,6 +9,7 @@ namespace Lunar
 Geometry::Geometry()
 {
     XMStoreFloat4x4(&m_objectConstants.World, XMMatrixIdentity());
+	// UpdateWorldMatrix();
 }
 
 void Geometry::Initialize(ID3D12Device* device)

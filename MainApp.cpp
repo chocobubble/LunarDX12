@@ -460,7 +460,7 @@ void MainApp::Render(double dt)
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
 
 	m_commandAllocator->Reset(); // Cautions!
-	m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get());
+	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
 	m_viewport = {};
 	m_viewport.TopLeftX = 0.0f;
@@ -514,14 +514,19 @@ void MainApp::Render(double dt)
 	m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
-	// m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
-	m_sceneRenderer->RenderScene(m_commandList.Get());
-	
 	// Set Constant Buffer Descriptor heap
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_srvHeap.Get() };
 	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	m_commandList->SetGraphicsRootDescriptorTable(0, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
+	
+	// m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
+	m_sceneRenderer->RenderScene(m_commandList.Get());
+	
+    m_gui->Render(dt);
+	ID3D12DescriptorHeap* heaps[] = { m_imGuiDescriptorHeap.Get() };
+	m_commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 
 	// resource barrier - transition to the present state
 	barrier = {};
@@ -533,10 +538,6 @@ void MainApp::Render(double dt)
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	m_commandList->ResourceBarrier(1, &barrier);
 
-    m_gui->Render(dt);
-	ID3D12DescriptorHeap* heaps[] = { m_imGuiDescriptorHeap.Get() };
-	m_commandList->SetDescriptorHeaps(_countof(heaps), heaps);
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 
 	m_commandList->Close();
 
@@ -691,16 +692,13 @@ void MainApp::InitializeGeometry()
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
     Transform transform = {};
-    transform.Location = XMFLOAT3(0.0f, 0.5f, 0.5f);
+    transform.Location = XMFLOAT3(3.0f, 0.0f, -3.0f);
     m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::World);
 	transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
 	Transform mirrorTransform = transform;
-	mirrorTransform.Location = XMFLOAT3(2.0f, 0.0f, 3.0f);
+	mirrorTransform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	mirrorTransform.Rotation = XMFLOAT3(-XM_PIDIV2, 0.0f, 0.0f);
 	m_sceneRenderer->AddPlane("Mirror0", mirrorTransform, 0.1f, 0.2f, RenderLayer::Mirror);
-    transform.Location = XMFLOAT3(2.0f, 0.5f, 0.0f);
-    transform.Scale = XMFLOAT3(0.5f, 0.5f, 0.5f);
-    m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
 
 	m_sceneRenderer->InitializeScene(m_device.Get(), m_gui.get(), m_pipelineStateManager.get());
 }

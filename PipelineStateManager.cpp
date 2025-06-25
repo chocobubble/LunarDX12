@@ -344,7 +344,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	// PSO for reflected objects
 	
 		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
-		psoDesc.RasterizerState.FrontCounterClockwise = false;
+		psoDesc.RasterizerState.FrontCounterClockwise = true;
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 		stencilOp.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 		stencilOp.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
