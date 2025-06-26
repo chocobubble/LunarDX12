@@ -114,12 +114,19 @@ void TextureManager::CreateShaderResourceView(ID3D12Device* device)
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
 	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
-	for (auto& texture : m_textureMap)
-	{
-		srvDesc.Format = texture.second->Resource->GetDesc().Format; // dds needs BC2_UNORM
-		device->CreateShaderResourceView(texture.second->Resource.Get(), &srvDesc, m_srvHandle);
-		m_srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	}
+	
+	Texture* texture = m_textureMap["wall"].get();
+	srvDesc.Format = texture->Resource->GetDesc().Format;
+	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, m_srvHandle);
+	m_srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	texture = m_textureMap["tree1"].get();
+	srvDesc.Format = texture->Resource->GetDesc().Format; // dds needs BC2_UNORM
+	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, m_srvHandle);
+	m_srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	texture = m_textureMap["tree2"].get();
+	srvDesc.Format = texture->Resource->GetDesc().Format; // dds needs BC2_UNORM
+	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, m_srvHandle);
+	m_srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 	
 } //namespace Lunar
