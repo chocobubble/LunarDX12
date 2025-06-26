@@ -27,6 +27,7 @@ enum class RenderLayer
     World,
 	Mirror,
 	Reflect,
+	Billboard,
     Translucent,
     UI
 };

@@ -38,6 +38,8 @@ void PipelineStateManager::Initialize(ID3D12Device* device)
 	m_shaderMap["billboardVS"] = CompileShader("BillboardVertexShader", "vs_5_0");
 	m_shaderMap["billboardGS"] = CompileShader("BillboardGeometryShader", "gs_5_0");
 	m_shaderMap["billboardPS"] = CompileShader("BillboardPixelShader", "ps_5_0");
+	m_shaderMap["skyboxVS"] = CompileShader("SkyboxVertexShader", "vs_5_0");
+	m_shaderMap["skyboxPS"] = CompileShader("SkyboxPixelShader", "ps_5_0");
 	BuildPSOs(device);
 }
 
@@ -364,9 +366,23 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 			IID_PPV_ARGS(m_psoMap["reflect"].GetAddressOf())))
 	}
 
+	// PSO for skybox
+	{
+		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+		psoDesc.VS.pShaderBytecode = m_shaderMap["skyboxVS"]->GetBufferPointer();
+		psoDesc.VS.BytecodeLength = m_shaderMap["skyboxVS"]->GetBufferSize();
+		psoDesc.PS.pShaderBytecode = m_shaderMap["skyboxPS"]->GetBufferPointer();
+		psoDesc.PS.BytecodeLength = m_shaderMap["skyboxPS"]->GetBufferSize();
+		psoDesc.RasterizerState.FrontCounterClockwise = false;
+		psoDesc.DepthStencilState.StencilEnable = false;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
+			IID_PPV_ARGS(m_psoMap["background"].GetAddressOf())))
+	}
+
 	// PSO for billboard
 	{
 		m_inputLayout = m_inputLayoutMap["billboard"];
+		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 		psoDesc.VS.pShaderBytecode = m_shaderMap["billboardVS"]->GetBufferPointer();
 		psoDesc.VS.BytecodeLength = m_shaderMap["billboardVS"]->GetBufferSize();
 		psoDesc.GS.pShaderBytecode = m_shaderMap["billboardGS"]->GetBufferPointer();
