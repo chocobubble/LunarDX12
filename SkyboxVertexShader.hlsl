@@ -1,3 +1,17 @@
+cbuffer BasicConstants : register(b0)
+{
+	float4x4 view;
+	float4x4 projection;
+	float3 eyePos;
+	float4 ambientLight;
+}
+
+cbuffer ObjectConstants : register(b1)
+{
+	float4x4 world;
+	int textureIndex;	
+}
+
 struct VertexIn
 {
 	float3 pos : POSITION;
@@ -15,7 +29,11 @@ struct PixelIn
 PixelIn main(VertexIn vIn)
 {
 	PixelIn pIn;
-	pIn.pos = float4(vIn.pos, 1.0);
+	float4 pos = float4(vIn.pos, 1.0);
+	float4 posW = mul(pos, world);
+	float4 posWV = mul(posW, view);
+	float4 posWVP = mul(posWV, projection);
+	pIn.pos = posWVP;
 	pIn.texCoord = vIn.texCoord;
 	return pIn;
 }
