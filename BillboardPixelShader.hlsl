@@ -12,9 +12,12 @@ struct PixelInput
 
 float4 main(PixelInput pIn) : SV_TARGET
 {
-	return pIn.primID % 2 == 0 ?
+	float4 texColor = pIn.primID % 2 == 0 ?
 		g_textureTree2.Sample(g_sampler, pIn.uv) :
 		g_textureTree1.Sample(g_sampler, pIn.uv);
+
+	clip(texColor.w - 0.1);
+	return texColor;
 }
 
 
