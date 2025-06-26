@@ -19,6 +19,6 @@ void Tree::Draw(ID3D12GraphicsCommandList* commandList)
 	BindObjectConstants(commandList);
 	commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-	commandList->DrawInstanced(1, 4, 0, 0);
+	commandList->DrawInstanced(4, 1, 0, 0); 
 }
 } // namespace Lunar
