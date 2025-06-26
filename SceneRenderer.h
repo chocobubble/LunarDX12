@@ -53,7 +53,7 @@ public:
     bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
     bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
     bool AddPlane(const std::string& name, const Transform& spawnTransform = Transform(), float width = 10.0f, float height = 10.0f, RenderLayer layer = RenderLayer::World);
-	bool AddTree(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::Background);
+	bool AddTree(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::Billboard);
     
     bool SetGeometryTransform(const std::string& name, const Transform& newTransform);
     bool SetGeometryLocation(const std::string& name, const DirectX::XMFLOAT3& newLocation);
