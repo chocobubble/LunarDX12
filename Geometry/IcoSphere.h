@@ -18,6 +18,7 @@ public:
     void     CalculateTexCoords();
     void     CalculateColors();
     void     SetSubDivisionLevel(int subdivisionLevel) { m_subdivisionLevel = subdivisionLevel; }
+	void	 FixSeamVertices();
     
 private:
 	// struct for pair hashing
@@ -27,7 +28,7 @@ private:
 		}
 	};
     std::unordered_map<std::pair<UINT, UINT>, UINT, PairHash> m_middlePointCache;
-    int                                                       m_subdivisionLevel = 2;
+    int                                                       m_subdivisionLevel = 3;
 	
 };
 } // namespace Luanr
