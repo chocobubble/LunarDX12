@@ -1,0 +1,219 @@
+#include "SceneRenderer.h"
+#include "Geometry/GeometryFactory.h"
+#include "MaterialManager.h"
+#include "LightingSystem.h"
+#include "ConstantBuffers.h"
+#include "LunarGUI.h"
+
+using namespace DirectX;
+using namespace std;
+
+namespace Lunar
+{
+
+SceneRenderer::SceneRenderer()
+{
+	m_layeredGeometries.clear();
+	m_geometriesByName.clear();
+    m_materialManager = make_unique<MaterialManager>();
+    m_sceneViewModel = make_unique<SceneViewModel>();
+    m_lightingSystem = make_unique<LightingSystem>();
+}
+
+void SceneRenderer::InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, LunarGui* gui)
+{
+    m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
+    m_lightingSystem->Initialize(device, Lunar::Constants::LIGHT_COUNT);
+    m_sceneViewModel->Initialize(gui, this);
+	m_materialManager->Initialize(device);
+    for (auto& [layer, geometryEntries] : m_layeredGeometries)
+    {
+        for (auto& entry : geometryEntries)
+        {
+            entry->GeometryData->Initialize(device);
+        }
+    }
+}
+
+void SceneRenderer::UpdateScene(float deltaTime, BasicConstants& basicConstants)
+{
+    m_lightingSystem->UpdateLightData(basicConstants);
+    m_basicCB->CopyData(&basicConstants, sizeof(BasicConstants));
+}
+
+void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
+{
+    commandList->SetGraphicsRootConstantBufferView(
+        Lunar::Constants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
+        m_basicCB->GetResource()->GetGPUVirtualAddress());
+    RenderLayers(commandList);
+}
+
+bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform, RenderLayer layer)
+{
+    if (DoesGeometryExist(name))
+    {
+        LOG_ERROR("Geometry with name " + name + " already exists");
+        return false; 
+    }
+    
+    auto cube = GeometryFactory::CreateCube();
+    cube->SetTransform(spawnTransform);
+    
+    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(cube), name, layer});
+    
+    m_layeredGeometries[layer].push_back(entry);
+    m_geometriesByName[name] = entry;
+    
+    return true;
+}
+
+bool SceneRenderer::AddSphere(const string& name, const Transform& spawnTransform, RenderLayer layer)
+{
+    if (DoesGeometryExist(name))
+    {
+        LOG_ERROR("Geometry with name " + name + " already exists");
+        return false; 
+    }
+    
+    auto sphere = GeometryFactory::CreateSphere();
+    sphere->SetTransform(spawnTransform);
+    
+    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(sphere), name, layer});
+    
+    m_layeredGeometries[layer].push_back(entry);
+    m_geometriesByName[name] = entry;
+    
+    return true;
+}
+
+bool SceneRenderer::AddPlane(const string& name, const Transform& spawnTransform, float width, float height, RenderLayer layer)
+{
+    if (DoesGeometryExist(name))
+    {
+        LOG_ERROR("Geometry with name " + name + " already exists");
+        return false; 
+    }
+    
+    auto plane = GeometryFactory::CreatePlane(width, height);
+    plane->SetTransform(spawnTransform);
+    
+    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(plane), name, layer});
+    
+    // TODO: Need a debugging system to check the entry are in both containers
+    m_layeredGeometries[layer].push_back(entry);
+    m_geometriesByName[name] = entry;
+    
+    return true;
+}
+
+bool SceneRenderer::SetGeometryTransform(const string& name, const Transform& newTransform)
+{
+    Geometry* geometry = GetGeometryEntry(name)->GeometryData.get();
+    if (geometry)
+    {
+        geometry->SetTransform(newTransform);
+        return true;
+    }
+    else
+    {
+        LOG_ERROR("Geometry with name " + name + " not found");
+        return false;
+    }
+}
+
+const Transform SceneRenderer::GetGeometryTransform(const string& name) const
+{
+    Geometry* geometry = GetGeometryEntry(name)->GeometryData.get();
+    if (geometry)
+    {
+        return geometry->GetTransform();
+    }
+    else 
+    {
+        LOG_ERROR("Geometry with name " + name + " not found");
+        return Transform(); 
+    }
+}
+
+bool SceneRenderer::SetGeometryLocation(const string& name, const XMFLOAT3& newLocation)
+{
+    Geometry* geometry = GetGeometryEntry(name)->GeometryData.get();
+    if (geometry)
+    {
+        geometry->SetLocation(newLocation);
+        return true;
+    }
+    else
+    {
+        LOG_ERROR("Geometry with name " + name + " not found");
+        return false;
+    }
+}
+
+bool SceneRenderer::SetGeometryVisibility(const string& name, bool visible)
+{
+    auto entry = GetGeometryEntry(name);
+    if (entry)
+    {
+        entry->IsVisible = visible;
+        return true;
+    }
+    else 
+    {
+        LOG_ERROR("Geometry Entry with Geometry name " + name + " not found");
+        return false;
+    }
+}
+
+bool SceneRenderer::GetGeometryVisibility(const string& name) const
+{
+    auto entry = GetGeometryEntry(name);
+    return entry ? entry->IsVisible : false;
+}
+
+bool SceneRenderer::DoesGeometryExist(const std::string& name) const
+{
+    return m_geometriesByName.find(name) != m_geometriesByName.end();
+}
+
+void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
+{
+    for (auto& it : m_layeredGeometries)
+    {
+        for (auto& entry : it.second)
+        {
+            if (entry->IsVisible)
+            {
+                string materialName = entry->GeometryData->GetMaterialName();
+                m_materialManager->BindConstantBuffer(materialName, commandList);
+                entry->GeometryData->Draw(commandList);
+            }
+        }
+    }
+}
+
+GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name)
+{
+    auto it = m_geometriesByName.find(name);
+    return (it != m_geometriesByName.end()) ? it->second.get() : nullptr;
+}
+
+const GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name) const
+{
+    auto it = m_geometriesByName.find(name);
+    return (it != m_geometriesByName.end()) ? it->second.get() : nullptr;
+}
+
+std::vector<std::string> SceneRenderer::GetGeometryNames() const
+{
+    std::vector<std::string> names;
+    for (const auto& [name, entry] : m_geometriesByName)
+    {
+        names.push_back(name);
+    }
+
+    return names;
+}
+
+}

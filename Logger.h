@@ -9,7 +9,7 @@
 
 namespace Lunar {
 
-enum class LogLevel
+enum class LogLevel : int8_t
 {
 	DEBUG,
 	WARN,

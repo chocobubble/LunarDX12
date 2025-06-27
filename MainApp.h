@@ -8,22 +8,16 @@
 #include "dxgi1_6.h"
 #include <DirectXMath.h>
 #include <memory>
+
 #include "LunarConstants.h"
 #include "LunarTimer.h"
-using namespace DirectX;
-using Microsoft::WRL::ComPtr;
 
 namespace Lunar {
-	struct Light;
-	class ConstantBuffer;
-
-struct Vertex
-{
-	XMFLOAT3 pos;
-	XMFLOAT4 color;
-	XMFLOAT2 texCoord;
-	XMFLOAT3 normal;
-};
+    
+class ConstantBuffer;
+class SceneRenderer;
+class Camera;
+class LunarGui;
 	
 class MainApp {
 public:
@@ -37,8 +31,7 @@ private:
 	void InitGui();
 	void InitializeCommandList();
 	void CreateSwapChain();
-	void CreateCBVDescriptorHeap();
-	void CreateConstantBufferView();
+	void CreateSRVDescriptorHeap();
 	void CreateRTVDescriptorHeap();
 	void CreateRenderTargetView();
 	void CreateShaderResourceView();
@@ -56,33 +49,30 @@ private:
 	void InitializeGeometry();
 	void CreateCamera();
 	void InitializeTextures();
-	void CreateConstantBuffer();
 	void CreateLights();
 	
 	HWND m_mainWindow;
 	
-	ComPtr<ID3D12Device> m_device;
-	ComPtr<ID3D12CommandQueue> m_commandQueue;
-	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
-	ComPtr<ID3D12GraphicsCommandList> m_commandList;
-	ComPtr<IDXGIFactory4> m_factory;
-	ComPtr<IDXGIAdapter1> m_adapter;
-	ComPtr<IDXGIAdapter1> m_hardwareAdapter;
-	ComPtr<IDXGISwapChain1> m_swapChain;
-	ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-	ComPtr<ID3D12DescriptorHeap> m_cbvHeap;
-	ComPtr<ID3D12DescriptorHeap> m_lightHeap;
-	ComPtr<ID3D12DescriptorHeap> m_srvHeap;
-	ComPtr<ID3D12RootSignature> m_rootSignature;
-	ComPtr<ID3DBlob> m_vsByteCode;
-	ComPtr<ID3DBlob> m_psByteCode;
-	ComPtr<ID3D12PipelineState> m_pipelineState;
-	ComPtr<ID3D12Fence> m_fence;
-	ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
-	ComPtr<ID3D12Resource> m_uploadBuffer;
-	ComPtr<ID3D12Resource> m_textureUploadBuffer;
-	ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
-	ComPtr<ID3D12Resource> m_texture;
+	Microsoft::WRL::ComPtr<ID3D12Device> m_device;
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_commandList;
+	Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory;
+	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter;
+	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_hardwareAdapter;
+	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swapChain;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_lightHeap;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
+	Microsoft::WRL::ComPtr<ID3DBlob> m_vsByteCode;
+	Microsoft::WRL::ComPtr<ID3DBlob> m_psByteCode;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
+	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_textureUploadBuffer;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
@@ -103,24 +93,15 @@ private:
 
 	Lunar::LunarTimer m_lunarTimer;
 	
-	std::unique_ptr<class Cube> m_cube;
-    std::unique_ptr<class LunarGui> m_gui;
+    std::unique_ptr<LunarGui> m_gui;
 
     bool m_firstMouseMove = true;
     float m_lastMouseX = 0.0f;
     float m_lastMouseY = 0.0f;
 
-    std::unique_ptr<class Camera> m_camera;
+    std::unique_ptr<Camera> m_camera;
 
-	std::unique_ptr<ConstantBuffer> m_lightCB;
-	std::unique_ptr<ConstantBuffer> m_materialCB;
-
-	std::unique_ptr<Light> m_directionalLight;
-	std::unique_ptr<Light> m_pointLight;
-	std::unique_ptr<Light> m_spotLight;
-	float m_pointLightPosX = 5.0f;
-	float m_pointLightPosY = 1.0f;
-	float m_pointLightPosZ = 0.0f;
+    std::unique_ptr<SceneRenderer> m_sceneRenderer;
 
 	bool m_mouseMoving = false;
 };

@@ -13,10 +13,10 @@ struct Light
 
 cbuffer BasicConstants : register(b0)
 {
-	float4x4 model;
 	float4x4 view;
 	float4x4 projection;
 	float3 eyePos;
+	float4 ambientLight;
 	Light lights[3];
 }
 
@@ -119,5 +119,7 @@ float4 main(PixelIn pIn) : SV_TARGET
 
 	float4 ambientLight = {0.1, 0.1, 0.1, 0.0};
 	float4 ambient = ambientLight * diffuseAlbedo;
-	return float4(tmp, 1.0) + ambient;
+	// return float4(tmp, 1.0) + ambient;
+
+	return pIn.color;
 }

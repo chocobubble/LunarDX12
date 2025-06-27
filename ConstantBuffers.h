@@ -3,31 +3,30 @@
 #include <DirectXMath.h>
 #include <wrl/client.h>
 
+#include "LightingSystem.h"
 #include "LunarConstants.h"
 
 namespace Lunar
 {
-
-struct Light
-{
-	DirectX::XMFLOAT3 Strength;
-	float             FalloffStart;
-	DirectX::XMFLOAT3 Direction;
-	float             FalloffEnd;
-	DirectX::XMFLOAT3 Position;
-	float             SpotPower;
-};
 	
+// Root Parameter CBV 1
 struct BasicConstants
 {
-	DirectX::XMFLOAT4X4 model;
 	DirectX::XMFLOAT4X4 view;
 	DirectX::XMFLOAT4X4 projection;
 	DirectX::XMFLOAT3   eyePos;
 	float               dummy;
-	Light lights[Lunar::Constants::LIGHT_COUNT];
+    DirectX::XMFLOAT4   ambientLight;
+	LightData lights[Lunar::Constants::LIGHT_COUNT];
 };
 
+// Root Parameter CBV 2
+struct ObjectConstants
+{
+	DirectX::XMFLOAT4X4 World;
+};
+
+// Root Parameter CBV 3
 struct MaterialConstants
 {
 	DirectX::XMFLOAT4 DiffuseAlbedo;
@@ -38,7 +37,7 @@ struct MaterialConstants
 class ConstantBuffer
 {
 public:
-	ConstantBuffer(ID3D12Device* device, UINT elementByteSize, ID3D12DescriptorHeap* cbvHeap);
+	ConstantBuffer(ID3D12Device* device, UINT elementByteSize);
 	~ConstantBuffer();
 	void CopyData(void* data, UINT size);
 	ID3D12Resource* GetResource() const { return m_constantBuffer.Get(); }
