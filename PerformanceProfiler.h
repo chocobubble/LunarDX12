@@ -39,6 +39,17 @@ private:
 
 class PerformanceProfiler
 {
+private:
+    struct ProfileSection
+    {
+        std::string name;
+        std::chrono::high_resolution_clock::time_point startTime;
+        float totalTime = 0.0f;
+        float averageTime = 0.0f;
+        int callCount = 0;
+        bool isActive = false;
+    };
+
 public:
     PerformanceProfiler();
     ~PerformanceProfiler() = default;
@@ -60,6 +71,11 @@ public:
     float GetCurrentFrameTime() const { return m_currentFrameTime; }
     float GetAverageFrameTime() const { return m_averageFrameTime; }
     
+    const float* GetCurrentFPSPtr() const { return &m_currentFPS; }
+    const float* GetAverageFPSPtr() const { return &m_averageFPS; }
+    const float* GetCurrentFrameTimePtr() const { return &m_currentFrameTime; }
+    const float* GetAverageFrameTimePtr() const { return &m_averageFrameTime; }
+    
     const std::vector<float>& GetFPSHistory() const { return m_fpsHistory; }
     const std::vector<float>& GetFrameTimeHistory() const { return m_frameTimeHistory; }
     
@@ -71,16 +87,6 @@ public:
     bool IsEnabled() const { return m_enabled; }
 
 private:
-    struct ProfileSection
-    {
-        std::string name;
-        std::chrono::high_resolution_clock::time_point startTime;
-        float totalTime = 0.0f;
-        float averageTime = 0.0f;
-        int callCount = 0;
-        bool isActive = false;
-    };
-
     bool m_enabled = true;
     
     std::chrono::high_resolution_clock::time_point m_frameStartTime;

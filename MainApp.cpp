@@ -15,6 +15,8 @@
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
 #include "TextureManager.h"
+#include "PerformanceProfiler.h"
+#include "PerformanceViewModel.h"
 #include "Geometry/Transform.h"
 
 using namespace std;
@@ -39,6 +41,8 @@ MainApp::MainApp()
 	m_sceneRenderer = make_unique<SceneRenderer>();
 	m_pipelineStateManager = make_unique<PipelineStateManager>();
 	m_textureManager = make_unique<TextureManager>();
+	m_performanceProfiler = make_unique<PerformanceProfiler>();
+	m_performanceViewModel = make_unique<PerformanceViewModel>();
 }
 
 MainApp::~MainApp()
@@ -306,7 +310,7 @@ int MainApp::Run()
 {
 	LOG_FUNCTION_ENTRY();
 	
-	m_lunarTimer.Reset();
+	m_performanceProfiler->Initialize();
 	
 	MSG msg = { 0 };
 	while (WM_QUIT != msg.message) 
@@ -315,10 +319,12 @@ int MainApp::Run()
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
-			m_lunarTimer.Tick();
-			double deltaTime = m_lunarTimer.GetDeltaTime();
+			double deltaTime = m_performanceProfiler->Tick(); // StartFrame & Tick
+			
 			Update(deltaTime);
 			Render(deltaTime);
+			
+			m_performanceProfiler->EndFrame();
 		}
 	}
 	LOG_FUNCTION_EXIT();
@@ -375,88 +381,105 @@ void MainApp::ProcessInput(double dt)
 
 void MainApp::Render(double dt)
 {
+	PROFILE_FUNCTION(m_performanceProfiler.get());
+	
 	ComPtr<IDXGISwapChain3> swapChain3;
 	THROW_IF_FAILED(m_swapChain.As(&swapChain3));
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
 
-	m_commandAllocator->Reset(); // Cautions!
-	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
-
-	m_viewport = {};
-	m_viewport.TopLeftX = 0.0f;
-	m_viewport.TopLeftY = 0.0f;
-	m_viewport.Width = static_cast<float>(Utils::GetDisplayWidth());
-	m_viewport.Height = static_cast<float>(Utils::GetDisplayHeight());
-	m_viewport.MinDepth = 0.0f;
-	m_viewport.MaxDepth = 1.0f;
-
-	m_commandList->RSSetViewports(1, &m_viewport);
-
-	m_scissorRect = {};
-	m_scissorRect.left = 0;
-	m_scissorRect.top = 0;
-	m_scissorRect.right = static_cast<LONG>(Utils::GetDisplayWidth());
-	m_scissorRect.bottom = static_cast<LONG>(Utils::GetDisplayHeight());
-	m_commandList->RSSetScissorRects(1, &m_scissorRect);
-
-	// barrier
-	/*
-	typedef struct D3D12_RESOURCE_BARRIER
 	{
-		D3D12_RESOURCE_BARRIER_TYPE Type;
-		D3D12_RESOURCE_BARRIER_FLAGS Flags;
-		union 
-		{
-			D3D12_RESOURCE_TRANSITION_BARRIER Transition;
-			D3D12_RESOURCE_ALIASING_BARRIER Aliasing;
-			D3D12_RESOURCE_UAV_BARRIER UAV;
-		} 	;
-	} 	D3D12_RESOURCE_BARRIER;
-	*/
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	m_commandList->ResourceBarrier(1, &barrier);
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Command List Setup");
+		m_commandAllocator->Reset(); // Cautions!
+		m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
-	// Set Render Target
-	D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
-	renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
-	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
-	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
+		m_viewport = {};
+		m_viewport.TopLeftX = 0.0f;
+		m_viewport.TopLeftY = 0.0f;
+		m_viewport.Width = static_cast<float>(Utils::GetDisplayWidth());
+		m_viewport.Height = static_cast<float>(Utils::GetDisplayHeight());
+		m_viewport.MinDepth = 0.0f;
+		m_viewport.MaxDepth = 1.0f;
 
-	// clear
-	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
-	m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		m_commandList->RSSetViewports(1, &m_viewport);
 
-	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
-	// Set Constant Buffer Descriptor heap
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_textureManager->GetSRVHeap() };
-	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		m_scissorRect = {};
+		m_scissorRect.left = 0;
+		m_scissorRect.top = 0;
+		m_scissorRect.right = static_cast<LONG>(Utils::GetDisplayWidth());
+		m_scissorRect.bottom = static_cast<LONG>(Utils::GetDisplayHeight());
+		m_commandList->RSSetScissorRects(1, &m_scissorRect);
+    }
 
-	m_commandList->SetGraphicsRootDescriptorTable(0, m_textureManager->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
+    {
+        PROFILE_SCOPE(m_performanceProfiler.get(), "Resource Barriers & Clear");
+        // barrier
+        /*
+        typedef struct D3D12_RESOURCE_BARRIER
+        {
+            D3D12_RESOURCE_BARRIER_TYPE Type;
+            D3D12_RESOURCE_BARRIER_FLAGS Flags;
+            union 
+            {
+                D3D12_RESOURCE_TRANSITION_BARRIER Transition;
+                D3D12_RESOURCE_ALIASING_BARRIER Aliasing;
+                D3D12_RESOURCE_UAV_BARRIER UAV;
+            } 	;
+        } 	D3D12_RESOURCE_BARRIER;
+        */
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		m_commandList->ResourceBarrier(1, &barrier);
+
+		// Set Render Target
+		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
+		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+		m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
+
+		// clear
+		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
+		m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+	}
+
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Scene Rendering");
+		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
+		// Set Constant Buffer Descriptor heap
+		ID3D12DescriptorHeap* descriptorHeaps[] = { m_textureManager->GetSRVHeap() };
+		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		m_commandList->SetGraphicsRootDescriptorTable(0, m_textureManager->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
+
+		m_sceneRenderer->RenderScene(m_commandList.Get());
+	}
 	
-	// m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
-	m_sceneRenderer->RenderScene(m_commandList.Get());
-	
-    m_gui->Render(dt);
-	ID3D12DescriptorHeap* heaps[] = { m_imGuiDescriptorHeap.Get() };
-	m_commandList->SetDescriptorHeaps(_countof(heaps), heaps);
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "GUI Rendering");
+		
+		m_gui->Render(dt);
+  
+		ID3D12DescriptorHeap* heaps[] = { m_imGuiDescriptorHeap.Get() };
+		m_commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+	}
 
-	// resource barrier - transition to the present state
-	barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	m_commandList->ResourceBarrier(1, &barrier);
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Command List Execute");
+		// resource barrier - transition to the present state
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		m_commandList->ResourceBarrier(1, &barrier);
+    }
 
 
 	m_commandList->Close();
@@ -487,6 +510,7 @@ void MainApp::Render(double dt)
 void MainApp::Initialize()
 {
 	LOG_FUNCTION_ENTRY();
+
 	InitMainWindow();
 	InitDirect3D();
 	InitializeCommandList();
@@ -501,6 +525,10 @@ void MainApp::Initialize()
 	CreateDepthStencilView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
+	m_performanceProfiler->Initialize();
+	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
+
+    LOG_FUNCTION_EXIT();
 }
 
 bool MainApp::InitDirect3D()

@@ -1,4 +1,4 @@
-﻿#include "LunarGui.h"
+#include "LunarGui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 #include <DirectXMath.h>
@@ -62,6 +62,8 @@ void LunarGui::BeginFrame()
 void LunarGui::Render(float dt) 
 {
     BeginFrame();
+
+    // TODO : Fix the first window to be rendered by RenderBoundWindow method.
 	ImGui::Begin("Settings");
 	ImGui::Text("FPS: %.2f", 1.0f / dt);
 
@@ -140,6 +142,13 @@ void LunarGui::Render(float dt)
 	}
 
 	ImGui::End();
+    
+    // Render bound windows
+    for (const auto& [windowId, windowData] : m_boundWindows)
+    {
+        RenderBoundWindow(windowId, windowData);
+    }
+    
     EndFrame();
 }
 
@@ -159,7 +168,6 @@ void LunarGui::BindCheckbox(const string& id, bool* value, function<void(bool)> 
 	BoundValue boundValue;
 	boundValue.ElementType = UIElementType::Checkbox;
 	boundValue.DataPtr = value;
-        
 
 	if (onChange) 
 	{
@@ -204,6 +212,193 @@ bool LunarGui::RegisterCallback(const string& id, function<void()> callback)
 	} 
 	m_callbacks[id] = callback;
 	return true;
+}
+
+void LunarGui::BindReadOnlyFloat(const string& id, const float* value, const string& label, const string& format)
+{
+    if (GetBoundValue<float>(id)) 
+    {
+        LOG_ERROR("Value with ID '%s' already bound.", id);
+        return;
+    }
+
+    BoundValue boundValue;
+    boundValue.ElementType = UIElementType::ReadOnlyFloat;
+    boundValue.DataType = DataType::Float;
+    boundValue.DataPtr = const_cast<float*>(value); // Safe: we won't modify it
+    boundValue.Label = label;
+    boundValue.Format = format;
+    
+    m_boundValues[id] = boundValue;
+}
+
+void LunarGui::BindReadOnlyText(const string& id, const string* text)
+{
+    if (GetBoundValue<string>(id)) 
+    {
+        LOG_ERROR("Value with ID '%s' already bound.", id);
+        return;
+    }
+
+    BoundValue boundValue;
+    boundValue.ElementType = UIElementType::ReadOnlyText;
+    boundValue.DataType = DataType::Text;
+    boundValue.DataPtr = const_cast<string*>(text); // Safe: we won't modify it
+    
+    m_boundValues[id] = boundValue;
+}
+
+void LunarGui::BindText(const string& id, string* text)
+{
+    if (GetBoundValue<string>(id)) 
+    {
+        LOG_ERROR("Value with ID '%s' already bound.", id);
+        return;
+    }
+
+    BoundValue boundValue;
+    boundValue.ElementType = UIElementType::Text;
+    boundValue.DataType = DataType::Text;
+    boundValue.DataPtr = text;
+    
+    m_boundValues[id] = boundValue;
+}
+
+void LunarGui::BindGraph(const string& id, GraphData* graphData)
+{
+    if (GetBoundValue<GraphData>(id)) 
+    {
+        LOG_ERROR("Value with ID '%s' already bound.", id);
+        return;
+    }
+
+    BoundValue boundValue;
+    boundValue.ElementType = UIElementType::Graph;
+    boundValue.DataType = DataType::Graph;
+    boundValue.DataPtr = graphData;
+    
+    m_boundValues[id] = boundValue;
+}
+
+void LunarGui::BindTable(const string& id, TableData* tableData)
+{
+    if (GetBoundValue<TableData>(id)) 
+    {
+        LOG_ERROR("Value with ID '%s' already bound.", id);
+        return;
+    }
+
+    BoundValue boundValue;
+    boundValue.ElementType = UIElementType::Table;
+    boundValue.DataType = DataType::Table;
+    boundValue.DataPtr = tableData;
+    
+    m_boundValues[id] = boundValue;
+}
+
+void LunarGui::BindWindow(const string& id, const string& title, bool* isOpen, const vector<string>& elementIds)
+{
+    if (m_boundWindows.find(id) != m_boundWindows.end())
+    {
+        LOG_ERROR("Window with ID '%s' already bound.", id);
+        return;
+    }
+    
+    WindowData windowData;
+    windowData.title = title;
+    windowData.isOpen = isOpen;
+    windowData.elementIds = elementIds;
+    
+    m_boundWindows[id] = windowData;
+}
+
+void LunarGui::RenderBoundWindow(const string& windowId, const WindowData& windowData)
+{
+    if (!windowData.isOpen || !*windowData.isOpen) return; // check if the pointer(isOpen) is null first 
+    
+    if (ImGui::Begin(windowData.title.c_str(), windowData.isOpen))
+    {
+        // Render all bound elements for this window
+        for (const string& elementId : windowData.elementIds)
+        {
+            auto it = m_boundValues.find(elementId);
+            if (it != m_boundValues.end())
+            {
+                const BoundValue& value = it->second;
+                
+                switch (value.ElementType)
+                {
+                    case UIElementType::ReadOnlyFloat:
+                    {
+                        const float* floatPtr = static_cast<const float*>(value.DataPtr);
+                        string labelAndFormat = value.Label.emtpy() ? value.Format : value.Label + ": " + value.Format;
+                        ImGui::Text(labelAndFormat.c_str(), *floatPtr);
+                        break;
+                    }
+                    case UIElementType::ReadOnlyText:
+                    {
+                        const string* textPtr = static_cast<const string*>(value.DataPtr);
+                        ImGui::Text("%s", textPtr->c_str());
+                        break;
+                    }
+                    case UIElementType::Text:
+                    {
+                        string* textPtr = static_cast<string*>(value.DataPtr);
+                        ImGui::Text("%s", textPtr->c_str());
+                        break;
+                    }
+                    case UIElementType::Graph:
+                    {
+                        GraphData* graphData = static_cast<GraphData*>(value.DataPtr);
+                        if (!graphData->values.empty())
+                        {
+                            ImGui::PlotLines(graphData->label.c_str(),
+                                           graphData->values.data(),
+                                           static_cast<int>(graphData->values.size()),
+                                           0, nullptr,
+                                           graphData->minValue,
+                                           graphData->maxValue,
+                                           graphData->size);
+                        }
+                        break;
+                    }
+                    case UIElementType::Table:
+                    {
+                        TableData* tableData = static_cast<TableData*>(value.DataPtr);
+                        if (!tableData->headers.empty() && !tableData->rows.empty())
+                        {
+                            if (ImGui::BeginTable(elementId.c_str(), 
+                                                static_cast<int>(tableData->headers.size()), 
+                                                tableData->flags))
+                            {
+                                for (const string& header : tableData->headers)
+                                {
+                                    ImGui::TableSetupColumn(header.c_str());
+                                }
+                                ImGui::TableHeadersRow();
+                                
+                                for (const auto& row : tableData->rows)
+                                {
+                                    ImGui::TableNextRow();
+                                    for (const string& cell : row)
+                                    {
+                                        ImGui::TableNextColumn();
+                                        ImGui::Text("%s", cell.c_str());
+                                    }
+                                }
+                                
+                                ImGui::EndTable();
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+    ImGui::End();
 }
 
 }
