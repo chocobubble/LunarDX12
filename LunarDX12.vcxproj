@@ -137,6 +137,7 @@
     <ClCompile Include="Geometry\Plane.cpp" />
     <ClCompile Include="Geometry\GeometryFactory.cpp" />
     <ClCompile Include="Geometry\Transform.cpp" />
+    <ClCompile Include="Geometry\Tree.cpp" />
     <ClCompile Include="LightingSystem.cpp" />
     <ClCompile Include="LunarConstants.cpp" />
     <ClCompile Include="Logger.cpp" />
@@ -149,6 +150,7 @@
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
+    <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -157,6 +159,7 @@
     <ClInclude Include="Geometry\Geometry.h" />
     <ClInclude Include="Geometry\IcoSphere.h" />
     <ClInclude Include="Geometry\Transform.h" />
+    <ClInclude Include="Geometry\Tree.h" />
     <ClInclude Include="Geometry\Vertex.h" />
     <ClInclude Include="Geometry\Cube.h" />
     <ClInclude Include="Geometry\Plane.h" />
@@ -172,6 +175,7 @@
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
+    <ClInclude Include="TextureManager.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
@@ -183,6 +187,18 @@
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="PixelShader.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="BillboardVertexShader.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="BillboardGeometryShader.hlsl">
+      <ShaderType>Geometry</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="BillboardPixelShader.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>

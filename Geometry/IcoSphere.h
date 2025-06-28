@@ -27,8 +27,7 @@ private:
 		}
 	};
     std::unordered_map<std::pair<UINT, UINT>, UINT, PairHash> m_middlePointCache;
-    int                                                         m_subdivisionLevel = 2;
+    int                                                       m_subdivisionLevel = 2;
 	
-    std::tuple<float, float> GetMiddlePoint(UINT p1, UINT p2) const;
 };
 } // namespace Luanr

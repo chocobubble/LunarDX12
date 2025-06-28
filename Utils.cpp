@@ -1,6 +1,7 @@
 ﻿#include "Utils.h"
 #include <comdef.h>
 #include "Logger.h"
+#include "DirectXTex.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -44,29 +45,63 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-    D3D12_HEAP_PROPERTIES heapProperties = {};
-    heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	heapProperties.CreationNodeMask = 1;
-	heapProperties.VisibleNodeMask = 1;
+	UINT64 rowSizeInBytes = UINT64(width) * 4; // RGBA
+	ComPtr<ID3D12Resource> texture = CreateTextureResource(
+		device, commandList, textureDesc, data, rowSizeInBytes, UINT(width), UINT(height), uploadBuffer);
+	stbi_image_free(data);
+	return texture; 
 
-    ComPtr<ID3D12Resource> texture;
+}
 
-    try
+ComPtr<ID3D12Resource> Utils::LoadDDSTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
+{
+   LOG_FUNCTION_ENTRY();
+    
+    DirectX::ScratchImage image;
+    std::wstring wfilename(filename.begin(), filename.end());
+    HRESULT hr = DirectX::LoadFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+    if (FAILED(hr))
     {
+        LOG_ERROR("Failed to load DDS texture: ", filename);
+        throw std::runtime_error("Failed to load DDS texture: " + filename);
+    }
+    
+    const DirectX::Image* img = image.GetImage(0, 0, 0);
+    LOG_DEBUG("DDS texture loaded: ", filename, " (", img->width, "x", img->height, ")");
+    
+    D3D12_RESOURCE_DESC textureDesc = {};
+    textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    textureDesc.Width = static_cast<UINT>(img->width);
+    textureDesc.Height = static_cast<UINT>(img->height);
+    textureDesc.DepthOrArraySize = 1;
+    textureDesc.MipLevels = 1;
+    textureDesc.Format = img->format;
+    textureDesc.SampleDesc.Count = 1;
+    textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+	UINT64 rowSizeInBytes = img->rowPitch;
+	auto texture = CreateTextureResource(
+		device, commandList, textureDesc, img->pixels, rowSizeInBytes, img->width, img->height, uploadBuffer);
+	return texture;
+}
+
+ComPtr<ID3D12Resource> Utils::CreateTextureResource(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_DESC& textureDesc, const uint8_t* srcData, UINT64 rowSizeInBytes, UINT width, UINT height, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
+{
+    D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
+    defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	defaultHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	defaultHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	defaultHeapProperties.CreationNodeMask = 1;
+	defaultHeapProperties.VisibleNodeMask = 1;
+
+	ComPtr<ID3D12Resource> texture;
+
     THROW_IF_FAILED(device->CreateCommittedResource(
-        &heapProperties, 
+        &defaultHeapProperties, 
         D3D12_HEAP_FLAG_NONE, 
         &textureDesc, 
         D3D12_RESOURCE_STATE_COPY_DEST, 
         nullptr, IID_PPV_ARGS(&texture)))
-    }
-    catch (std::exception e)
-    {
-        stbi_image_free(data);
-        throw std::runtime_error("Failed to create texture resource");
-    }
 
     // calculate the size of the upload buffer
     UINT64 uploadBufferSize;
@@ -86,7 +121,7 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     */
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT layouts;
     UINT numRows;
-    UINT64 rowSizeInBytes;
+    UINT64 rowPitch;
     
     // Get GPU memory layout requirements for the texture
     // This calculates proper alignment and padding needed for GPU memory
@@ -97,7 +132,7 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
         0,                      // Base offset in upload buffer
         &layouts,               // Output: memory layout with alignment
         &numRows,               // Output: number of rows in the texture
-        &rowSizeInBytes,        // Output: actual bytes per row (without padding)
+        &rowPitch,        // Output: actual bytes per row (without padding)
         &uploadBufferSize       // Output: total bytes needed for upload buffer
     );
 
@@ -109,7 +144,8 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     // - rowSizeInBytes: actual data size per row (width * bytes_per_pixel)
     // - uploadBufferSize: total memory needed for upload buffer with alignment
 
-    heapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+	D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
+    uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
 
     D3D12_RESOURCE_DESC uploadBufferDesc = {};
     uploadBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -124,7 +160,7 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     uploadBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
     THROW_IF_FAILED(device->CreateCommittedResource(
-        &heapProperties,
+        &uploadHeapProperties,
         D3D12_HEAP_FLAG_NONE,
         &uploadBufferDesc,
         D3D12_RESOURCE_STATE_GENERIC_READ,
@@ -138,7 +174,7 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
     {
         memcpy(
             destSliceStart + layouts.Footprint.RowPitch * i, 
-            data + i * rowSizeInBytes, 
+            srcData + rowSizeInBytes * i, 
             rowSizeInBytes); 
     }
     uploadBuffer->Unmap(0, nullptr);
@@ -185,7 +221,6 @@ ComPtr<ID3D12Resource> Utils::LoadSimpleTexture(ID3D12Device* device, ID3D12Grap
 
     commandList->ResourceBarrier(1, &barrier);
 
-    stbi_image_free(data);
-    return texture;
+	return texture;
 }
 } // namespace Lunar

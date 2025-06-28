@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <cctype>
 
+#include "Tree.h"
+
 namespace Lunar
 {
 std::unique_ptr<Geometry> GeometryFactory::CreateCube()
@@ -20,6 +22,11 @@ std::unique_ptr<Geometry> GeometryFactory::CreatePlane(float width, float height
 std::unique_ptr<Geometry> GeometryFactory::CreateSphere()
 {
     return std::make_unique<IcoSphere>();
+}
+
+std::unique_ptr<Geometry> GeometryFactory::CreateTree()
+{
+	return std::make_unique<Tree>();
 }
 
 std::unique_ptr<Geometry> GeometryFactory::CreateGeometry(GeometryType type)

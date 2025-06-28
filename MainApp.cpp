@@ -14,6 +14,7 @@
 #include "LunarGui.h"
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
+#include "TextureManager.h"
 #include "Geometry/Transform.h"
 
 using namespace std;
@@ -37,6 +38,7 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_sceneRenderer = make_unique<SceneRenderer>();
 	m_pipelineStateManager = make_unique<PipelineStateManager>();
+	m_textureManager = make_unique<TextureManager>();
 }
 
 MainApp::~MainApp()
@@ -161,7 +163,7 @@ void MainApp::InitializeCommandList()
 	
 	THROW_IF_FAILED(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_commandList.GetAddressOf())))
 
-	m_commandList->Close();
+	// m_commandList->Close();
 }
 
 void MainApp::CreateSwapChain()
@@ -201,17 +203,6 @@ void MainApp::CreateSwapChain()
 		m_swapChain.GetAddressOf()      // Created Swap Chain
 		))
 	
-}
-
-void MainApp::CreateSRVDescriptorHeap()
-{
-	LOG_FUNCTION_ENTRY();
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = 1;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NodeMask = 0;
-	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
 }
 
 void MainApp::CreateRTVDescriptorHeap()
@@ -293,77 +284,6 @@ void MainApp::CreateDepthStencilView()
 
 	m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 }
-
-void MainApp::CreateShaderResourceView()
-{
-	LOG_FUNCTION_ENTRY();
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = 1;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-	/*
-	struct D3D12_SHADER_RESOURCE_VIEW_DESC {
-		DXGI_FORMAT Format;                    // Pixel format of the resource data
-											  // Use DXGI_FORMAT_UNKNOWN to use resource's original format
-											  // Can specify different format for type conversion
-	
-		D3D12_SRV_DIMENSION ViewDimension;    // Specifies the resource type and how shader will access it
-											  // Common values:
-											  // - D3D12_SRV_DIMENSION_TEXTURE1D: 1D texture
-											  // - D3D12_SRV_DIMENSION_TEXTURE2D: 2D texture
-											  // - D3D12_SRV_DIMENSION_TEXTURE3D: 3D texture
-											  // - D3D12_SRV_DIMENSION_TEXTURECUBE: Cube map
-											  // - D3D12_SRV_DIMENSION_BUFFER: Raw buffer
-	
-		UINT Shader4ComponentMapping;         // Controls how texture components (RGBA) are mapped to shader
-											  // Use D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING for standard RGBA mapping
-											  // Can rearrange/swizzle components (e.g., BGRA to RGBA)
-	
-		union {
-			D3D12_BUFFER_SRV Buffer;                    // Used when ViewDimension is BUFFER
-			D3D12_TEX1D_SRV Texture1D;                 // Used for 1D textures
-			D3D12_TEX1D_ARRAY_SRV Texture1DArray;      // Used for 1D texture arrays
-			D3D12_TEX2D_SRV Texture2D;                 // Used for 2D textures (most common)
-			D3D12_TEX2D_ARRAY_SRV Texture2DArray;      // Used for 2D texture arrays
-			D3D12_TEX2DMS_SRV Texture2DMS;             // Used for multisampled 2D textures
-			D3D12_TEX2DMS_ARRAY_SRV Texture2DMSArray;  // Used for multisampled 2D texture arrays
-			D3D12_TEX3D_SRV Texture3D;                 // Used for 3D textures
-			D3D12_TEXCUBE_SRV TextureCube;              // Used for cube map textures
-			D3D12_TEXCUBE_ARRAY_SRV TextureCubeArray;  // Used for cube map texture arrays
-		};
-	};
-	
-	// D3D12_TEX2D_SRV structure (most commonly used for 2D textures)
-	struct D3D12_TEX2D_SRV {
-		UINT MostDetailedMip;        // Index of the most detailed mipmap level to use
-									 // 0 = highest resolution level
-	
-		UINT MipLevels;              // Number of mipmap levels to use
-									 // Use -1 to use all available mip levels from MostDetailedMip
-									 // Use 1 for single mip level (no mipmapping)
-	
-		UINT PlaneSlice;             // For planar formats, specifies which plane to access
-									 // Use 0 for non-planar formats (most common case)
-	
-		FLOAT ResourceMinLODClamp;   // Minimum LOD (Level of Detail) clamp value
-									 // Prevents shader from sampling below this mip level
-									 // Use 0.0f for no clamping (most common)
-	};
-	*/
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.PlaneSlice = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
-	m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHandle);
-}
-
 
 // D3D_COMPILE_STANDARD_FILE_INCLUDE can be passed for pInclude in any
 // API and indicates that a simple default include handler should be
@@ -515,10 +435,10 @@ void MainApp::Render(double dt)
 
 	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 	// Set Constant Buffer Descriptor heap
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_srvHeap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_textureManager->GetSRVHeap() };
 	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	m_commandList->SetGraphicsRootDescriptorTable(0, m_srvHeap->GetGPUDescriptorHandleForHeapStart());
+	m_commandList->SetGraphicsRootDescriptorTable(0, m_textureManager->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
 	
 	// m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
 	m_sceneRenderer->RenderScene(m_commandList.Get());
@@ -575,12 +495,10 @@ void MainApp::Initialize()
 	InitializeTextures();
 	CreateCamera();
 	CreateSwapChain();
-	CreateSRVDescriptorHeap();
 	CreateRTVDescriptorHeap();
 	CreateDSVDescriptorHeap();
 	CreateRenderTargetView();
 	CreateDepthStencilView();
-	CreateShaderResourceView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
 }
@@ -699,6 +617,7 @@ void MainApp::InitializeGeometry()
 	mirrorTransform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	mirrorTransform.Rotation = XMFLOAT3(-XM_PIDIV2, 0.0f, 0.0f);
 	m_sceneRenderer->AddPlane("Mirror0", mirrorTransform, 0.1f, 0.2f, RenderLayer::Mirror);
+	m_sceneRenderer->AddTree("Tree0");
 
 	m_sceneRenderer->InitializeScene(m_device.Get(), m_gui.get(), m_pipelineStateManager.get());
 }
@@ -711,19 +630,7 @@ void MainApp::CreateCamera()
 
 void MainApp::InitializeTextures()
 {
-	LOG_FUNCTION_ENTRY();
-	m_commandAllocator->Reset();
-	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
-    
-	// std::string texturePath = "Assets\\Textures\\black_tiling_15-1K\\tiling_15_basecolor-1K.png";
-	// std::string texturePath = "Assets\\Textures\\black_tiling_15-1K\\tiling_15_ambientocclusion-1K.png";
-	std::string texturePath = "Assets\\Textures\\wall.jpg";
-	if (!std::filesystem::exists(texturePath))
-	{
-		LOG_ERROR("Texture file does not exist: ", texturePath);
-        return;
-	}
-	m_texture = Utils::LoadSimpleTexture(m_device.Get(), m_commandList.Get(), texturePath, m_textureUploadBuffer);
+	m_textureManager->Initialize(m_device.Get(), m_commandList.Get());
 }
 
 } // namespace Lunar

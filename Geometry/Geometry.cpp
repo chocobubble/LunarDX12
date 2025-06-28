@@ -73,6 +73,17 @@ void Geometry::SetColor(const XMFLOAT4& color)
     m_color = color;
 }
 
+void Geometry::SetTextureIndex(int index)
+{
+	m_objectConstants.textureIndex = index;
+	m_needsConstantBufferUpdate = true;
+}
+
+void Geometry::SetMaterialName(const std::string& materialName)
+{
+	m_materialName = materialName;
+}
+
 void Geometry::UpdateWorldMatrix()
 {
     XMMATRIX S = XMMatrixScaling(m_transform.Scale.x, m_transform.Scale.y, m_transform.Scale.z);
@@ -175,6 +186,8 @@ void Geometry::CreateBuffers(ID3D12Device* device)
 	m_vertexBufferView.StrideInBytes = sizeof(Vertex);
 	m_vertexBufferView.SizeInBytes = vbByteSize;
 
+	if (m_indices.empty()) return;
+	
 	const UINT ibByteSize = static_cast<UINT>(m_indices.size() * sizeof(uint16_t));
 	D3D12_RESOURCE_DESC ibDesc = {};
 	ibDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -214,4 +227,4 @@ void Geometry::CreateBuffers(ID3D12Device* device)
 	m_indexBufferView.SizeInBytes = ibByteSize;
 }
 
-}
+} // namespace Lunar

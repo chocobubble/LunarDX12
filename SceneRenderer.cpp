@@ -138,6 +138,23 @@ bool SceneRenderer::AddPlane(const string& name, const Transform& spawnTransform
     return true;
 }
 
+bool SceneRenderer::AddTree(const std::string& name, const Transform& spawnTransform, RenderLayer layer)
+{
+	if (DoesGeometryExist(name))
+	{
+		LOG_ERROR("Geometry with name " + name + " already exists");
+		return false;
+	}
+
+	auto tree = GeometryFactory::CreateTree();
+	auto entry = make_shared<GeometryEntry>(GeometryEntry{move(tree), name, layer});
+	
+	m_layeredGeometries[layer].push_back(entry);
+	m_geometriesByName[name] = entry;
+    
+	return true;
+}
+
 bool SceneRenderer::SetGeometryTransform(const string& name, const Transform& newTransform)
 {
     Geometry* geometry = GetGeometryEntry(name)->GeometryData.get();
@@ -214,19 +231,21 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     {
     	if (it.first == RenderLayer::Mirror)
     	{
-    		m_basicConstants.textureIndex = 0;
     		commandList->OMSetStencilRef(1);
     		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
     	}
     	else if (it.first == RenderLayer::Reflect)
     	{
-    		m_basicConstants.textureIndex = 0;
     		commandList->OMSetStencilRef(1);
     		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
     	}
+    	else if (it.first == RenderLayer::Background) // for now, billboard only
+    	{
+    		commandList->OMSetStencilRef(0);
+    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
+    	}
     	else
     	{
-    		m_basicConstants.textureIndex = 0;
     		commandList->OMSetStencilRef(0);	
     		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
     	}

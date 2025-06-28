@@ -31,6 +31,7 @@ public:
     void SetRotation(const DirectX::XMFLOAT3& rotation);
     void SetScale(const DirectX::XMFLOAT3& scale);
     void SetColor(const DirectX::XMFLOAT4& color);  // TODO: delete
+	void SetTextureIndex(int index);
     void SetMaterialName(const std::string& materialName);
     
     DirectX::XMFLOAT4X4 GetWorldMatrix() { return m_objectConstants.World; }
