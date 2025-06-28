@@ -9,6 +9,7 @@ namespace Lunar
 Geometry::Geometry()
 {
     XMStoreFloat4x4(&m_objectConstants.World, XMMatrixIdentity());
+	// UpdateWorldMatrix();
 }
 
 void Geometry::Initialize(ID3D12Device* device)
@@ -31,6 +32,12 @@ void Geometry::Draw(ID3D12GraphicsCommandList* commandList)
     commandList->IASetIndexBuffer(&m_indexBufferView);
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     commandList->DrawIndexedInstanced(static_cast<UINT>(m_indices.size()), 1, 0, 0, 0);
+}
+
+void Geometry::SetWorldMatrix(DirectX::XMFLOAT4X4 worldMatrix)
+{
+	m_objectConstants.World = worldMatrix;
+	m_needsConstantBufferUpdate = true;
 }
 
 void Geometry::SetTransform(const Transform& transform)

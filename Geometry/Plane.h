@@ -13,14 +13,18 @@ public:
     
     float GetWidth() const { return m_width; }
     float GetHeight() const { return m_height; }
+
+	DirectX::XMFLOAT4 GetPlaneEquation();
     
 private:
     float m_width;
     float m_height;
     int m_widthSegments;
     int m_heightSegments;
+	DirectX::XMFLOAT4 m_planeEquation;
     
     void CreatePlaneVertices();
     void CreatePlaneIndices();
+	void CalculatePlaneEquation();
 };
 }

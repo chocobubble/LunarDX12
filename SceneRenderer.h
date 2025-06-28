@@ -14,19 +14,21 @@
 
 namespace Lunar
 {
+	
+class PipelineStateManager;
 class LunarGui;
-// class Geometry;
 class LightingSystem;
 class ConstantBuffer;
 struct BasicConstants;
 
 enum class RenderLayer
 {
-    Background = 0,
-    World = 1,
-    Translucent = 2,
-    UI = 3,
-    COUNT = 4 // for looping enum
+    Background,
+    World,
+	Mirror,
+	Reflect,
+    Translucent,
+    UI
 };
 
 struct GeometryEntry
@@ -43,8 +45,8 @@ public:
     SceneRenderer();
     ~SceneRenderer() = default;
 
-    void InitializeScene(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, LunarGui* gui);
-    void UpdateScene(float deltaTime, BasicConstants& basicConstants);
+    void InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager);
+    void UpdateScene(float deltaTime);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
     bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
@@ -62,6 +64,7 @@ public:
     const MaterialManager* GetMaterialManager() const { return m_materialManager.get();}
     const SceneViewModel* GetSceneViewModel() const { return m_sceneViewModel.get(); }
     const LightingSystem* GetLightingSystem() const { return m_lightingSystem.get(); }
+	BasicConstants& GetBasicConstants() { return m_basicConstants; }
     
 private:
     std::map<RenderLayer, std::vector<std::shared_ptr<GeometryEntry>>> m_layeredGeometries;
@@ -70,7 +73,9 @@ private:
     std::unique_ptr<SceneViewModel> m_sceneViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;
-    
+	PipelineStateManager* m_pipelineStateManager = nullptr;
+
+	BasicConstants m_basicConstants;
     void RenderLayers(ID3D12GraphicsCommandList* commandList);
     bool GetGeometryVisibility(const std::string& name) const;
     GeometryEntry* GetGeometryEntry(const std::string& name);

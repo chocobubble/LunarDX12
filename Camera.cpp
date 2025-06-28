@@ -10,6 +10,12 @@ using namespace DirectX;
 namespace Lunar
 {
 
+Camera::Camera()
+{
+	m_yaw = XM_PIDIV4;
+	UpdateViewDir();
+}
+
 const XMFLOAT4X4& Camera::GetViewMatrix()
 {
     if (m_viewDirty)

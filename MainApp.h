@@ -1,19 +1,17 @@
 #pragma once
 
 #include <d3d12.h>
-#include <d3dcompiler.h>
-#include <vector>
 #include <Windows.h>
 #include <wrl.h>
 #include "dxgi1_6.h"
-#include <DirectXMath.h>
 #include <memory>
 
 #include "LunarConstants.h"
 #include "LunarTimer.h"
 
 namespace Lunar {
-    
+	
+class PipelineStateManager;
 class ConstantBuffer;
 class SceneRenderer;
 class Camera;
@@ -34,10 +32,9 @@ private:
 	void CreateSRVDescriptorHeap();
 	void CreateRTVDescriptorHeap();
 	void CreateRenderTargetView();
+	void CreateDSVDescriptorHeap();
+	void CreateDepthStencilView();
 	void CreateShaderResourceView();
-	void CreateRootSignature();
-	void BuildShadersAndInputLayout();
-	void BuildPSO();
 	void CreateFence();
 	void Render(double dt);
 	void Update(double dt);
@@ -45,11 +42,9 @@ private:
 	bool InitDirect3D();
 	bool InitMainWindow();
     void OnMouseMove(float x, float y);
-	float GetAspectRatio() const;
 	void InitializeGeometry();
 	void CreateCamera();
 	void InitializeTextures();
-	void CreateLights();
 	
 	HWND m_mainWindow;
 	
@@ -63,13 +58,13 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swapChain;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_lightHeap;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
-	Microsoft::WRL::ComPtr<ID3DBlob> m_vsByteCode;
-	Microsoft::WRL::ComPtr<ID3DBlob> m_psByteCode;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencilBuffer;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_textureUploadBuffer;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
@@ -78,13 +73,9 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 
-	UINT m_displayWidth;
-	UINT m_displayHeight;
 	UINT m_renderTargetViewDescriptorSize;
 	UINT m_fenceValue;
 	UINT m_frameIndex;
-
-	std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputLayout;
 
 	HANDLE m_fenceEvent;
 
@@ -102,6 +93,7 @@ private:
     std::unique_ptr<Camera> m_camera;
 
     std::unique_ptr<SceneRenderer> m_sceneRenderer;
+	std::unique_ptr<PipelineStateManager> m_pipelineStateManager;
 
 	bool m_mouseMoving = false;
 };

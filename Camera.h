@@ -8,6 +8,8 @@ namespace Lunar
 class Camera
 {
 public:
+	Camera();
+	~Camera() = default;
 	const DirectX::XMFLOAT4X4& GetViewMatrix();
     const DirectX::XMFLOAT4X4& GetProjMatrix();
 	DirectX::XMFLOAT3          GetPosition() const;
@@ -16,7 +18,7 @@ public:
     void UpdatePosition(float dx, float dy, float dz);
 
 private:
-	DirectX::XMFLOAT3   m_position = {0.5f, 0.5f, -1.5f};
+	DirectX::XMFLOAT3   m_position = {-3.5f, 0.5f, -3.5f};
 	DirectX::XMFLOAT3   m_worldUpDir = {0.0f, 1.0f, 0.0f};
 	DirectX::XMFLOAT3   m_viewDir = {0.0f, 0.0f, 1.0f};
 	DirectX::XMFLOAT3   m_upDir = {0.0f, 1.0f, 0.0f};

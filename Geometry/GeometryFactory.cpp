@@ -43,6 +43,23 @@ std::unique_ptr<Geometry> GeometryFactory::CreateGeometry(const std::string& typ
     return CreateGeometry(type);
 }
 
+std::unique_ptr<Geometry> GeometryFactory::CloneGeometry(const Geometry* original)
+{
+	if (auto cube = dynamic_cast<const Cube*>(original))
+	{
+		return CreateCube();
+	}
+	else if (auto sphere = dynamic_cast<const IcoSphere*>(original))
+	{
+		return CreateSphere();
+	}
+	else if (auto plane = dynamic_cast<const Plane*>(original))
+	{
+		return CreatePlane(plane->GetWidth(), plane->GetHeight());
+	}
+	return nullptr;
+}
+
 std::string GeometryFactory::GeometryTypeToString(GeometryType type)
 {
     switch (type)

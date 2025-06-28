@@ -13,6 +13,7 @@ cbuffer BasicConstants : register(b0)
 	float4x4 view;
 	float4x4 projection;
 	float3 eyePos;
+	int textureIndex;
 	float4 ambientLight;
 	Light lights[3];
 }

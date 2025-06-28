@@ -1,16 +1,27 @@
 #include "Plane.h"
 
+#include "../MathUtils.h"
+
 using namespace DirectX;
 
 namespace Lunar
 {
 Plane::Plane(float width, float height, int widthSegments, int heightSegments)
-    : m_width(width), m_height(height), m_widthSegments(widthSegments), m_heightSegments(heightSegments) { }
+    : m_width(width), m_height(height), m_widthSegments(widthSegments), m_heightSegments(heightSegments)
+{
+	m_planeEquation = XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
+}
 
 void Plane::CreateGeometry()
 {
     CreatePlaneVertices();
     CreatePlaneIndices();
+}
+
+XMFLOAT4 Plane::GetPlaneEquation()
+{
+	CalculatePlaneEquation();
+	return m_planeEquation;
 }
 
 void Plane::CreatePlaneVertices()
@@ -73,5 +84,21 @@ void Plane::CreatePlaneIndices()
             m_indices.push_back(bottomLeft);
         }
     }
+}
+
+void Plane::CalculatePlaneEquation()
+{
+	XMMATRIX worldMatrix = XMLoadFloat4x4(&m_objectConstants.World);
+	XMMATRIX invTransposeMatrix = XMMatrixTranspose(XMMatrixInverse(nullptr, worldMatrix));
+	XMVECTOR localNormal = XMVectorSet(m_planeEquation.x, m_planeEquation.y, m_planeEquation.z, 0);
+	float localDistance = m_planeEquation.w;
+	XMVECTOR worldNormal = XMVector3TransformNormal(localNormal, invTransposeMatrix);
+	worldNormal = XMVector3Normalize(worldNormal);
+	XMVECTOR localPoint = XMVectorSet(0, localDistance, 0, 1);	 // point on the plane
+	XMVECTOR worldPoint = XMVector3TransformCoord(localPoint, worldMatrix);
+	float worldDistance = -XMVectorGetX(XMVector3Dot(worldNormal, worldPoint));
+	XMFLOAT3 wn;
+	XMStoreFloat3(&wn, worldNormal);
+	m_planeEquation = XMFLOAT4(wn.x, wn.y, wn.z, worldDistance);
 }
 }
