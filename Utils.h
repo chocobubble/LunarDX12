@@ -31,21 +31,10 @@ public:
 		// Constant buffers must be a multiple of the minimum hardware allocation size (usually 256 bytes)
 		return (byteSize + 255) & ~255;
 	}	
-	static Microsoft::WRL::ComPtr<ID3D12Resource> LoadSimpleTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
-	static Microsoft::WRL::ComPtr<ID3D12Resource> LoadDDSTexture(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
 	static UINT GetDisplayWidth() { return m_displayWidth; }
 	static UINT GetDisplayHeight() { return m_displayHeight; }
 	static float GetAspectRatio() { return static_cast<float>(m_displayWidth) / m_displayHeight; }
 private:
-	static Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(
-		ID3D12Device*                           device,
-		ID3D12GraphicsCommandList*              commandList,
-		const D3D12_RESOURCE_DESC&              textureDesc,
-		const uint8_t*                          srcData,
-		UINT64                                  rowSizeInBytes,
-		UINT                                    width,
-		UINT                                    height,
-		Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
 	inline static UINT m_displayWidth = 1280;
 	inline static UINT m_displayHeight = 720;
 };

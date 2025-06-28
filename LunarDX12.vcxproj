@@ -190,11 +190,11 @@
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="SkyboxVertexShader.hlsl">
+    <FxCompile Include="SkyBoxVertexShader.hlsl">
       <ShaderType>Vertex</ShaderType>
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="SkyboxPixelShader.hlsl">
+    <FxCompile Include="SkyBoxPixelShader.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>

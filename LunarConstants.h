@@ -23,5 +23,28 @@ static constexpr UINT BASIC_CONSTANTS_ROOT_PARAMETER_INDEX = 1;
 static constexpr UINT OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX = 2;
 static constexpr UINT MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX = 3;
 	
+/////////////// textures  ///////////////
+enum class FileType : uint8_t {
+    DEFAULT = 0,
+    DDS = 1
+};
+
+enum class TextureDimension : uint8_t {
+    TEXTURE2D = 4,
+    CUBEMAP = 9
+} 
+struct TextureInfo
+{
+    const char* name;
+    const char* path;
+    FileType fileType;
+    TextureDimension dimensionType; 
+};
+static constexpr std::array<TextureInfo, 4> TEXTURE_INFO = {
+    {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+    {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
+    {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
+    {"skybox", "Assets\\Textures\\skybox.jpg", FileType::DEFAULT, TextureDimension::CUBEMAP},
+};
 }	
 }
