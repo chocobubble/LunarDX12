@@ -1,13 +1,13 @@
-Texture2D g_textureWall : register(t0);
+TextureCube<float4> skyCube : register(t3);
 SamplerState g_sampler : register(s0);
 
 struct PixelIn
 {
 	float4 pos : SV_POSITION;
-	float2 texCoord : TEXCOORD;
+	float3 texCoord : TEXCOORD;
 };
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
-	return g_textureWall.Sample(g_sampler, pIn.texCoord);
+	return skyCube.Sample(g_sampler, pIn.texCoord);
 }
