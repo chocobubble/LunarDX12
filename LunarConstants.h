@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <array>
 #include <dxgi1_6.h>
 
 namespace Lunar 
@@ -32,7 +33,7 @@ enum class FileType : uint8_t {
 enum class TextureDimension : uint8_t {
     TEXTURE2D = 4,
     CUBEMAP = 9
-} 
+}; 
 struct TextureInfo
 {
     const char* name;
@@ -40,11 +41,11 @@ struct TextureInfo
     FileType fileType;
     TextureDimension dimensionType; 
 };
-static constexpr std::array<TextureInfo, 4> TEXTURE_INFO = {
+static constexpr std::array<TextureInfo, 4> TEXTURE_INFO = {{
     {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
-    {"skybox", "Assets\\Textures\\skybox.jpg", FileType::DEFAULT, TextureDimension::CUBEMAP},
-};
+    {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
+}};
 }	
 }

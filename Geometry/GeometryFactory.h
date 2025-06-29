@@ -9,7 +9,8 @@ enum class GeometryType : int8_t
 {
     Cube,
     Sphere,
-	Plane
+	Plane,
+	Tree
 };
 
 class GeometryFactory
