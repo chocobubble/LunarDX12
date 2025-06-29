@@ -29,7 +29,11 @@ struct PixelIn
 PixelIn main(VertexIn vIn)
 {
 	PixelIn pIn;
-	pIn.pos = float4(vIn.pos, 1.0);
+	float4 pos = float4(vIn.pos, 1.0);
+	float4 posW = mul(pos, world);
+	float4 posWV = mul(posW, view);
+	float4 posWVP = mul(posWV, projection);
+	pIn.pos = posWVP;
 	pIn.texCoord = vIn.pos;
 	return pIn;
 }

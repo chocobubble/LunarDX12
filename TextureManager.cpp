@@ -18,9 +18,9 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
 {
 	LOG_FUNCTION_ENTRY();
 
-	CreateSRVDescriptorHeap(Lunar::Constants::TEXTURE_INFO.size(), device);
+	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);
 
-    for (auto& textureInfo : Lunar::Constants::TEXTURE_INFO)
+    for (auto& textureInfo : Lunar::LunarConstants::TEXTURE_INFO)
     {
         Texture texture = {};
         texture.Resource = LoadTexture(textureInfo, device, commandList, textureInfo.path, texture.UploadBuffer);
@@ -29,7 +29,7 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
     }
 }
 	
-ComPtr<ID3D12Resource> TextureManager::LoadTexture(const Constants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
+ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
 {
 	LOG_FUNCTION_ENTRY();
 
@@ -45,7 +45,7 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const Constants::TextureInfo&
 
     UINT64 rowSizeInBytes;
     
-    if (textureInfo.dimensionType == Constants::TextureDimension::CUBEMAP)
+    if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
     {
         textureDesc.DepthOrArraySize = 6;
         
@@ -87,7 +87,7 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const Constants::TextureInfo&
     }
     
     uint8_t* data = nullptr;
-    if (textureInfo.fileType == Constants::FileType::DEFAULT) 
+    if (textureInfo.fileType == LunarConstants::FileType::DEFAULT) 
     {
         int width, height, channels;
         data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
@@ -101,7 +101,7 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const Constants::TextureInfo&
         textureDesc.Height = static_cast<UINT>(height);
         rowSizeInBytes = UINT64(width) * 4; // RGBA
     }
-    else if (textureInfo.fileType == Constants::FileType::DDS)
+    else if (textureInfo.fileType == LunarConstants::FileType::DDS)
     {
         DirectX::ScratchImage image;
         std::wstring wfilename(filename.begin(), filename.end());
@@ -126,7 +126,7 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const Constants::TextureInfo&
     }
 
 	ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
-	if (textureInfo.fileType == Constants::FileType::DEFAULT) stbi_image_free(data);
+	if (textureInfo.fileType == LunarConstants::FileType::DEFAULT) stbi_image_free(data);
     return texture;
 }
 
@@ -142,7 +142,7 @@ void TextureManager::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* dev
 	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 	
-void TextureManager::CreateShaderResourceView(const Constants::TextureInfo& textureInfo, ID3D12Device* device)
+void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device)
 {
 	LOG_FUNCTION_ENTRY();
 
@@ -199,7 +199,7 @@ void TextureManager::CreateShaderResourceView(const Constants::TextureInfo& text
 	srvDesc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(textureInfo.dimensionType);
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	
-	if (textureInfo.dimensionType == Constants::TextureDimension::CUBEMAP) {
+	if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) {
 		srvDesc.TextureCube.MipLevels = 1;
 		srvDesc.TextureCube.MostDetailedMip = 0;
 		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;

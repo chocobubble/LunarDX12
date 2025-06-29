@@ -117,8 +117,8 @@ void MainApp::InitGui()
     m_gui->Initialize(
         m_mainWindow,
         m_device.Get(),
-        Lunar::Constants::BUFFER_COUNT,
-        Lunar::Constants::SWAP_CHAIN_FORMAT,
+        Lunar::LunarConstants::BUFFER_COUNT,
+        Lunar::LunarConstants::SWAP_CHAIN_FORMAT,
         m_imGuiDescriptorHeap.Get());
 }
 
@@ -188,10 +188,10 @@ void MainApp::CreateSwapChain()
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.Width = Utils::GetDisplayWidth();
 	swapChainDesc.Height = Utils::GetDisplayHeight();
-	swapChainDesc.Format = Lunar::Constants::SWAP_CHAIN_FORMAT;
-	swapChainDesc.SampleDesc.Count = Lunar::Constants::SAMPLE_COUNT; // not use MSAA for now
+	swapChainDesc.Format = Lunar::LunarConstants::SWAP_CHAIN_FORMAT;
+	swapChainDesc.SampleDesc.Count = Lunar::LunarConstants::SAMPLE_COUNT; // not use MSAA for now
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.BufferCount = Lunar::Constants::BUFFER_COUNT;
+	swapChainDesc.BufferCount = Lunar::LunarConstants::BUFFER_COUNT;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
 	THROW_IF_FAILED(m_factory->CreateSwapChainForHwnd(
@@ -219,7 +219,7 @@ void MainApp::CreateRTVDescriptorHeap()
 	*/
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.NumDescriptors = Lunar::Constants::BUFFER_COUNT;
+	rtvHeapDesc.NumDescriptors = Lunar::LunarConstants::BUFFER_COUNT;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 1;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(m_rtvHeap.GetAddressOf())))
@@ -232,7 +232,7 @@ void MainApp::CreateRenderTargetView()
 	LOG_FUNCTION_ENTRY();
 	
 	m_rtvHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
-	for (uint32_t i = 0; i < Lunar::Constants::BUFFER_COUNT; ++i)
+	for (uint32_t i = 0; i < Lunar::LunarConstants::BUFFER_COUNT; ++i)
 	{
 		ComPtr<ID3D12Resource> backBuffer;
 		m_swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));

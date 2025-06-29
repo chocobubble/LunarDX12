@@ -4,7 +4,7 @@
 
 namespace Lunar 
 {
-namespace Constants
+namespace LunarConstants
 {
 	
 static constexpr DXGI_FORMAT SWAP_CHAIN_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -46,6 +46,21 @@ static constexpr std::array<TextureInfo, 4> TEXTURE_INFO = {{
     {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
+}};
+struct ShaderInfo
+{
+	const char* name;
+	const char* path;
+	const char* target;
+};
+static constexpr std::array<ShaderInfo, 7> SHADER_INFO = {{
+	{ "basicVS",      "Shaders\\BasicVertexShader.hlsl",     "vs_5_0" },
+	{ "basicPS",      "Shaders\\BasicPixelShader.hlsl",      "ps_5_0" },
+	{ "billboardVS",  "Shaders\\BillboardVertexShader.hlsl", "vs_5_0" },
+	{ "billboardGS",  "Shaders\\BillboardGeometryShader.hlsl","gs_5_0" },
+	{ "billboardPS",  "Shaders\\BillboardPixelShader.hlsl",   "ps_5_0" },
+	{ "skyBoxVS",     "Shaders\\SkyBoxVertexShader.hlsl",     "vs_5_0" },
+	{ "skyBoxPS",     "Shaders\\SkyBoxPixelShader.hlsl",      "ps_5_0" }
 }};
 }	
 }

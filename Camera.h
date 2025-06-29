@@ -27,14 +27,14 @@ private:
 	DirectX::XMFLOAT4X4 m_projMatrix = {};
 	DirectX::XMFLOAT4X4 m_viewMatrix = {};
 
-    float m_nearZ = Lunar::Constants::NEAR_PLANE;
-    float m_farZ = Lunar::Constants::FAR_PLANE;
-    float m_projFovAngleY = Lunar::Constants::FOV_ANGLE;
-    float m_aspectRatio = Lunar::Constants::ASPECT_RATIO;
+    float m_nearZ = Lunar::LunarConstants::NEAR_PLANE;
+    float m_farZ = Lunar::LunarConstants::FAR_PLANE;
+    float m_projFovAngleY = Lunar::LunarConstants::FOV_ANGLE;
+    float m_aspectRatio = Lunar::LunarConstants::ASPECT_RATIO;
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
-    float m_sensitivity = Lunar::Constants::MOUSE_SENSITIVITY; 
-    float m_movementSpeed = Lunar::Constants::CAMERA_MOVE_SPEED;
+    float m_sensitivity = Lunar::LunarConstants::MOUSE_SENSITIVITY; 
+    float m_movementSpeed = Lunar::LunarConstants::CAMERA_MOVE_SPEED;
 
     bool m_projDirty = true;
     bool m_viewDirty = true;

@@ -60,7 +60,7 @@ void MaterialManager::BindConstantBuffer(const std::string& name, ID3D12Graphics
     }
     const MaterialEntry& entry = it->second;
     commandList->SetGraphicsRootConstantBufferView(
-        Lunar::Constants::MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX, 
+        Lunar::LunarConstants::MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX, 
         entry.constantBuffer->GetResource()->GetGPUVirtualAddress()); 
 } 
 

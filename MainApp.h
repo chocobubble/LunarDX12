@@ -62,7 +62,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::LunarConstants::BUFFER_COUNT];
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencilBuffer;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_textureUploadBuffer;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;

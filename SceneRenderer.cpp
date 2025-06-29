@@ -27,7 +27,7 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
 {
 	m_pipelineStateManager = pipelineManager;
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
-    m_lightingSystem->Initialize(device, Lunar::Constants::LIGHT_COUNT);
+    m_lightingSystem->Initialize(device, Lunar::LunarConstants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this);
 	m_materialManager->Initialize(device);
     for (auto& [layer, geometryEntries] : m_layeredGeometries)
@@ -75,7 +75,7 @@ void SceneRenderer::UpdateScene(float deltaTime)
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
 {
     commandList->SetGraphicsRootConstantBufferView(
-        Lunar::Constants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
+        Lunar::LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
         m_basicCB->GetResource()->GetGPUVirtualAddress());
     RenderLayers(commandList);
 }
