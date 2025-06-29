@@ -1,20 +1,9 @@
-struct Light
-{
-	float3 lightStrength;
-	float fallOffStart;
-	float3 direction;
-	float fallOffEnd;
-	float3 position;
-	float spotPower;
-};
-
 cbuffer BasicConstants : register(b0)
 {
 	float4x4 view;
 	float4x4 projection;
 	float3 eyePos;
 	float4 ambientLight;
-	Light lights[3];
 }
 
 cbuffer ObjectConstants : register(b1)

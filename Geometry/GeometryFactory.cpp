@@ -94,6 +94,8 @@ GeometryType GeometryFactory::StringToGeometryType(const std::string& typeName)
         return GeometryType::Sphere;
     else if (lowerTypeName == "plane")
         return GeometryType::Plane;
+    else if (lowerTypeName == "tree")
+        return GeometryType::Tree;
     else
         return GeometryType::Cube; 
 }

@@ -46,6 +46,7 @@ void IcoSphere::CreateGeometry()
     CalculateNormals();
     CalculateTexCoords();
     CalculateColors();
+	FixSeamVertices();
 }
 
 uint16_t IcoSphere::GetMiddlePoint(UINT p1, UINT p2)
@@ -131,5 +132,57 @@ void IcoSphere::CalculateColors()
     {
         vertex.color = {1, 1, 1, 1};
     }
+}
+
+void IcoSphere::FixSeamVertices()
+{
+	// for avoiding infinite loop
+	vector<Vertex> newVertices = m_vertices;
+	vector<uint16_t> newIndices;
+	
+	// to fix texture seam issue
+	for (size_t i = 0; i < m_indices.size(); i+= 3)
+	{
+		uint16_t index0 = m_indices[i];
+		uint16_t index1 = m_indices[i + 1];
+		uint16_t index2 = m_indices[i + 2];
+
+		float u0 = m_vertices[index0].texCoord.x;
+		float u1 = m_vertices[index1].texCoord.x;
+		float u2 = m_vertices[index2].texCoord.x;
+
+
+		// Fix horizontal seam first
+		if (abs(u0 - u1) > 0.5f || abs(u1 - u2) > 0.5f || abs(u2 - u0) > 0.5f)
+		{
+			if (u0 < 0.5f)
+			{
+				newVertices.push_back(m_vertices[index0]);
+				newVertices.back().texCoord.x += 1.0f;
+				index0 = newVertices.size() - 1;
+				u0 += 1.0f;
+			}
+			if (u1 < 0.5f)
+			{
+				newVertices.push_back(m_vertices[index1]);
+				newVertices.back().texCoord.x += 1.0f;
+				index1 = newVertices.size() - 1;
+				u1 += 1.0f;
+			}
+			if (u2 < 0.5f)
+			{
+				newVertices.push_back(m_vertices[index2]);
+				newVertices.back().texCoord.x += 1.0f;
+				index2 = newVertices.size() - 1;
+				u2 += 1.0f;
+			}
+		}
+		newIndices.push_back(index0);
+		newIndices.push_back(index1);
+		newIndices.push_back(index2);
+	}
+
+	m_vertices = move(newVertices);
+	m_indices = move(newIndices);
 }
 } // namespace Lunar

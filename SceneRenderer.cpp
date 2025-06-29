@@ -229,26 +229,32 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
 {
     for (auto& it : m_layeredGeometries)
     {
-    	if (it.first == RenderLayer::Mirror)
+    	switch (it.first)
     	{
-    		commandList->OMSetStencilRef(1);
-    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
-    	}
-    	else if (it.first == RenderLayer::Reflect)
-    	{
-    		commandList->OMSetStencilRef(1);
-    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
-    	}
-    	else if (it.first == RenderLayer::Background) // for now, billboard only
-    	{
-    		commandList->OMSetStencilRef(0);
-    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
-    	}
-    	else
-    	{
-    		commandList->OMSetStencilRef(0);	
-    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
-    	}
+    		case RenderLayer::Mirror :
+				commandList->OMSetStencilRef(1);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
+    			break;
+    		case RenderLayer::Reflect :
+				commandList->OMSetStencilRef(1);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
+    			break;
+    		case RenderLayer::Background :
+    			commandList->OMSetStencilRef(1);
+    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("background"));
+    			break;
+    		case RenderLayer::World :
+    			commandList->OMSetStencilRef(0);
+    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
+    			break;
+    		case RenderLayer::Billboard :
+    			commandList->OMSetStencilRef(0);
+    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
+    			break;
+			default:
+    			LOG_ERROR("Not Handled RenderLayerType");
+	    }
+    	
         for (auto& entry : it.second)
         {
             if (entry->IsVisible)
