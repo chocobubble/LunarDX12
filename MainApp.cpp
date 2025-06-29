@@ -14,7 +14,6 @@
 #include "LunarGui.h"
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
-#include "TextureManager.h"
 #include "Geometry/Transform.h"
 
 using namespace std;
@@ -38,7 +37,6 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_sceneRenderer = make_unique<SceneRenderer>();
 	m_pipelineStateManager = make_unique<PipelineStateManager>();
-	m_textureManager = make_unique<TextureManager>();
 }
 
 MainApp::~MainApp()
@@ -244,46 +242,6 @@ void MainApp::CreateRenderTargetView()
 		m_rtvHandle.ptr += m_renderTargetViewDescriptorSize;
 	}
 }
-	
-void MainApp::CreateDSVDescriptorHeap()
-{
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	dsvHeapDesc.NumDescriptors = 1;
-	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(m_dsvHeap.GetAddressOf())));
-}
-
-void MainApp::CreateDepthStencilView()
-{
-	D3D12_RESOURCE_DESC depthStencilDesc = {};
-	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	depthStencilDesc.Width = Utils::GetDisplayWidth();
-	depthStencilDesc.Height = Utils::GetDisplayHeight();
-	depthStencilDesc.DepthOrArraySize = 1;
-	depthStencilDesc.MipLevels = 1;
-	depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthStencilDesc.SampleDesc.Count = 1;
-	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
-	depthOptimizedClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
-	depthOptimizedClearValue.DepthStencil.Stencil = 0;
-
-	D3D12_HEAP_PROPERTIES heapProps = {};
-	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-	THROW_IF_FAILED(m_device->CreateCommittedResource(
-		&heapProps,
-		D3D12_HEAP_FLAG_NONE,
-		&depthStencilDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&depthOptimizedClearValue,
-		IID_PPV_ARGS(m_depthStencilBuffer.GetAddressOf())));
-
-	m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
-}
 
 // D3D_COMPILE_STANDARD_FILE_INCLUDE can be passed for pInclude in any
 // API and indicates that a simple default include handler should be
@@ -425,7 +383,7 @@ void MainApp::Render(double dt)
 	// Set Render Target
 	D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 	renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
-	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
 	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
 
 	// clear
@@ -435,10 +393,10 @@ void MainApp::Render(double dt)
 
 	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 	// Set Constant Buffer Descriptor heap
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_textureManager->GetSRVHeap() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
 	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	m_commandList->SetGraphicsRootDescriptorTable(0, m_textureManager->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
+	m_commandList->SetGraphicsRootDescriptorTable(0, m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
 	
 	// m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
 	m_sceneRenderer->RenderScene(m_commandList.Get());
@@ -492,15 +450,13 @@ void MainApp::Initialize()
 	InitializeCommandList();
 	InitGui();
 	CreateFence();
-	InitializeTextures();
 	CreateCamera();
 	CreateSwapChain();
 	CreateRTVDescriptorHeap();
-	CreateDSVDescriptorHeap();
 	CreateRenderTargetView();
-	CreateDepthStencilView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
+	InitializeTextures(); // for now, should come after InitializeGeometry method
 }
 
 bool MainApp::InitDirect3D()
@@ -633,7 +589,7 @@ void MainApp::CreateCamera()
 
 void MainApp::InitializeTextures()
 {
-	m_textureManager->Initialize(m_device.Get(), m_commandList.Get());
+	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get());
 }
 
 } // namespace Lunar

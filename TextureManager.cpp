@@ -14,21 +14,93 @@ using namespace DirectX;
 namespace Lunar
 {
 	
-void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, D3D12_CPU_DESCRIPTOR_HANDLE& srvHandle)
 {
 	LOG_FUNCTION_ENTRY();
-
-	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);
 
     for (auto& textureInfo : Lunar::LunarConstants::TEXTURE_INFO)
     {
         Texture texture = {};
         texture.Resource = LoadTexture(textureInfo, device, commandList, textureInfo.path, texture.UploadBuffer);
         m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
-	    CreateShaderResourceView(textureInfo, device);
+	    CreateShaderResourceView(textureInfo, device, srvHandle);
     }
 }
+
+void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE& srvHandle)
+{
+	LOG_FUNCTION_ENTRY();
+
+	/*
+	struct D3D12_SHADER_RESOURCE_VIEW_DESC {
+		DXGI_FORMAT Format;                    // Pixel format of the resource data
+											  // Use DXGI_FORMAT_UNKNOWN to use resource's original format
+											  // Can specify different format for type conversion
 	
+		D3D12_SRV_DIMENSION ViewDimension;    // Specifies the resource type and how shader will access it
+											  // Common values:
+											  // - D3D12_SRV_DIMENSION_TEXTURE1D: 1D texture
+											  // - D3D12_SRV_DIMENSION_TEXTURE2D: 2D texture
+											  // - D3D12_SRV_DIMENSION_TEXTURE3D: 3D texture
+											  // - D3D12_SRV_DIMENSION_TEXTURECUBE: Cube map
+											  // - D3D12_SRV_DIMENSION_BUFFER: Raw buffer
+	
+		UINT Shader4ComponentMapping;         // Controls how texture components (RGBA) are mapped to shader
+											  // Use D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING for standard RGBA mapping
+											  // Can rearrange/swizzle components (e.g., BGRA to RGBA)
+	
+		union {
+			D3D12_BUFFER_SRV Buffer;                    // Used when ViewDimension is BUFFER
+			D3D12_TEX1D_SRV Texture1D;                 // Used for 1D textures
+			D3D12_TEX1D_ARRAY_SRV Texture1DArray;      // Used for 1D texture arrays
+			D3D12_TEX2D_SRV Texture2D;                 // Used for 2D textures (most common)
+			D3D12_TEX2D_ARRAY_SRV Texture2DArray;      // Used for 2D texture arrays
+			D3D12_TEX2DMS_SRV Texture2DMS;             // Used for multisampled 2D textures
+			D3D12_TEX2DMS_ARRAY_SRV Texture2DMSArray;  // Used for multisampled 2D texture arrays
+			D3D12_TEX3D_SRV Texture3D;                 // Used for 3D textures
+			D3D12_TEXCUBE_SRV TextureCube;              // Used for cube map textures
+			D3D12_TEXCUBE_ARRAY_SRV TextureCubeArray;  // Used for cube map texture arrays
+		};
+	};
+	
+	// D3D12_TEX2D_SRV structure (most commonly used for 2D textures)
+	struct D3D12_TEX2D_SRV {
+		UINT MostDetailedMip;        // Index of the most detailed mipmap level to use
+									 // 0 = highest resolution level
+	
+		UINT MipLevels;              // Number of mipmap levels to use
+									 // Use -1 to use all available mip levels from MostDetailedMip
+									 // Use 1 for single mip level (no mipmapping)
+	
+		UINT PlaneSlice;             // For planar formats, specifies which plane to access
+									 // Use 0 for non-planar formats (most common case)
+	
+		FLOAT ResourceMinLODClamp;   // Minimum LOD (Level of Detail) clamp value
+									 // Prevents shader from sampling below this mip level
+									 // Use 0.0f for no clamping (most common)
+	};
+	*/
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(textureInfo.dimensionType);
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	
+	if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) {
+		srvDesc.TextureCube.MipLevels = 1;
+		srvDesc.TextureCube.MostDetailedMip = 0;
+		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+	} else {
+		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.PlaneSlice = 0;
+		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	}
+
+	Texture* texture = m_textureMap[textureInfo.name].get();
+	srvDesc.Format = texture->Resource->GetDesc().Format;
+	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, srvHandle);
+	srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+}
+
 ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
 {
 	LOG_FUNCTION_ENTRY();
@@ -128,92 +200,6 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
 	ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
 	if (textureInfo.fileType == LunarConstants::FileType::DEFAULT) stbi_image_free(data);
     return texture;
-}
-
-void TextureManager::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device)
-{
-	LOG_FUNCTION_ENTRY();
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums);
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NodeMask = 0;
-	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
-	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
-}
-	
-void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device)
-{
-	LOG_FUNCTION_ENTRY();
-
-	/*
-	struct D3D12_SHADER_RESOURCE_VIEW_DESC {
-		DXGI_FORMAT Format;                    // Pixel format of the resource data
-											  // Use DXGI_FORMAT_UNKNOWN to use resource's original format
-											  // Can specify different format for type conversion
-	
-		D3D12_SRV_DIMENSION ViewDimension;    // Specifies the resource type and how shader will access it
-											  // Common values:
-											  // - D3D12_SRV_DIMENSION_TEXTURE1D: 1D texture
-											  // - D3D12_SRV_DIMENSION_TEXTURE2D: 2D texture
-											  // - D3D12_SRV_DIMENSION_TEXTURE3D: 3D texture
-											  // - D3D12_SRV_DIMENSION_TEXTURECUBE: Cube map
-											  // - D3D12_SRV_DIMENSION_BUFFER: Raw buffer
-	
-		UINT Shader4ComponentMapping;         // Controls how texture components (RGBA) are mapped to shader
-											  // Use D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING for standard RGBA mapping
-											  // Can rearrange/swizzle components (e.g., BGRA to RGBA)
-	
-		union {
-			D3D12_BUFFER_SRV Buffer;                    // Used when ViewDimension is BUFFER
-			D3D12_TEX1D_SRV Texture1D;                 // Used for 1D textures
-			D3D12_TEX1D_ARRAY_SRV Texture1DArray;      // Used for 1D texture arrays
-			D3D12_TEX2D_SRV Texture2D;                 // Used for 2D textures (most common)
-			D3D12_TEX2D_ARRAY_SRV Texture2DArray;      // Used for 2D texture arrays
-			D3D12_TEX2DMS_SRV Texture2DMS;             // Used for multisampled 2D textures
-			D3D12_TEX2DMS_ARRAY_SRV Texture2DMSArray;  // Used for multisampled 2D texture arrays
-			D3D12_TEX3D_SRV Texture3D;                 // Used for 3D textures
-			D3D12_TEXCUBE_SRV TextureCube;              // Used for cube map textures
-			D3D12_TEXCUBE_ARRAY_SRV TextureCubeArray;  // Used for cube map texture arrays
-		};
-	};
-	
-	// D3D12_TEX2D_SRV structure (most commonly used for 2D textures)
-	struct D3D12_TEX2D_SRV {
-		UINT MostDetailedMip;        // Index of the most detailed mipmap level to use
-									 // 0 = highest resolution level
-	
-		UINT MipLevels;              // Number of mipmap levels to use
-									 // Use -1 to use all available mip levels from MostDetailedMip
-									 // Use 1 for single mip level (no mipmapping)
-	
-		UINT PlaneSlice;             // For planar formats, specifies which plane to access
-									 // Use 0 for non-planar formats (most common case)
-	
-		FLOAT ResourceMinLODClamp;   // Minimum LOD (Level of Detail) clamp value
-									 // Prevents shader from sampling below this mip level
-									 // Use 0.0f for no clamping (most common)
-	};
-	*/
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(textureInfo.dimensionType);
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	
-	if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) {
-		srvDesc.TextureCube.MipLevels = 1;
-		srvDesc.TextureCube.MostDetailedMip = 0;
-		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
-	} else {
-		srvDesc.Texture2D.MipLevels = 1;
-		srvDesc.Texture2D.MostDetailedMip = 0;
-		srvDesc.Texture2D.PlaneSlice = 0;
-		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	}
-
-	Texture* texture = m_textureMap[textureInfo.name].get();
-	srvDesc.Format = texture->Resource->GetDesc().Format;
-	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, m_srvHandle);
-	m_srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
 ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_DESC& textureDesc, const uint8_t* srcData, UINT64 rowSizeInBytes, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)

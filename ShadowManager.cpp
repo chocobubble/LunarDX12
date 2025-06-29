@@ -65,7 +65,7 @@ void ShadowManager::CreateDepthStencilView(ID3D12Device* device, ComPtr<ID3D12De
 		dsvHandle);
 }
 
-void ShadowManager::CreateShaderResourceView(ID3D12Device* device, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap)
+void ShadowManager::CreateShaderResourceView(ID3D12Device* device, ComPtr<ID3D12DescriptorHeap> srvHeap)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = DXGI_FORMAT_D32_FLOAT;

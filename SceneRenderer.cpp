@@ -6,6 +6,9 @@
 #include "LunarGUI.h"
 #include "MathUtils.h"
 #include "PipelineStateManager.h"
+#include "ShadowManager.h"
+#include "TextureManager.h"
+#include "Utils.h"
 #include "Geometry/Plane.h"
 
 using namespace DirectX;
@@ -21,10 +24,18 @@ SceneRenderer::SceneRenderer()
     m_materialManager = make_unique<MaterialManager>();
     m_sceneViewModel = make_unique<SceneViewModel>();
     m_lightingSystem = make_unique<LightingSystem>();
+	m_shadowManager = make_unique<ShadowManager>();
+	m_textureManager = make_unique<TextureManager>();
 }
+
+SceneRenderer::~SceneRenderer() = default;
 
 void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager)
 {
+	CreateDSVDescriptorHeap(device);
+	CreateDepthStencilView(device);
+	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);
+	
 	m_pipelineStateManager = pipelineManager;
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
     m_lightingSystem->Initialize(device, Lunar::LunarConstants::LIGHT_COUNT);
@@ -64,6 +75,64 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
 			m_geometriesByName[reflectedName] = reflectedEntry;
 		}
 	}
+}
+
+void SceneRenderer::CreateDSVDescriptorHeap(ID3D12Device* device)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.NumDescriptors = 2; // TODO : refactoring
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	THROW_IF_FAILED(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(m_dsvHeap.GetAddressOf())));
+}
+
+void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
+{
+	D3D12_RESOURCE_DESC depthStencilDesc = {};
+	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthStencilDesc.Width = Utils::GetDisplayWidth();
+	depthStencilDesc.Height = Utils::GetDisplayHeight();
+	depthStencilDesc.DepthOrArraySize = 1;
+	depthStencilDesc.MipLevels = 1;
+	depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilDesc.SampleDesc.Count = 1;
+	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+	depthOptimizedClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+	depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+	D3D12_HEAP_PROPERTIES heapProps = {};
+	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	THROW_IF_FAILED(device->CreateCommittedResource(
+		&heapProps,
+		D3D12_HEAP_FLAG_NONE,
+		&depthStencilDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthOptimizedClearValue,
+		IID_PPV_ARGS(m_depthStencilBuffer.GetAddressOf())));
+
+	device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+	m_shadowManager->CreateDepthStencilView(device, m_dsvHeap);
+}
+
+void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device)
+{
+	LOG_FUNCTION_ENTRY();
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums);
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	srvHeapDesc.NodeMask = 0;
+	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
+	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
+void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+{
+	m_textureManager->Initialize(device, commandList, m_srvHandle);
 }
 
 void SceneRenderer::UpdateScene(float deltaTime)
