@@ -114,7 +114,8 @@ void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
 		&depthOptimizedClearValue,
 		IID_PPV_ARGS(m_depthStencilBuffer.GetAddressOf())));
 
-	device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+	m_dsvHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+	device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHandle);
 	m_shadowManager->CreateDepthStencilView(device, m_dsvHeap);
 }
 
@@ -135,6 +136,35 @@ void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsComma
 	m_textureManager->Initialize(device, commandList, m_srvHandle);
 }
 
+void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
+{
+	// To write depth
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = m_shadowManager->GetShadowTexture();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	commandList->ResourceBarrier(1, &barrier);
+
+	commandList->RSSetViewports(1, &m_shadowManager->GetViewport());
+	commandList->RSSetScissorRects(1, &m_shadowManager->GetScissorRect());
+
+	commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_dsvHandle);
+	commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList->SetPipelineState(m_pipelineStateManager->GetPSO("shadowMap"));
+	
+	for (auto& entry : m_layeredGeometries[RenderLayer::World])
+	{
+		if (entry->IsVisible)
+		{
+			string materialName = entry->GeometryData->GetMaterialName();
+			m_materialManager->BindConstantBuffer(materialName, commandList);
+			entry->GeometryData->Draw(commandList);
+		}
+	}	
+}
+
 void SceneRenderer::UpdateScene(float deltaTime)
 {
     m_lightingSystem->UpdateLightData(m_basicConstants);
@@ -146,6 +176,8 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
     commandList->SetGraphicsRootConstantBufferView(
         Lunar::LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
         m_basicCB->GetResource()->GetGPUVirtualAddress());
+
+	RenderShadowMap(commandList);
     RenderLayers(commandList);
 }
 

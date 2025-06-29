@@ -53,14 +53,16 @@ struct ShaderInfo
 	const char* path;
 	const char* target;
 };
-static constexpr std::array<ShaderInfo, 7> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 9> SHADER_INFO = {{
 	{ "basicVS",      "Shaders\\BasicVertexShader.hlsl",     "vs_5_0" },
 	{ "basicPS",      "Shaders\\BasicPixelShader.hlsl",      "ps_5_0" },
 	{ "billboardVS",  "Shaders\\BillboardVertexShader.hlsl", "vs_5_0" },
 	{ "billboardGS",  "Shaders\\BillboardGeometryShader.hlsl","gs_5_0" },
 	{ "billboardPS",  "Shaders\\BillboardPixelShader.hlsl",   "ps_5_0" },
 	{ "skyBoxVS",     "Shaders\\SkyBoxVertexShader.hlsl",     "vs_5_0" },
-	{ "skyBoxPS",     "Shaders\\SkyBoxPixelShader.hlsl",      "ps_5_0" }
+	{ "skyBoxPS",     "Shaders\\SkyBoxPixelShader.hlsl",      "ps_5_0" },
+	{ "shadowMapVS",     "Shaders\\ShadowMapVertexShader.hlsl",     "vs_5_0" },
+	{ "shadowMapPS",     "Shaders\\ShadowMapPixelShader.hlsl",      "ps_5_0" }
 }};
 }	
 }

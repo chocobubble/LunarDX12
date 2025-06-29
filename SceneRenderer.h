@@ -53,7 +53,8 @@ public:
 	void CreateDepthStencilView(ID3D12Device* device);
 	void CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device);
 	void InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
-	
+
+	void RenderShadowMap(ID3D12GraphicsCommandList* commandList);
 	void UpdateScene(float deltaTime);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
@@ -94,6 +95,7 @@ private:
     GeometryEntry* GetGeometryEntry(const std::string& name);
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
+	D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencilBuffer;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;

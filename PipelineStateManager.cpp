@@ -323,6 +323,23 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
 		IID_PPV_ARGS(m_psoMap["opaque"].GetAddressOf())))
 
+	// PSO for shadow map
+	{
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC shadowMapPsoDesc = psoDesc;
+		shadowMapPsoDesc.RasterizerState.DepthBias = 10000;
+		shadowMapPsoDesc.RasterizerState.DepthBiasClamp = 0.0f;
+		shadowMapPsoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
+		shadowMapPsoDesc.pRootSignature = m_rootSignature.Get();
+		shadowMapPsoDesc.VS.pShaderBytecode = m_shaderMap["shadowMapVS"]->GetBufferPointer();
+		shadowMapPsoDesc.VS.BytecodeLength = m_shaderMap["shadowMapVS"]->GetBufferSize();
+		shadowMapPsoDesc.PS.pShaderBytecode = m_shaderMap["shadowMapPS"]->GetBufferPointer();
+		shadowMapPsoDesc.PS.BytecodeLength = m_shaderMap["shadowMapPS"]->GetBufferSize();
+		shadowMapPsoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN; // render taget not used
+		shadowMapPsoDesc.NumRenderTargets = 0;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&shadowMapPsoDesc,
+			IID_PPV_ARGS(m_psoMap["shadowMap"].GetAddressOf())))
+	}
+
 	// PSO for marking stencil mirror
 	{
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;

@@ -150,6 +150,7 @@
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
+    <ClCompile Include="ShadowManager.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
@@ -175,6 +176,7 @@
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
+    <ClInclude Include="ShadowManager.h" />
     <ClInclude Include="TextureManager.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
@@ -249,6 +251,28 @@
       <ShaderType>Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shaders\BasicVertexShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>    
+    <FxCompile Include="Shaders\ShadowMapPixelShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\ShadowMapVertexShader.hlsl">
       <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
