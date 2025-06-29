@@ -20,6 +20,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_shadowTexture;
 	UINT m_shadowMapWidth = 1024;
 	UINT m_shadowMapHeight = 1024;
+	DirectX::XMFLOAT3 m_sceneCenterPosition = { 0.0f, 0.0f, 0.0f };
+	float m_sceneRadius = 15.0f;
 	
 	D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
 
