@@ -120,6 +120,9 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const Constants::TextureInfo&
         textureDesc.Height = static_cast<UINT>(img->height);
         textureDesc.Format = img->format;
         rowSizeInBytes = img->rowPitch;
+        
+        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
+        return texture;
     }
 
 	ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
