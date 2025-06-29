@@ -96,8 +96,10 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
+	UINT m_dsvDescriptorSize;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencilBuffer;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
+	UINT m_srvDescriptorSize;
 };
 }

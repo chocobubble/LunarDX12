@@ -32,6 +32,10 @@ SceneRenderer::~SceneRenderer() = default;
 
 void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager)
 {
+	m_dsvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	m_srvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	
+	m_shadowManager->Initialize(device);
 	CreateDSVDescriptorHeap(device);
 	CreateDepthStencilView(device);
 	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);
@@ -116,7 +120,7 @@ void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
 
 	m_dsvHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
 	device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHandle);
-	m_shadowManager->CreateDepthStencilView(device, m_dsvHeap);
+	m_shadowManager->CreateDSV(device, m_dsvHeap.Get());
 }
 
 void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device)
@@ -129,6 +133,8 @@ void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* devi
 	srvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
 	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	// m_shadowManager->CreateSRV(device, m_srvHeap.Get());
 }
 
 void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
@@ -150,8 +156,8 @@ void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
 	commandList->RSSetViewports(1, &m_shadowManager->GetViewport());
 	commandList->RSSetScissorRects(1, &m_shadowManager->GetScissorRect());
 
-	commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_dsvHandle);
-	commandList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowManager->GetDSVHandle());
+	commandList->ClearDepthStencilView(m_shadowManager->GetDSVHandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	commandList->SetPipelineState(m_pipelineStateManager->GetPSO("shadowMap"));
 	
 	for (auto& entry : m_layeredGeometries[RenderLayer::World])
@@ -163,6 +169,10 @@ void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
 			entry->GeometryData->Draw(commandList);
 		}
 	}	
+
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	commandList->ResourceBarrier(1, &barrier);
 }
 
 void SceneRenderer::UpdateScene(float deltaTime)
@@ -177,7 +187,6 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
         Lunar::LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
         m_basicCB->GetResource()->GetGPUVirtualAddress());
 
-	RenderShadowMap(commandList);
     RenderLayers(commandList);
 }
 

@@ -340,6 +340,15 @@ void MainApp::Render(double dt)
 	m_commandAllocator->Reset(); // Cautions!
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
+	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
+	// Set Constant Buffer Descriptor heap
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
+	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	m_commandList->SetGraphicsRootDescriptorTable(0, m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
+	
+	m_sceneRenderer->RenderShadowMap(m_commandList.Get());
+
 	m_viewport = {};
 	m_viewport.TopLeftX = 0.0f;
 	m_viewport.TopLeftY = 0.0f;
@@ -391,14 +400,6 @@ void MainApp::Render(double dt)
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 	m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
-	// Set Constant Buffer Descriptor heap
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
-	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	m_commandList->SetGraphicsRootDescriptorTable(0, m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
-	
-	// m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
 	m_sceneRenderer->RenderScene(m_commandList.Get());
 	
     m_gui->Render(dt);
