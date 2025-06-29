@@ -26,7 +26,7 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
     }
 }
 	
-ComPtr<ID3D12Resource> LoadTexture(const TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
+ComPtr<ID3D12Resource> TextureManager::LoadTexture(const TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
 {
 	LOG_FUNCTION_ENTRY();
 
@@ -41,6 +41,48 @@ ComPtr<ID3D12Resource> LoadTexture(const TextureInfo& textureInfo, ID3D12Device*
     textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
     UINT64 rowSizeInBytes;
+    
+    if (textureInfo.dimensionType == TextureDimension::CUBEMAP)
+    {
+        textureDesc.DepthOrArraySize = 6;
+        
+        std::vector<std::string> faceFiles = {
+            filename + "_right.jpg",   // +X
+            filename + "_left.jpg",    // -X  
+            filename + "_top.jpg",     // +Y
+            filename + "_bottom.jpg",  // -Y
+            filename + "_front.jpg",   // +Z
+            filename + "_back.jpg"     // -Z
+        };
+        
+        std::vector<uint8_t*> faceData(6);
+        int width, height, channels;
+        
+        for (int face = 0; face < 6; ++face) {
+            faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
+            if (!faceData[face]) {
+                LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
+                for (int i = 0; i < face; ++i) {
+                    stbi_image_free(faceData[i]);
+                }
+                throw std::runtime_error("Failed to load cubemap face: " + faceFiles[face]);
+            }
+        }
+        
+        LOG_DEBUG("Cubemap loaded: ", filename, " (", width, "x", height, ")");
+        textureDesc.Width = static_cast<UINT>(width);
+        textureDesc.Height = static_cast<UINT>(height);
+        rowSizeInBytes = UINT64(width) * 4; // RGBA
+        
+        ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceData, rowSizeInBytes, uploadBuffer);
+        
+        for (int i = 0; i < 6; ++i) {
+            stbi_image_free(faceData[i]);
+        }
+        
+        return texture;
+    }
+    
     uint8_t* data = nullptr;
     if (textureInfo.fileType == FileType::DEFAULT) 
     {
@@ -75,11 +117,6 @@ ComPtr<ID3D12Resource> LoadTexture(const TextureInfo& textureInfo, ID3D12Device*
         textureDesc.Height = static_cast<UINT>(img->height);
         textureDesc.Format = img->format;
         rowSizeInBytes = img->rowPitch;
-    }
-
-    if (textureInfo.dimensionType == TextureDimension::CUBEMAP)
-    {
-        textureDesc.DepthOrArraySize = 6;
     }
 
 	ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
@@ -154,12 +191,19 @@ void TextureManager::CreateShaderResourceView(const TextureInfo& textureInfo, ID
 	*/
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srvDesc.ViewDimension = textureInfo.dimensionType;
+	srvDesc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(textureInfo.dimensionType);
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.PlaneSlice = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	
+	if (textureInfo.dimensionType == TextureDimension::CUBEMAP) {
+		srvDesc.TextureCube.MipLevels = 1;
+		srvDesc.TextureCube.MostDetailedMip = 0;
+		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+	} else {
+		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.PlaneSlice = 0;
+		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	}
 
 	Texture* texture = m_textureMap[textureInfo.name].get();
 	srvDesc.Format = texture->Resource->GetDesc().Format;
@@ -305,4 +349,111 @@ ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* devic
 
 	return texture;
 }
+
+ComPtr<ID3D12Resource> TextureManager::CreateCubemapResource(
+    ID3D12Device* device, 
+    ID3D12GraphicsCommandList* commandList, 
+    const D3D12_RESOURCE_DESC& textureDesc, 
+    const std::vector<uint8_t*>& faceData, 
+    UINT64 rowSizeInBytes, 
+    ComPtr<ID3D12Resource>& uploadBuffer)
+{
+    LOG_FUNCTION_ENTRY();
+    
+    D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
+    defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+    defaultHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    defaultHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    defaultHeapProperties.CreationNodeMask = 1;
+    defaultHeapProperties.VisibleNodeMask = 1;
+
+    ComPtr<ID3D12Resource> texture;
+    THROW_IF_FAILED(device->CreateCommittedResource(
+        &defaultHeapProperties, 
+        D3D12_HEAP_FLAG_NONE, 
+        &textureDesc, 
+        D3D12_RESOURCE_STATE_COPY_DEST, 
+        nullptr, IID_PPV_ARGS(&texture)));
+
+    // calculate the layout of the 6 subresources
+    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(6);
+    std::vector<UINT> numRows(6);
+    std::vector<UINT64> rowPitch(6);
+    UINT64 totalUploadBufferSize;
+    
+    device->GetCopyableFootprints(
+        &textureDesc,           
+        0,                      
+        6,                      
+        0,                      
+        layouts.data(),         
+        numRows.data(),         
+        rowPitch.data(),        
+        &totalUploadBufferSize  
+    );
+
+    D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
+    uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+    D3D12_RESOURCE_DESC uploadBufferDesc = {};
+    uploadBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    uploadBufferDesc.Width = totalUploadBufferSize;
+    uploadBufferDesc.Height = 1;
+    uploadBufferDesc.DepthOrArraySize = 1;
+    uploadBufferDesc.MipLevels = 1;
+    uploadBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uploadBufferDesc.SampleDesc.Count = 1;
+    uploadBufferDesc.SampleDesc.Quality = 0;
+    uploadBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    uploadBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    THROW_IF_FAILED(device->CreateCommittedResource(
+        &uploadHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &uploadBufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr, IID_PPV_ARGS(&uploadBuffer)));
+    
+    void* mappedData;
+    uploadBuffer->Map(0, nullptr, &mappedData);
+    
+    for (int face = 0; face < 6; ++face) {
+        BYTE* destSliceStart = reinterpret_cast<BYTE*>(mappedData) + layouts[face].Offset;
+        for (UINT row = 0; row < numRows[face]; ++row) {
+            memcpy(
+                destSliceStart + layouts[face].Footprint.RowPitch * row, 
+                faceData[face] + rowSizeInBytes * row, 
+                rowSizeInBytes
+            ); 
+        }
+    }
+    uploadBuffer->Unmap(0, nullptr);
+
+    for (int face = 0; face < 6; ++face) {
+        D3D12_TEXTURE_COPY_LOCATION destLocation = {};
+        destLocation.pResource = texture.Get();
+        destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        destLocation.SubresourceIndex = face;  
+
+        D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+        srcLocation.pResource = uploadBuffer.Get();
+        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        srcLocation.PlacedFootprint = layouts[face];  
+
+        commandList->CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, nullptr);
+    }
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.Transition.pResource = texture.Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;  // 모든 서브리소스
+
+    commandList->ResourceBarrier(1, &barrier);
+
+    return texture;
+}
+
 } //namespace Lunar
