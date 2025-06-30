@@ -150,7 +150,7 @@ void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	barrier.Transition.pResource = m_shadowManager->GetShadowTexture();
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_GENERIC_READ;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	commandList->ResourceBarrier(1, &barrier);
 
@@ -176,7 +176,7 @@ void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
 	}
 
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
 	commandList->ResourceBarrier(1, &barrier);
 }
 

@@ -50,7 +50,7 @@ void ShadowManager::CreateShadowMapTexture(ID3D12Device* device)
 		&defaultHeapProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
 		&clearValue,
 		IID_PPV_ARGS(m_shadowTexture.GetAddressOf())))
 }
@@ -59,6 +59,7 @@ void ShadowManager::CreateDSV(ID3D12Device* device, ID3D12DescriptorHeap* dsvHea
 {
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 	dsvDesc.Texture2D.MipSlice = 0;
+	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	m_dsvHandle = dsvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -75,6 +76,9 @@ void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHea
 	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.PlaneSlice = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
 	srvHandle.ptr += 4 * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -87,11 +91,12 @@ void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHea
 void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)
 {
 	m_basicConstants = {};
-	m_basicConstants.eyePos = basicConstants.lights[0].Position;
+	XMVECTOR lightDir = XMLoadFloat3(&basicConstants.lights[0].Direction);
+	XMVECTOR lightPos = -2.0f * m_sceneRadius * lightDir
 
 	// TODO: Refactor
 	// Calculate view matrix
-	XMVECTOR forward = XMVector3Normalize(XMLoadFloat3(&basicConstants.lights[0].Direction));
+	XMVECTOR forward = XMVector3Normalize(lightDir);
 	XMVECTOR worldUp = XMVectorSet(0, 1, 0, 0);
 	XMVECTOR right = XMVector3Cross(worldUp, forward);
 	XMVECTOR up = XMVector3Cross(forward, right);
@@ -104,13 +109,24 @@ void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)
 		0, 0, 0, 1
 		);
 	
-	XMMATRIX inversedTranslation = XMMatrixTranslation(-m_basicConstants.eyePos.x, -m_basicConstants.eyePos.y, -m_basicConstants.eyePos.z);
+	XMMATRIX inversedTranslation = XMMatrixTranslation(-XMVectorGetX(lightPos), -XMVectorGetY(lightPos), -XMVectorGetZ(lightPos));
 	
 	XMMATRIX viewMatrix = inversedRotation * inversedTranslation;
 
-	XMStoreFloat4x4(&m_basicConstants.view, XMMatrixTranspose(viewMatrix));
+	XMFLOAT3 sceneCenterLS; // scene center in light space
+	XMStoreFloat3(&sceneCenterLS, XMVector3TransformCoord(XMLoadFloat3(&m_sceneCenterPosition), viewMatrix));
+
+	// TODO: use calculated min/max values of objects
+	float l = sceneCenterLS.x - m_sceneRadius;
+	float b = sceneCenterLS.y - m_sceneRadius;
+	float n = sceneCenterLS.z - m_sceneRadius;
+	float r = sceneCenterLS.x + m_sceneRadius;
+	float t = sceneCenterLS.y + m_sceneRadius;
+	float f = sceneCenterLS.z + m_sceneRadius;	
 	
-	XMMATRIX projectionMatrix = XMMatrixOrthographicLH(20.0f, 20.0f, 0.1f, 100.0f);
+	XMMATRIX projectionMatrix = MathUtils::CreateOrthographicOffCenterLH(l, r, b, t, n, f);
+
+	XMStoreFloat4x4(&m_basicConstants.view, XMMatrixTranspose(viewMatrix));
 	XMStoreFloat4x4(&m_basicConstants.projection, XMMatrixTranspose(projectionMatrix));
 
 	m_shadowCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
