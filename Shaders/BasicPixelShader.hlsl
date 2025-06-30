@@ -1,3 +1,5 @@
+Texture2D shadowTexture : register(t4);
+SamplerState g_sampler : register(s0);
 
 struct Light
 {
@@ -106,26 +108,18 @@ float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toE
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
+	float depth = shadowTexture.Sample(g_sampler, pIn.texCoord).r;
+
+	if (depth == 1.0f) return float4(1.0, 0.0, 0.0, 1.0); 
+	if (depth > 0.95f) return float4(1.0, 0.5, 0.0, 1.0);
+	if (depth < 0.01f) return float4(0.0, 0.0, 1.0, 1.0);
+	return float4(0, depth, 0, 1); 
+	
 	// FIXME : Lighting system looks bad.
-	// float3 tmp = textureIndex >= 0 ? g_texture.Sample(g_sampler, pIn.texCoord) : (0.0, 0.0, 0.0); 
 	float3 tmp = (0.0, 0.0, 0.0);
 	
-	// float3 lightVector = normalize(-direction);
-	// float3 toEye = normalize(eyePos - pIn.posW);
-	// tmp += ComputeDirectionalLight(lightVector, pIn.normal, toEye, lightStrength);
-
-	// For now, just one point light
 	float3 toEye = normalize(eyePos - pIn.posW);
 	tmp += ComputePointLight(lights[1], pIn.posW, pIn.normal, toEye);
-
-	// float3 spotLightPos = {-5, -5, 1};
-	// float3 spotLightDir = {1, 1, -1};
-	// float3 spotLightVector = normalize(spotLightPos - pIn.posW);
-	// tmp += ComputeSpotLight(spotLightVector, length(spotLightPos - pIn.posW), pIn.normal, lightStrength, spotLightDir, toEye);
-
-	float4 ambientLight = {0.1, 0.1, 0.1, 0.0};
-	float4 ambient = ambientLight * diffuseAlbedo;
-	// return float4(tmp, 1.0) + ambient;
 
 	return pIn.color;
 }

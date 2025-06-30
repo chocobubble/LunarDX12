@@ -575,6 +575,10 @@ void MainApp::InitializeGeometry()
 	mirrorTransform.Rotation = XMFLOAT3(-XM_PIDIV2, 0.0f, 0.0f);
 	m_sceneRenderer->AddPlane("Mirror0", mirrorTransform, 0.1f, 0.2f, RenderLayer::Mirror);
 	m_sceneRenderer->AddTree("Tree0");
+	m_sceneRenderer->AddCube("Cube1", {{0, 1, 0}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
+	m_sceneRenderer->AddCube("Cube2", {{2, 1, 2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
+	m_sceneRenderer->AddCube("Cube3", {{-2, 1, -2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
+	m_sceneRenderer->AddPlane("ShadowMapPlane", {{5, 0, 0}, {0, 0, 0}, {3, 3, 1}}, 3.0f, 3.0f, RenderLayer::World);
 	transform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	transform.Scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
 	m_sceneRenderer->AddSphere("SkyBox0", transform, RenderLayer::Background);

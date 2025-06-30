@@ -5,12 +5,15 @@
 #include "Utils.h"
 
 using namespace Microsoft::WRL;
+using namespace DirectX;
+using namespace std;
 
 namespace Lunar
 {
 
 void ShadowManager::Initialize(ID3D12Device* device)
 {
+	m_shadowCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
 	m_viewport = { 0.0f, 0.0f, static_cast<float>(m_shadowMapWidth), static_cast<float>(m_shadowMapHeight), 0.0f, 1.0f };
 	m_scissorRect = { 0, 0, static_cast<int>(m_shadowMapWidth), static_cast<int>(m_shadowMapHeight)};
 	CreateShadowMapTexture(device);
@@ -47,7 +50,7 @@ void ShadowManager::CreateShadowMapTexture(ID3D12Device* device)
 		&defaultHeapProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		&clearValue,
 		IID_PPV_ARGS(m_shadowTexture.GetAddressOf())))
 }
@@ -74,10 +77,42 @@ void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHea
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
-	srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	srvHandle.ptr += 4 * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	device->CreateShaderResourceView(
 		m_shadowTexture.Get(),
 		&srvDesc,
 		srvHandle);
+}
+
+void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)
+{
+	m_basicConstants = {};
+	m_basicConstants.eyePos = basicConstants.lights[0].Position;
+
+	// TODO: Refactor
+	// Calculate view matrix
+	XMVECTOR forward = XMVector3Normalize(XMLoadFloat3(&basicConstants.lights[0].Direction));
+	XMVECTOR worldUp = XMVectorSet(0, 1, 0, 0);
+	XMVECTOR right = XMVector3Cross(worldUp, forward);
+	XMVECTOR up = XMVector3Cross(forward, right);
+
+	// inversed rotation matrix (transposed)
+	XMMATRIX inversedRotation = XMMatrixSet(
+		XMVectorGetX(right), XMVectorGetY(right), XMVectorGetZ(right), 0,
+		XMVectorGetX(up), XMVectorGetY(up), XMVectorGetZ(up), 0,
+		XMVectorGetX(forward), XMVectorGetY(forward), XMVectorGetZ(forward), 0,
+		0, 0, 0, 1
+		);
+	
+	XMMATRIX inversedTranslation = XMMatrixTranslation(-m_basicConstants.eyePos.x, -m_basicConstants.eyePos.y, -m_basicConstants.eyePos.z);
+	
+	XMMATRIX viewMatrix = inversedRotation * inversedTranslation;
+
+	XMStoreFloat4x4(&m_basicConstants.view, XMMatrixTranspose(viewMatrix));
+	
+	XMMATRIX projectionMatrix = XMMatrixOrthographicLH(20.0f, 20.0f, 0.1f, 100.0f);
+	XMStoreFloat4x4(&m_basicConstants.projection, XMMatrixTranspose(projectionMatrix));
+
+	m_shadowCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 } // namespace Lunar

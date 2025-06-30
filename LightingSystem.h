@@ -10,7 +10,11 @@
 
 namespace Lunar
 {
-struct BasicConstants;
+	namespace LunarConstants {
+		enum class LightType;
+	}
+
+	struct BasicConstants;
 struct LightData
 {
     DirectX::XMFLOAT3 Strength = {1.0f, 1.0f, 1.0f};
@@ -48,7 +52,7 @@ public:
 private:
     struct LightEntry
     {
-        LightType lightType;
+	    LunarConstants::LightType lightType;
         LightData data;
         std::string name;
         uint32_t index;
@@ -63,8 +67,8 @@ private:
     bool m_needsUpdate = true;
     DirectX::XMFLOAT4 m_ambientLight = {0.1f, 0.1f, 0.1f, 1.0f};
 
-    LightType GetLightType(const std::string& name) const;
-    void AddLight(const std::string& name, const LightData& lightData, LightType type);
-    LightData* GetLight(const std::string& name);
+    LunarConstants::LightType GetLightType(const std::string& name) const;
+    void                      AddLight(const std::string& name, const LightData& lightData, LunarConstants::LightType type);
+    LightData*                GetLight(const std::string& name);
 };
 }

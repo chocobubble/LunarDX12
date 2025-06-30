@@ -128,7 +128,7 @@ void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* devi
 	LOG_FUNCTION_ENTRY();
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums);
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 1;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
@@ -140,6 +140,7 @@ void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* devi
 void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
 {
 	m_textureManager->Initialize(device, commandList, m_srvHandle);
+	m_shadowManager->CreateSRV(device, m_srvHeap.Get());
 }
 
 void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
@@ -159,7 +160,11 @@ void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
 	commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowManager->GetDSVHandle());
 	commandList->ClearDepthStencilView(m_shadowManager->GetDSVHandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	commandList->SetPipelineState(m_pipelineStateManager->GetPSO("shadowMap"));
-	
+
+	commandList->SetGraphicsRootConstantBufferView(
+		LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX,
+		m_shadowManager->GetShadowCB()->GetResource()->GetGPUVirtualAddress());
+
 	for (auto& entry : m_layeredGeometries[RenderLayer::World])
 	{
 		if (entry->IsVisible)
@@ -168,7 +173,7 @@ void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
 			m_materialManager->BindConstantBuffer(materialName, commandList);
 			entry->GeometryData->Draw(commandList);
 		}
-	}	
+	}
 
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -179,6 +184,7 @@ void SceneRenderer::UpdateScene(float deltaTime)
 {
     m_lightingSystem->UpdateLightData(m_basicConstants);
     m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
+	m_shadowManager->UpdateShadowCB(m_basicConstants);
 }
 
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)

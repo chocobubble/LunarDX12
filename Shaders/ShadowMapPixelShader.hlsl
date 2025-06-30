@@ -4,7 +4,6 @@ struct PixelIn
 	float2 texCoord : TEXCOORD;
 };
 
-float4 main(PixelIn pIn) : SV_TARGET
+void main(PixelIn pIn)
 {
-	return pIn.pos;
 }
