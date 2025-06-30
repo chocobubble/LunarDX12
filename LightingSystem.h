@@ -11,12 +11,6 @@
 namespace Lunar
 {
 struct BasicConstants;
-enum class LightType
-{
-    Directional,
-    Point,
-    Spot
-};
 struct LightData
 {
     DirectX::XMFLOAT3 Strength = {1.0f, 1.0f, 1.0f};

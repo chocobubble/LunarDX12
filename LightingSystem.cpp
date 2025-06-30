@@ -6,42 +6,24 @@
 
 using namespace DirectX;
 using namespace std;
+using namespace Lunar::LunarConstants;
 
 namespace Lunar
 {
 void LightingSystem::Initialize(ID3D12Device* device, UINT maxLights)
 {
     m_maxLights = maxLights;
-
-    LightData sunLight;
-    sunLight.Strength = {1.2f, 1.0f, 0.8f};      
-    sunLight.Direction = {0.3f, -0.8f, 0.5f};    
-    sunLight.FalloffStart = 0.0f;                
-    sunLight.FalloffEnd = 0.0f;                  
-    sunLight.Position = {0.0f, 0.0f, 0.0f};      
-    sunLight.SpotPower = 0.0f;                   
-
-    AddLight("SunLight", sunLight, LightType::Directional);
-
-    LightData roomLight;
-    roomLight.Strength = {1.0f, 0.9f, 0.7f};     
-    roomLight.Direction = {0.0f, 0.0f, 0.0f};    
-    roomLight.FalloffStart = 2.0f;                
-    roomLight.FalloffEnd = 8.0f;                 
-    roomLight.Position = {0.0f, 3.0f, 0.0f};     
-    roomLight.SpotPower = 0.0f;                  
-
-    AddLight("RoomLight", roomLight, LightType::Point);
-
-    LightData flashLight;
-    flashLight.Strength = {1.0f, 1.0f, 0.9f};    
-    flashLight.Direction = {0.0f, -0.5f, 1.0f};  
-    flashLight.FalloffStart = 1.0f;              
-    flashLight.FalloffEnd = 10.0f;               
-    flashLight.Position = {0.0f, 1.5f, 0.0f};    
-    flashLight.SpotPower = 16.0f;                
-
-    AddLight("FlashLight", flashLight, LightType::Spot);
+	for (auto& lightInfo : LIGHT_INFO)
+	{
+		LightData lightData;
+		lightData.Direction = XMFLOAT3(lightInfo.direction);
+		lightData.Strength = XMFLOAT3(lightInfo.strength);
+		lightData.Position = XMFLOAT3(lightInfo.position);
+		lightData.FalloffEnd = lightInfo.fallOffEnd;
+		lightData.FalloffStart = lightInfo.fallOffStart;
+		lightData.SpotPower = lightInfo.spotPower;
+		AddLight(lightInfo.name, lightData, lightInfo.lightType);	
+	}
 }
 
 void LightingSystem::SetLightPosition(const std::string& name, const XMFLOAT3& position)
@@ -92,7 +74,7 @@ void LightingSystem::SetLightEnabled(const std::string& name, bool enabled)
     {
         if (enabled)
         {
-            LightType lightType = GetLightType(name);
+	        LightType lightType = GetLightType(name);
             if (lightType == LightType::Point)
             {
                 light->Strength = XMFLOAT3(1.0f, 0.9f, 0.7f);
