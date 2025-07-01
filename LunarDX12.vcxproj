@@ -151,6 +151,7 @@
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
     <ClCompile Include="ShadowManager.cpp" />
+    <ClCompile Include="ShadowViewModel.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
@@ -177,6 +178,7 @@
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
     <ClInclude Include="ShadowManager.h" />
+    <ClInclude Include="ShadowViewModel.h" />
     <ClInclude Include="TextureManager.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

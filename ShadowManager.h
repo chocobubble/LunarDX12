@@ -11,6 +11,7 @@ namespace Lunar
 
 class ShadowManager
 {
+friend class ShadowViewModel;
 public:
 	void Initialize(ID3D12Device* device);
 	void CreateShadowMapTexture(ID3D12Device* device);
