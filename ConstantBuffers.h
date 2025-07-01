@@ -30,12 +30,33 @@ struct ObjectConstants
 	float dummy[3];
 };
 
-// Root Parameter CBV 3
+// Root Parameter CBV 3 - Legacy Material
 struct MaterialConstants
 {
 	DirectX::XMFLOAT4 DiffuseAlbedo;
 	DirectX::XMFLOAT3 FresnelR0;
 	float             Shininess;
+};
+
+// PBR Material Structure
+struct PBRMaterial
+{
+	DirectX::XMFLOAT3 albedo;        // Base color
+	float metallic;                  // Metallic factor (0.0 ~ 1.0)
+	DirectX::XMFLOAT3 emissive;      // Emissive color
+	float roughness;                 // Roughness factor (0.0 ~ 1.0)
+	DirectX::XMFLOAT3 F0;            // Fresnel reflectance at normal incidence
+	float ao;                        // Ambient occlusion
+};
+
+// PBR Material Constants for GPU
+struct PBRMaterialConstants
+{
+	PBRMaterial material;
+	int useAlbedoTexture;
+	int useNormalTexture;
+	int useMetallicTexture;
+	int useRoughnessTexture;
 };
 
 class ConstantBuffer
