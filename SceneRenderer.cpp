@@ -183,8 +183,9 @@ void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
 void SceneRenderer::UpdateScene(float deltaTime)
 {
     m_lightingSystem->UpdateLightData(m_basicConstants);
-    m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 	m_shadowManager->UpdateShadowCB(m_basicConstants);
+	m_basicConstants.shadowTransform = m_shadowManager->GetShadowTransform();
+    m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)

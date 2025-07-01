@@ -18,6 +18,7 @@ cbuffer BasicConstants : register(b0)
 	float3 eyePos;
 	float4 ambientLight;
 	Light lights[3];
+	float4x4 shadowTransform;
 }
 
 cbuffer ObjectConstants : register(b1)
@@ -108,18 +109,11 @@ float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toE
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
-	float depth = shadowTexture.Sample(g_sampler, pIn.texCoord).r;
-
-	if (depth == 1.0f) return float4(1.0, 0.0, 0.0, 1.0); 
-	if (depth > 0.95f) return float4(1.0, 0.5, 0.0, 1.0);
-	if (depth < 0.01f) return float4(0.0, 0.0, 1.0, 1.0);
-	return float4(0, depth, 0, 1); 
-	
-	// FIXME : Lighting system looks bad.
-	float3 tmp = (0.0, 0.0, 0.0);
-	
-	float3 toEye = normalize(eyePos - pIn.posW);
-	tmp += ComputePointLight(lights[1], pIn.posW, pIn.normal, toEye);
-
-	return pIn.color;
+	float4 posW = pIn.posW;
+	float4 shadowCoord = mul(posW, shadowTransform);
+	float depth = shadowCoord.z / shadowCoord.w;
+	float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
+	// Debugging
+	float shadow = depth > shadowDepth ? 0.0f : 1.0f;
+	return float4(shadow, shadow, shadow, 1.0f);
 }
