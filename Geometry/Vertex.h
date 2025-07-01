@@ -9,5 +9,6 @@ struct Vertex
     DirectX::XMFLOAT4 color;
     DirectX::XMFLOAT2 texCoord;
     DirectX::XMFLOAT3 normal;
+	DirectX::XMFLOAT3 tangentU;
 };
 }

@@ -44,6 +44,7 @@ public:
     
     void UpdateObjectConstants();
     void BindObjectConstants(ID3D12GraphicsCommandList* commandList);
+	void ComputeTangents();
     
 protected:
     std::vector<Vertex> m_vertices;
