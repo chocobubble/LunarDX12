@@ -47,6 +47,8 @@ static constexpr std::array<TextureInfo, 4> TEXTURE_INFO = {{
     {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
 }};
+
+/////////////// Shaders ///////////////
 struct ShaderInfo
 {
 	const char* name;
@@ -64,6 +66,8 @@ static constexpr std::array<ShaderInfo, 9> SHADER_INFO = {{
 	{ "shadowMapVS",     "Shaders\\ShadowMapVertexShader.hlsl",     "vs_5_0" },
 	{ "shadowMapPS",     "Shaders\\ShadowMapPixelShader.hlsl",      "ps_5_0" }
 }};
+
+/////////////// Lights ///////////////
 enum class LightType
 {
 	Directional,
@@ -85,6 +89,31 @@ static constexpr std::array<LightInfo, 3> LIGHT_INFO = { {
 	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {7.0f, 7.0f, 7.0f}, 0.0f, 0.0f, 0.0f },
 	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {0.0f, 0.0f, 0.0f}, {0.0f, 3.0f, 0.0f}, 2.0f, 8.0f, 0.0f},
 	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.0f, -0.5f, 1.0f}, {0.0f, 1.5f, 0.0f}, 1.0f, 10.0f, 16.0f }
+}};
+
+/////////////// PBR Materials ///////////////
+struct PBRMaterialPreset
+{
+	const char* name;
+	const float albedo[3];
+	const float metallic;
+	const float roughness;
+	const float F0[3];
+	const float ao;
+};
+
+static constexpr std::array<PBRMaterialPreset, 8> PBR_MATERIAL_PRESETS = {{
+	// Metals
+	{"Gold",      {1.000f, 0.766f, 0.336f}, 1.0f, 0.1f,  {1.000f, 0.710f, 0.290f}, 1.0f},
+	{"Silver",    {0.972f, 0.960f, 0.915f}, 1.0f, 0.05f, {0.972f, 0.960f, 0.915f}, 1.0f},
+	{"Copper",    {0.955f, 0.637f, 0.538f}, 1.0f, 0.15f, {0.955f, 0.637f, 0.538f}, 1.0f},
+	{"Iron",      {0.560f, 0.570f, 0.580f}, 1.0f, 0.3f,  {0.560f, 0.570f, 0.580f}, 1.0f},
+	
+	// Dielectrics
+	{"Plastic",   {0.8f, 0.2f, 0.2f}, 0.0f, 0.5f, {0.04f, 0.04f, 0.04f}, 1.0f},
+	{"Rubber",    {0.1f, 0.1f, 0.1f}, 0.0f, 0.9f, {0.04f, 0.04f, 0.04f}, 1.0f},
+	{"Ceramic",   {0.9f, 0.9f, 0.85f}, 0.0f, 0.1f, {0.05f, 0.05f, 0.05f}, 1.0f},
+	{"Wood",      {0.6f, 0.4f, 0.2f}, 0.0f, 0.8f, {0.04f, 0.04f, 0.04f}, 1.0f}
 }};
 }	
 }
