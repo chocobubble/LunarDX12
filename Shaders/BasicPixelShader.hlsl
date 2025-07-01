@@ -1,3 +1,4 @@
+Texture2D wallTexture : register(t0);
 Texture2D shadowTexture : register(t4);
 SamplerState g_sampler : register(s0);
 
@@ -111,12 +112,11 @@ float4 main(PixelIn pIn) : SV_TARGET
 {
 	float4 posW = float4(pIn.posW, 1.0);
 	float4 shadowCoord = mul(posW, shadowTransform);
-    shadowCoord /= shadowCoord.w;
     float depth = shadowCoord.z;
 	float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
-	// Debugging
-	float shadow = depth > shadowDepth ? 0.0 : 1.0;
-	//return float4(shadow, shadow, shadow, 1.0);
-    return float4(depth, depth, depth, 1.0);
+	float shadow = depth > shadowDepth ? 0.5 : 0.0;
+	float4 wallColor = wallTexture.Sample(g_sampler, pIn.texCoord);
+	wallColor.xyz -= shadow;
+	return wallColor;
 
 }

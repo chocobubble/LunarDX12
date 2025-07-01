@@ -1,4 +1,4 @@
-#include <d3d12.h>
+// #include <d3d12.h>
 #include <array>
 #include <imgui.h>
 #include <imgui_impl_dx12.h>
@@ -567,8 +567,9 @@ void MainApp::InitializeGeometry()
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
     Transform transform = {};
-    transform.Location = XMFLOAT3(0.0f, 0.5f, 0.0f);
-    m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::World);
+    transform.Location = XMFLOAT3(0.0f, 1.5f, 0.0f);
+    m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
+    // m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::World);
 	transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
 	Transform mirrorTransform = transform;
 	mirrorTransform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);

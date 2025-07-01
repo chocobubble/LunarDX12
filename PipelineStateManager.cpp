@@ -326,7 +326,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	// PSO for shadow map
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC shadowMapPsoDesc = psoDesc;
-		shadowMapPsoDesc.RasterizerState.DepthBias = 10000;
+		shadowMapPsoDesc.RasterizerState.DepthBias = 100000;
 		shadowMapPsoDesc.RasterizerState.DepthBiasClamp = 0.0f;
 		shadowMapPsoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 		shadowMapPsoDesc.pRootSignature = m_rootSignature.Get();

@@ -92,8 +92,8 @@ void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHea
 void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)
 {
 	m_basicConstants = {};
-	const float* dir = LunarConstants::LIGHT_INFO[0].direction;
-	XMVECTOR	 lightDir = XMVectorSet(dir[0], dir[1], dir[2], 0.0f);
+	// const float* dir = LunarConstants::LIGHT_INFO[0].direction;
+	XMVECTOR lightDir = XMVectorSet(m_posX, m_posY, m_posZ, 0.0f);
 	XMVECTOR lightPos = -2.0f * m_sceneRadius * lightDir;
 
 	// TODO: Refactor
@@ -128,7 +128,7 @@ void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)
 	
 	XMMATRIX projectionMatrix = MathUtils::CreateOrthographicOffCenterLH(l, r, b, t, n, f);
 	XMMATRIX ndcToTexture = MathUtils::CreateNDCToTextureTransform();
-
+	
 	XMStoreFloat4x4(&m_basicConstants.view, XMMatrixTranspose(viewMatrix));
 	XMStoreFloat4x4(&m_basicConstants.projection, XMMatrixTranspose(projectionMatrix));
 	XMStoreFloat4x4(&m_shadowTransform, XMMatrixTranspose(viewMatrix * projectionMatrix * ndcToTexture));

@@ -29,7 +29,7 @@ private:
 	UINT m_shadowMapWidth = 1024;
 	UINT m_shadowMapHeight = 1024;
 	DirectX::XMFLOAT3 m_sceneCenterPosition = { 0.0f, 0.0f, 0.0f };
-	float m_sceneRadius = 15.0f;
+	float m_sceneRadius = 10.0f;
 	DirectX::XMFLOAT4X4 m_shadowTransform;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
@@ -39,6 +39,11 @@ private:
 
 	BasicConstants m_basicConstants;
 	std::unique_ptr<ConstantBuffer> m_shadowCB;
+
+	// debugging
+	float m_posX = 0.57f;
+	float m_posY = -0.58f;
+	float m_posZ = 0.58f;
 };
 	
 } // namespace Lunar

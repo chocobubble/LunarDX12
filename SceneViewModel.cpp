@@ -19,13 +19,13 @@ void SceneViewModel::Initialize(LunarGui* gui, SceneRenderer* sceneRenderer)
     m_lights = sceneRenderer->GetLightingSystem()->GetLightIndices();
 
     // geometry
-    gui->BindListBox("Geometry", &m_selectedGeometryIndex, &m_geometryNames, 
-        [this](vector<string>* v) {
-	        m_selectedGeometryName = m_geometryNames[m_selectedGeometryIndex];
-        });
-
-	auto callback = std::function<void(XMFLOAT3*)>( [this, sceneRenderer](XMFLOAT3* pos) { sceneRenderer->SetGeometryLocation(m_selectedGeometryName, *pos); } );
-    gui->BindSlider("Position", &m_geometryLocation, XMFLOAT3{-5.0f, -5.0f, -5.0f}, DirectX::XMFLOAT3{5.0f, 5.0f, 5.0f}, callback);
+ //    gui->BindListBox("Geometry", &m_selectedGeometryIndex, &m_geometryNames, 
+ //        [this](vector<string>* v) {
+	//         m_selectedGeometryName = m_geometryNames[m_selectedGeometryIndex];
+ //        });
+ //
+	// auto callback = std::function<void(XMFLOAT3*)>( [this, sceneRenderer](XMFLOAT3* pos) { sceneRenderer->SetGeometryLocation(m_selectedGeometryName, *pos); } );
+ //    gui->BindSlider("Position", &m_geometryLocation, XMFLOAT3{-5.0f, -5.0f, -5.0f}, DirectX::XMFLOAT3{5.0f, 5.0f, 5.0f}, callback);
 
     // // lights
     // gui->BindListBox("Lights", &m_selectedLightIndex, &m_lights,
