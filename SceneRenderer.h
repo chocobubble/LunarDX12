@@ -15,6 +15,7 @@
 namespace Lunar
 {
 
+class ShadowViewModel;
 class TextureManager;
 class ShadowManager;
 class PipelineStateManager;
@@ -84,6 +85,7 @@ private:
     std::unique_ptr<MaterialManager> m_materialManager;
     std::unique_ptr<TextureManager> m_textureManager;
 	std::unique_ptr<ShadowManager> m_shadowManager;
+	std::unique_ptr<ShadowViewModel> m_shadowViewModel;
     std::unique_ptr<SceneViewModel> m_sceneViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;

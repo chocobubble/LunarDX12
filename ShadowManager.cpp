@@ -3,6 +3,7 @@
 #include <d3d12.h>
 
 #include "Utils.h"
+#include "MathUtils.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -91,7 +92,8 @@ void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHea
 void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)
 {
 	m_basicConstants = {};
-	XMVECTOR lightDir = XMLoadFloat3(&LunarConstants::LIGHT_INFO[0].direction);
+	const float* dir = LunarConstants::LIGHT_INFO[0].direction;
+	XMVECTOR	 lightDir = XMVectorSet(dir[0], dir[1], dir[2], 0.0f);
 	XMVECTOR lightPos = -2.0f * m_sceneRadius * lightDir;
 
 	// TODO: Refactor

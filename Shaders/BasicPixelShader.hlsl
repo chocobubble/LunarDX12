@@ -109,11 +109,14 @@ float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toE
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
-	float4 posW = pIn.posW;
+	float4 posW = float4(pIn.posW, 1.0);
 	float4 shadowCoord = mul(posW, shadowTransform);
-	float depth = shadowCoord.z / shadowCoord.w;
+    shadowCoord /= shadowCoord.w;
+    float depth = shadowCoord.z;
 	float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
 	// Debugging
-	float shadow = depth > shadowDepth ? 0.0f : 1.0f;
-	return float4(shadow, shadow, shadow, 1.0f);
+	float shadow = depth > shadowDepth ? 0.0 : 1.0;
+	//return float4(shadow, shadow, shadow, 1.0);
+    return float4(depth, depth, depth, 1.0);
+
 }

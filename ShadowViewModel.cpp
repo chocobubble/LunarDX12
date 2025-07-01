@@ -6,7 +6,7 @@ namespace Lunar
 {
 void ShadowViewModel::Initialize(LunarGui* gui, ShadowManager* shadowManager)
 {
-	gui->BindSlider("SceneRadius", shadowManager->m_sceneRadius, 0.0f, 100.0f);
+	gui->BindSlider("SceneRadius", &shadowManager->m_sceneRadius, 0.0f, 100.0f);
 }
 } // namespace Lunar
  
