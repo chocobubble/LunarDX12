@@ -75,7 +75,7 @@ XMMATRIX MathUtils::CreateOrthographicOffCenterLH(float left, float right, float
 		2.0f * reciprocalWidth, 0.0f, 0.0f, 0.0f,
 		0.0f, 2.0f * reciprocalHeight, 0.0f, 0.0f,
 		0.0f, 0.0f, reciprocalDepth, 0.0f,
-		(left + right) * reciprocalWidth, (top + bottom) * reciprocalHeight, zNear * reciprocalDepth, 1.0f
+		-(left + right) * reciprocalWidth, -(top + bottom) * reciprocalHeight, -zNear * reciprocalDepth, 1.0f
 	);
 }
 
