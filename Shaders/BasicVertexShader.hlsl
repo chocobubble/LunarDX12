@@ -29,6 +29,7 @@ struct VertexIn
     float4 color : COLOR;
 	float2 texCoord : TEXCOORD;
 	float3 normal : NORMAL;
+	float3 tangent : TANGENT;
 };
 
 struct PixelIn
@@ -38,6 +39,7 @@ struct PixelIn
 	float2 texCoord : TEXCOORD;
 	float3 normal : NORMAL;
 	float3 posW : POSITION;
+	float3 tangent : TANGENT;
 };
 
 PixelIn main(VertexIn vIn)
@@ -52,5 +54,6 @@ PixelIn main(VertexIn vIn)
     pIn.color = vIn.color;
 	pIn.texCoord = vIn.texCoord;
 	pIn.normal = vIn.normal;
+	pIn.tangent = vIn.tangent;
     return pIn;
 }

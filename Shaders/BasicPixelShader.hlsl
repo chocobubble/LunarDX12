@@ -1,5 +1,9 @@
+#include "common.hlsl"
+
 Texture2D wallTexture : register(t0);
-Texture2D shadowTexture : register(t4);
+Texture2D shadowTexture : register(t6);
+Texture2D tileTexture : register(t4);
+Texture2D normalTexture : register(t5);
 SamplerState g_sampler : register(s0);
 
 struct Light
@@ -42,6 +46,7 @@ struct PixelIn
 	float2 texCoord : TEXCOORD;
 	float3 normal : NORMAL;
 	float3 posW : POSITION;
+	float3 tangent : TANGENT;
 };
 
 float CalculateAttenuation(float distanceFromLight, Light light)
@@ -110,13 +115,18 @@ float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toE
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
-	float4 posW = float4(pIn.posW, 1.0);
-	float4 shadowCoord = mul(posW, shadowTransform);
-    float depth = shadowCoord.z;
-	float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
-	float shadow = depth > shadowDepth ? 0.5 : 0.0;
-	float4 wallColor = wallTexture.Sample(g_sampler, pIn.texCoord);
-	wallColor.xyz -= shadow;
-	return wallColor;
+	// float4 posW = float4(pIn.posW, 1.0);
+	// float4 shadowCoord = mul(posW, shadowTransform);
+ //    float depth = shadowCoord.z;
+	// float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
+	// float shadow = depth > shadowDepth ? 0.5 : 0.0;
+	// float4 wallColor = wallTexture.Sample(g_sampler, pIn.texCoord);
+	// wallColor.xyz -= shadow;
+	// return wallColor;
+
+	float3x3 TBN = GetTBN(pIn.normal, pIn.tangent);
+	float3 normalSample = normalTexture.Sample(g_sampler, pIn.texCoord);	
+	float3 normalTS = PixelNormalTS(normalSample, TBN);
+	return float4(normalTS, 1.0);
 
 }

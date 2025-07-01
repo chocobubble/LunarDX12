@@ -186,6 +186,9 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
+    <None Include="Shaders\common.hlsl">
+        <ShaderType>Header</ShaderType>
+    </None>
     <FxCompile Include="Shaders\BillboardGeometryShader.hlsl">
       <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>

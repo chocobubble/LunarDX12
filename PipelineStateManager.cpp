@@ -78,7 +78,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	*/
 	D3D12_DESCRIPTOR_RANGE srvTable = {};
 	srvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	srvTable.NumDescriptors = 5;
+	srvTable.NumDescriptors = 7;
 	srvTable.BaseShaderRegister = 0;
 	srvTable.RegisterSpace = 0;
 	srvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
