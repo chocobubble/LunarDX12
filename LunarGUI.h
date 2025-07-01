@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <string>
 #include <functional>
@@ -13,6 +13,30 @@
 namespace Lunar 
 {
 
+// Data structures for advanced UI elements
+struct GraphData 
+{
+    std::vector<float> values;
+    float minValue = 0.0f;
+    float maxValue = 100.0f;
+    std::string label;
+    ImVec2 size = ImVec2(0, 80);
+};
+
+struct TableData 
+{
+    std::vector<std::string> headers;
+    std::vector<std::vector<std::string>> rows;
+    int flags = 0; // ImGuiTableFlags
+};
+
+struct WindowData
+{
+    std::string title;
+    bool* isOpen = nullptr;
+    std::vector<std::string> elementIds; // IDs of elements to render in this window
+};
+
 class LunarGui 
 {
 private:
@@ -20,14 +44,23 @@ private:
     {
         Checkbox,
         Slider,
-        ListBox
+        ListBox,
+        Text,
+        Graph,
+        Table,
+        Window,
+        ReadOnlyFloat,
+        ReadOnlyText
     };
 
     enum class DataType {
         Float,
         Int,
         Bool,
-        Float3
+        Float3,
+        Text,
+        Graph,
+        Table
     };
 
     struct BoundValue 
@@ -36,9 +69,11 @@ private:
         DataType DataType = DataType::Float;
         void* DataPtr;
         std::function<void(void*)> OnChange;
-        std::any Min;
-        std::any Max;
-        int* SelectedValue;
+        std::any Min; // TODO : move to child class
+        std::any Max; // TODO : move to child class
+        int* SelectedValue; // TODO : move to child class
+        std::string Label;      // TODO : move to child class
+        std::string Format;     // TODO : move to child class 
         
         template<typename T>
         T* GetAs() { return static_cast<T*>(DataPtr); }
@@ -128,6 +163,12 @@ public:
 	}
 
     void BindListBox(const std::string& id, int* value, std::vector<std::string>* items, std::function<void(std::vector<std::string>*)> onChange = nullptr);
+    void BindText(const std::string& id, std::string* text);
+    void BindReadOnlyFloat(const std::string& id, const float* value, const std::string& label = "", const std::string& format = "%.1f");
+    void BindReadOnlyText(const std::string& id, const std::string* text);
+    void BindGraph(const std::string& id, GraphData* graphData);
+    void BindTable(const std::string& id, TableData* tableData);
+    void BindWindow(const std::string& id, const std::string& title, bool* isOpen, const std::vector<std::string>& elementIds);
 
 	template <typename T>
 	T* GetBoundValue(const std::string& id)
@@ -146,6 +187,9 @@ private:
     bool m_initialized;
 	std::unordered_map<std::string, BoundValue> m_boundValues;
 	std::unordered_map<std::string, std::function<void()>> m_callbacks;
+	std::unordered_map<std::string, WindowData> m_boundWindows;
+	
+	void RenderBoundWindow(const std::string& windowId, const WindowData& windowData);
 };
 
 } // namespace Lunar

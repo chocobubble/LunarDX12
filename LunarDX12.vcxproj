@@ -144,9 +144,10 @@
     <ClCompile Include="LunarGUI.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainApp.cpp" />
-    <ClCompile Include="LunarTimer.cpp" />
     <ClCompile Include="MaterialManager.cpp" />
     <ClCompile Include="MathUtils.cpp" />
+    <ClCompile Include="PerformanceProfiler.cpp" />
+    <ClCompile Include="PerformanceViewModel.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
@@ -171,9 +172,10 @@
     <ClInclude Include="Logger.h" />
     <ClInclude Include="LunarGUI.h" />
     <ClInclude Include="MainApp.h" />
-    <ClInclude Include="LunarTimer.h" />
     <ClInclude Include="MaterialManager.h" />
     <ClInclude Include="MathUtils.h" />
+    <ClInclude Include="PerformanceProfiler.h" />
+    <ClInclude Include="PerformanceViewModel.h" />
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
