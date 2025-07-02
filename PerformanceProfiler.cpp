@@ -25,7 +25,7 @@ double PerformanceProfiler::Tick()
     
     double deltaTime = 0.0;
     auto frameDuration = chrono::duration_cast<std::chrono::microseconds>(currentTime - m_frameStartTime);
-    deltaTime = frameDuration.count() / 1000.0f; // convert to milliseconds
+    deltaTime = frameDuration.count() / 1000000.0; // convert to seconds
     
     m_frameStartTime = currentTime;
     return deltaTime;
