@@ -46,14 +46,19 @@ PixelIn main(VertexIn vIn)
 {
     PixelIn pIn;
 	float4 pos = float4(vIn.pos, 1.0f);
-	// pIn.pos = mul(pos, model);
-	pIn.pos = mul(pos, world);
-	pIn.posW = pIn.pos;
-	pIn.pos = mul(pIn.pos, view);
-	pIn.pos = mul(pIn.pos, projection);
+	float4 posW = mul(pos, world).xyz;
+	pIn.posW = posW.xyz; 
+	
+    float4 posWV = mul(worldPos, view); 
+    float4 posWVP = mul(pIn.pos, projection);
+    pIn.pos = posWVP;
+	
     pIn.color = vIn.color;
 	pIn.texCoord = vIn.texCoord;
-	pIn.normal = vIn.normal;
-	pIn.tangent = vIn.tangent;
+	
+    // Assumes nonuniform scaling
+	pIn.normal = mul(vIn.normal, (float3x3)world);
+	pIn.tangent = mul(vIn.tangent, (float3x3)world);
+	
     return pIn;
 }
