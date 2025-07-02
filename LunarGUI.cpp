@@ -331,7 +331,7 @@ void LunarGui::RenderBoundWindow(const string& windowId, const WindowData& windo
                     case UIElementType::ReadOnlyFloat:
                     {
                         const float* floatPtr = static_cast<const float*>(value.DataPtr);
-                        string labelAndFormat = value.Label.emtpy() ? value.Format : value.Label + ": " + value.Format;
+                        string labelAndFormat = value.Label.empty() ? value.Format : value.Label + ": " + value.Format;
                         ImGui::Text(labelAndFormat.c_str(), *floatPtr);
                         break;
                     }

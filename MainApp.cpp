@@ -416,12 +416,6 @@ void MainApp::Render(double dt)
 
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Scene Rendering");
-		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
-		// Set Constant Buffer Descriptor heap
-		ID3D12DescriptorHeap* descriptorHeaps[] = { m_textureManager->GetSRVHeap() };
-		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-		m_commandList->SetGraphicsRootDescriptorTable(0, m_textureManager->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
-
 		m_sceneRenderer->RenderScene(m_commandList.Get());
 	}
 	

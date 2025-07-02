@@ -46,11 +46,11 @@ PixelIn main(VertexIn vIn)
 {
     PixelIn pIn;
 	float4 pos = float4(vIn.pos, 1.0f);
-	float4 posW = mul(pos, world).xyz;
+	float4 posW = mul(pos, world);
 	pIn.posW = posW.xyz; 
 	
-    float4 posWV = mul(worldPos, view); 
-    float4 posWVP = mul(pIn.pos, projection);
+    float4 posWV = mul(posW, view); 
+    float4 posWVP = mul(posWV, projection);
     pIn.pos = posWVP;
 	
     pIn.color = vIn.color;
