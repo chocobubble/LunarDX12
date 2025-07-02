@@ -1,4 +1,4 @@
-#include <d3d12.h>
+// #include <d3d12.h>
 #include <array>
 #include <imgui.h>
 #include <imgui_impl_dx12.h>
@@ -14,7 +14,6 @@
 #include "LunarGui.h"
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
-#include "TextureManager.h"
 #include "Geometry/Transform.h"
 
 using namespace std;
@@ -38,7 +37,6 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_sceneRenderer = make_unique<SceneRenderer>();
 	m_pipelineStateManager = make_unique<PipelineStateManager>();
-	m_textureManager = make_unique<TextureManager>();
 }
 
 MainApp::~MainApp()
@@ -117,8 +115,8 @@ void MainApp::InitGui()
     m_gui->Initialize(
         m_mainWindow,
         m_device.Get(),
-        Lunar::Constants::BUFFER_COUNT,
-        Lunar::Constants::SWAP_CHAIN_FORMAT,
+        Lunar::LunarConstants::BUFFER_COUNT,
+        Lunar::LunarConstants::SWAP_CHAIN_FORMAT,
         m_imGuiDescriptorHeap.Get());
 }
 
@@ -188,10 +186,10 @@ void MainApp::CreateSwapChain()
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.Width = Utils::GetDisplayWidth();
 	swapChainDesc.Height = Utils::GetDisplayHeight();
-	swapChainDesc.Format = Lunar::Constants::SWAP_CHAIN_FORMAT;
-	swapChainDesc.SampleDesc.Count = Lunar::Constants::SAMPLE_COUNT; // not use MSAA for now
+	swapChainDesc.Format = Lunar::LunarConstants::SWAP_CHAIN_FORMAT;
+	swapChainDesc.SampleDesc.Count = Lunar::LunarConstants::SAMPLE_COUNT; // not use MSAA for now
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.BufferCount = Lunar::Constants::BUFFER_COUNT;
+	swapChainDesc.BufferCount = Lunar::LunarConstants::BUFFER_COUNT;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
 	THROW_IF_FAILED(m_factory->CreateSwapChainForHwnd(
@@ -219,7 +217,7 @@ void MainApp::CreateRTVDescriptorHeap()
 	*/
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.NumDescriptors = Lunar::Constants::BUFFER_COUNT;
+	rtvHeapDesc.NumDescriptors = Lunar::LunarConstants::BUFFER_COUNT;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 1;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(m_rtvHeap.GetAddressOf())))
@@ -232,7 +230,7 @@ void MainApp::CreateRenderTargetView()
 	LOG_FUNCTION_ENTRY();
 	
 	m_rtvHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
-	for (uint32_t i = 0; i < Lunar::Constants::BUFFER_COUNT; ++i)
+	for (uint32_t i = 0; i < Lunar::LunarConstants::BUFFER_COUNT; ++i)
 	{
 		ComPtr<ID3D12Resource> backBuffer;
 		m_swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
@@ -243,46 +241,6 @@ void MainApp::CreateRenderTargetView()
 		// Increment the handle for the next RTV
 		m_rtvHandle.ptr += m_renderTargetViewDescriptorSize;
 	}
-}
-	
-void MainApp::CreateDSVDescriptorHeap()
-{
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	dsvHeapDesc.NumDescriptors = 1;
-	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(m_dsvHeap.GetAddressOf())));
-}
-
-void MainApp::CreateDepthStencilView()
-{
-	D3D12_RESOURCE_DESC depthStencilDesc = {};
-	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	depthStencilDesc.Width = Utils::GetDisplayWidth();
-	depthStencilDesc.Height = Utils::GetDisplayHeight();
-	depthStencilDesc.DepthOrArraySize = 1;
-	depthStencilDesc.MipLevels = 1;
-	depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthStencilDesc.SampleDesc.Count = 1;
-	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
-	depthOptimizedClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
-	depthOptimizedClearValue.DepthStencil.Stencil = 0;
-
-	D3D12_HEAP_PROPERTIES heapProps = {};
-	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-	THROW_IF_FAILED(m_device->CreateCommittedResource(
-		&heapProps,
-		D3D12_HEAP_FLAG_NONE,
-		&depthStencilDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&depthOptimizedClearValue,
-		IID_PPV_ARGS(m_depthStencilBuffer.GetAddressOf())));
-
-	m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 // D3D_COMPILE_STANDARD_FILE_INCLUDE can be passed for pInclude in any
@@ -382,6 +340,15 @@ void MainApp::Render(double dt)
 	m_commandAllocator->Reset(); // Cautions!
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
+	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
+	// Set Constant Buffer Descriptor heap
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
+	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	m_commandList->SetGraphicsRootDescriptorTable(0, m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
+	
+	m_sceneRenderer->RenderShadowMap(m_commandList.Get());
+
 	m_viewport = {};
 	m_viewport.TopLeftX = 0.0f;
 	m_viewport.TopLeftY = 0.0f;
@@ -425,7 +392,7 @@ void MainApp::Render(double dt)
 	// Set Render Target
 	D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 	renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
-	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
 	m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
 
 	// clear
@@ -433,14 +400,6 @@ void MainApp::Render(double dt)
 	m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
 	m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
-	// Set Constant Buffer Descriptor heap
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_textureManager->GetSRVHeap() };
-	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	m_commandList->SetGraphicsRootDescriptorTable(0, m_textureManager->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
-	
-	// m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
 	m_sceneRenderer->RenderScene(m_commandList.Get());
 	
     m_gui->Render(dt);
@@ -492,15 +451,13 @@ void MainApp::Initialize()
 	InitializeCommandList();
 	InitGui();
 	CreateFence();
-	InitializeTextures();
 	CreateCamera();
 	CreateSwapChain();
 	CreateRTVDescriptorHeap();
-	CreateDSVDescriptorHeap();
 	CreateRenderTargetView();
-	CreateDepthStencilView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
+	InitializeTextures(); // for now, should come after InitializeGeometry method
 }
 
 bool MainApp::InitDirect3D()
@@ -610,14 +567,19 @@ void MainApp::InitializeGeometry()
 	m_commandAllocator->Reset();
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
     Transform transform = {};
-    transform.Location = XMFLOAT3(3.0f, 0.0f, -3.0f);
-    m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::World);
+    transform.Location = XMFLOAT3(0.0f, 1.5f, 0.0f);
+    m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
+    // m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::World);
 	transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
 	Transform mirrorTransform = transform;
 	mirrorTransform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	mirrorTransform.Rotation = XMFLOAT3(-XM_PIDIV2, 0.0f, 0.0f);
-	m_sceneRenderer->AddPlane("Mirror0", mirrorTransform, 0.1f, 0.2f, RenderLayer::Mirror);
-	m_sceneRenderer->AddTree("Tree0");
+	//m_sceneRenderer->AddPlane("Mirror0", mirrorTransform, 0.1f, 0.2f, RenderLayer::Mirror);
+	//m_sceneRenderer->AddTree("Tree0");
+	/*m_sceneRenderer->AddCube("Cube1", {{0, 1, 0}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
+	m_sceneRenderer->AddCube("Cube2", {{2, 1, 2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
+	m_sceneRenderer->AddCube("Cube3", {{-2, 1, -2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);*/
+	m_sceneRenderer->AddPlane("ShadowMapPlane", {{0, 0, 0}, {0, 0, 0}, {3, 3, 1}}, 3.0f, 3.0f, RenderLayer::World);
 	transform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	transform.Scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
 	m_sceneRenderer->AddSphere("SkyBox0", transform, RenderLayer::Background);
@@ -633,7 +595,7 @@ void MainApp::CreateCamera()
 
 void MainApp::InitializeTextures()
 {
-	m_textureManager->Initialize(m_device.Get(), m_commandList.Get());
+	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get());
 }
 
 } // namespace Lunar

@@ -17,7 +17,8 @@ struct BasicConstants
 	DirectX::XMFLOAT3   eyePos;
 	float dummy;
     DirectX::XMFLOAT4   ambientLight;
-	LightData lights[Lunar::Constants::LIGHT_COUNT];
+	LightData lights[Lunar::LunarConstants::LIGHT_COUNT];
+	DirectX::XMFLOAT4X4 shadowTransform;
 };
 
 // Root Parameter CBV 2

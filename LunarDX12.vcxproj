@@ -150,6 +150,8 @@
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
+    <ClCompile Include="ShadowManager.cpp" />
+    <ClCompile Include="ShadowViewModel.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
@@ -175,6 +177,8 @@
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
+    <ClInclude Include="ShadowManager.h" />
+    <ClInclude Include="ShadowViewModel.h" />
     <ClInclude Include="TextureManager.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
@@ -182,33 +186,104 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
-    <FxCompile Include="VertexShader.hlsl">
-      <ShaderType>Vertex</ShaderType>
+    <FxCompile Include="Shaders\BillboardGeometryShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
       <ShaderModel>5.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="PixelShader.hlsl">
-      <ShaderType>Pixel</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="SkyBoxVertexShader.hlsl">
-      <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="SkyBoxPixelShader.hlsl">
-      <ShaderType>Pixel</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="BillboardVertexShader.hlsl">
-      <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="BillboardGeometryShader.hlsl">
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
       <ShaderType>Geometry</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="BillboardPixelShader.hlsl">
-      <ShaderType>Pixel</ShaderType>
+    <FxCompile Include="Shaders\BillboardPixelShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
       <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\BillboardVertexShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\BasicPixelShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\SkyBoxPixelShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\SkyBoxVertexShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\BasicVertexShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>    
+    <FxCompile Include="Shaders\ShadowMapPixelShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\ShadowMapVertexShader.hlsl">
+      <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
+      <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
+      <EntryPointName>main</EntryPointName>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ShaderModel>5.0</ShaderModel>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <DisableOptimizations>true</DisableOptimizations>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+      <ShaderType>Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>
 </Project>

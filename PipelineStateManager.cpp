@@ -7,6 +7,7 @@
 #include "Utils.h"
 
 using namespace Microsoft::WRL;
+using namespace std;
 
 namespace Lunar
 {
@@ -33,22 +34,21 @@ void PipelineStateManager::Initialize(ID3D12Device* device)
 {
 	LOG_FUNCTION_ENTRY();
 
-	m_shaderMap["basicVS"] = CompileShader("VertexShader", "vs_5_0");
-	m_shaderMap["basicPS"] = CompileShader("PixelShader", "ps_5_0");
-	m_shaderMap["billboardVS"] = CompileShader("BillboardVertexShader", "vs_5_0");
-	m_shaderMap["billboardGS"] = CompileShader("BillboardGeometryShader", "gs_5_0");
-	m_shaderMap["billboardPS"] = CompileShader("BillboardPixelShader", "ps_5_0");
-	m_shaderMap["skyBoxVS"] = CompileShader("SkyBoxVertexShader", "vs_5_0");
-	m_shaderMap["skyBoxPS"] = CompileShader("SkyBoxPixelShader", "ps_5_0");
+	for (auto& shaderInfo : LunarConstants::SHADER_INFO)
+	{
+		m_shaderMap[shaderInfo.name] = CompileShader(shaderInfo.path, shaderInfo.target);
+	}
+	
 	BuildPSOs(device);
 }
 
-ComPtr<ID3DBlob> PipelineStateManager::CompileShader(const std::string& shaderName, const std::string& target) const
+ComPtr<ID3DBlob> PipelineStateManager::CompileShader(const std::string& shaderPath, const std::string& target) const
 {
 	ComPtr<ID3DBlob> byteCode = nullptr;
 	ComPtr<ID3DBlob> errors = nullptr;
+	
 	THROW_IF_FAILED(D3DCompileFromFile(
-		(std::wstring(shaderName.begin(), shaderName.end()) + L".hlsl").c_str(),
+		wstring(shaderPath.begin(), shaderPath.end()).c_str(),
 		nullptr,
 		D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		"main",
@@ -76,7 +76,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	*/
 	D3D12_DESCRIPTOR_RANGE srvTable = {};
 	srvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	srvTable.NumDescriptors = 4;
+	srvTable.NumDescriptors = 5;
 	srvTable.BaseShaderRegister = 0;
 	srvTable.RegisterSpace = 0;
 	srvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -305,14 +305,14 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     
 	psoDesc.NumRenderTargets = 1;
-	psoDesc.RTVFormats[0] = Lunar::Constants::SWAP_CHAIN_FORMAT;
+	psoDesc.RTVFormats[0] = Lunar::LunarConstants::SWAP_CHAIN_FORMAT;
 	for (UINT i = 1; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
 		psoDesc.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
     
 	// psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
     
-	psoDesc.SampleDesc.Count = Lunar::Constants::SAMPLE_COUNT;
+	psoDesc.SampleDesc.Count = Lunar::LunarConstants::SAMPLE_COUNT;
 	psoDesc.SampleDesc.Quality = 0;
     
 	psoDesc.NodeMask = 0;
@@ -322,6 +322,23 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	
 	THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
 		IID_PPV_ARGS(m_psoMap["opaque"].GetAddressOf())))
+
+	// PSO for shadow map
+	{
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC shadowMapPsoDesc = psoDesc;
+		shadowMapPsoDesc.RasterizerState.DepthBias = 100000;
+		shadowMapPsoDesc.RasterizerState.DepthBiasClamp = 0.0f;
+		shadowMapPsoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
+		shadowMapPsoDesc.pRootSignature = m_rootSignature.Get();
+		shadowMapPsoDesc.VS.pShaderBytecode = m_shaderMap["shadowMapVS"]->GetBufferPointer();
+		shadowMapPsoDesc.VS.BytecodeLength = m_shaderMap["shadowMapVS"]->GetBufferSize();
+		shadowMapPsoDesc.PS.pShaderBytecode = m_shaderMap["shadowMapPS"]->GetBufferPointer();
+		shadowMapPsoDesc.PS.BytecodeLength = m_shaderMap["shadowMapPS"]->GetBufferSize();
+		shadowMapPsoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN; // render taget not used
+		shadowMapPsoDesc.NumRenderTargets = 0;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&shadowMapPsoDesc,
+			IID_PPV_ARGS(m_psoMap["shadowMap"].GetAddressOf())))
+	}
 
 	// PSO for marking stencil mirror
 	{
@@ -399,7 +416,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	
 }
 
-ID3D12PipelineState* PipelineStateManager::GetPSO(const std::string& psoName) const
+ID3D12PipelineState* PipelineStateManager::GetPSO(const string& psoName) const
 {
 	if (m_psoMap.find(psoName) != m_psoMap.end())
 	{

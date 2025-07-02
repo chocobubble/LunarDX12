@@ -12,9 +12,7 @@
 namespace Lunar
 {
 	
-class TextureManager;
 class PipelineStateManager;
-class ConstantBuffer;
 class SceneRenderer;
 class Camera;
 class LunarGui;
@@ -33,8 +31,6 @@ private:
 	void CreateSwapChain();
 	void CreateRTVDescriptorHeap();
 	void CreateRenderTargetView();
-	void CreateDSVDescriptorHeap();
-	void CreateDepthStencilView();
 	void CreateFence();
 	void Render(double dt);
 	void Update(double dt);
@@ -57,16 +53,13 @@ private:
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swapChain;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_lightHeap;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::Constants::BUFFER_COUNT];
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencilBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::LunarConstants::BUFFER_COUNT];
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_textureUploadBuffer;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
-	Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
@@ -92,7 +85,6 @@ private:
 
     std::unique_ptr<SceneRenderer> m_sceneRenderer;
 	std::unique_ptr<PipelineStateManager> m_pipelineStateManager;
-	std::unique_ptr<TextureManager> m_textureManager;
 
 	bool m_mouseMoving = false;
 };

@@ -6,7 +6,11 @@
 #include "LunarGUI.h"
 #include "MathUtils.h"
 #include "PipelineStateManager.h"
+#include "ShadowManager.h"
+#include "TextureManager.h"
+#include "Utils.h"
 #include "Geometry/Plane.h"
+#include "ShadowViewModel.h"
 
 using namespace DirectX;
 using namespace std;
@@ -21,13 +25,27 @@ SceneRenderer::SceneRenderer()
     m_materialManager = make_unique<MaterialManager>();
     m_sceneViewModel = make_unique<SceneViewModel>();
     m_lightingSystem = make_unique<LightingSystem>();
+	m_shadowManager = make_unique<ShadowManager>();
+	m_textureManager = make_unique<TextureManager>();
+	m_shadowViewModel = make_unique<ShadowViewModel>();
 }
+
+SceneRenderer::~SceneRenderer() = default;
 
 void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager)
 {
+	m_dsvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	m_srvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	
+	m_shadowManager->Initialize(device);
+	m_shadowViewModel->Initialize(gui, m_shadowManager.get());
+	CreateDSVDescriptorHeap(device);
+	CreateDepthStencilView(device);
+	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);
+	
 	m_pipelineStateManager = pipelineManager;
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
-    m_lightingSystem->Initialize(device, Lunar::Constants::LIGHT_COUNT);
+    m_lightingSystem->Initialize(device, Lunar::LunarConstants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this);
 	m_materialManager->Initialize(device);
     for (auto& [layer, geometryEntries] : m_layeredGeometries)
@@ -66,17 +84,119 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
 	}
 }
 
+void SceneRenderer::CreateDSVDescriptorHeap(ID3D12Device* device)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.NumDescriptors = 2; // TODO : refactoring
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	THROW_IF_FAILED(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(m_dsvHeap.GetAddressOf())));
+}
+
+void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
+{
+	D3D12_RESOURCE_DESC depthStencilDesc = {};
+	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthStencilDesc.Width = Utils::GetDisplayWidth();
+	depthStencilDesc.Height = Utils::GetDisplayHeight();
+	depthStencilDesc.DepthOrArraySize = 1;
+	depthStencilDesc.MipLevels = 1;
+	depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilDesc.SampleDesc.Count = 1;
+	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+	depthOptimizedClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+	depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+	D3D12_HEAP_PROPERTIES heapProps = {};
+	heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+	THROW_IF_FAILED(device->CreateCommittedResource(
+		&heapProps,
+		D3D12_HEAP_FLAG_NONE,
+		&depthStencilDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthOptimizedClearValue,
+		IID_PPV_ARGS(m_depthStencilBuffer.GetAddressOf())));
+
+	m_dsvHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+	device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, m_dsvHandle);
+	m_shadowManager->CreateDSV(device, m_dsvHeap.Get());
+}
+
+void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device)
+{
+	LOG_FUNCTION_ENTRY();
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 1;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	srvHeapDesc.NodeMask = 0;
+	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
+	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	// m_shadowManager->CreateSRV(device, m_srvHeap.Get());
+}
+
+void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+{
+	m_textureManager->Initialize(device, commandList, m_srvHandle);
+	m_shadowManager->CreateSRV(device, m_srvHeap.Get());
+}
+
+void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
+{
+	// To write depth
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = m_shadowManager->GetShadowTexture();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_GENERIC_READ;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	commandList->ResourceBarrier(1, &barrier);
+
+	commandList->RSSetViewports(1, &m_shadowManager->GetViewport());
+	commandList->RSSetScissorRects(1, &m_shadowManager->GetScissorRect());
+
+	commandList->OMSetRenderTargets(0, nullptr, FALSE, &m_shadowManager->GetDSVHandle());
+	commandList->ClearDepthStencilView(m_shadowManager->GetDSVHandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList->SetPipelineState(m_pipelineStateManager->GetPSO("shadowMap"));
+
+	commandList->SetGraphicsRootConstantBufferView(
+		LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX,
+		m_shadowManager->GetShadowCB()->GetResource()->GetGPUVirtualAddress());
+
+	for (auto& entry : m_layeredGeometries[RenderLayer::World])
+	{
+		if (entry->IsVisible)
+		{
+			string materialName = entry->GeometryData->GetMaterialName();
+			m_materialManager->BindConstantBuffer(materialName, commandList);
+			entry->GeometryData->Draw(commandList);
+		}
+	}
+
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+	commandList->ResourceBarrier(1, &barrier);
+}
+
 void SceneRenderer::UpdateScene(float deltaTime)
 {
     m_lightingSystem->UpdateLightData(m_basicConstants);
+	m_shadowManager->UpdateShadowCB(m_basicConstants);
+	m_basicConstants.shadowTransform = m_shadowManager->GetShadowTransform();
     m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
 {
     commandList->SetGraphicsRootConstantBufferView(
-        Lunar::Constants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
+        Lunar::LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
         m_basicCB->GetResource()->GetGPUVirtualAddress());
+
     RenderLayers(commandList);
 }
 

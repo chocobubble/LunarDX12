@@ -64,4 +64,41 @@ XMMATRIX MathUtils::MakeReflectionMatrix(float a, float b, float c, float d)
 		0.0f,	0.0f, 0.0f, 1.0f
 	);
 }
+
+XMMATRIX MathUtils::CreateOrthographicOffCenterLH(float left, float right, float bottom, float top, float zNear, float zFar)
+{
+	float reciprocalWidth = 1.0f / (right - left);
+	float reciprocalHeight = 1.0f / (top - bottom);
+	float reciprocalDepth = 1.0f / (zFar - zNear);
+
+	return XMMATRIX(
+		2.0f * reciprocalWidth, 0.0f, 0.0f, 0.0f,
+		0.0f, 2.0f * reciprocalHeight, 0.0f, 0.0f,
+		0.0f, 0.0f, reciprocalDepth, 0.0f,
+		-(left + right) * reciprocalWidth, -(top + bottom) * reciprocalHeight, -zNear * reciprocalDepth, 1.0f
+	);
+}
+
+XMMATRIX MathUtils::CreateNDCToTextureTransform()
+{
+	// Transform matrix for converting NDC coordinates to texture coordinates
+    //
+    // Component Analysis:
+    // Row 1: X: [-1,1] → [0,1] scaling
+    // Row 2: Y: [-1,1] → [1,0] scaling + flip (inverted texture coordinates)
+    // Row 3: Z: [0,1] preserve (depth values)
+    // Row 4: Translation: center to (0.5, 0.5)
+    //
+    // Transformation process:
+    // 1. X-axis: x' = 0.5 * x + 0.5 → [-1,1] → [0,1]
+    // 2. Y-axis: y' = -0.5 * y + 0.5 → [-1,1] → [1,0] (flipped texture coordinates)
+    // 3. Z-axis: z' = z → [0,1] preserve (depth values)
+
+	return XMMATRIX(
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f
+	);
+}
 } //namespace Lunar

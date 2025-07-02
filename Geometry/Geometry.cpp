@@ -105,7 +105,7 @@ void Geometry::BindObjectConstants(ID3D12GraphicsCommandList* commandList)
     if (m_objectCB)
     {
         commandList->SetGraphicsRootConstantBufferView(
-            Lunar::Constants::OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX, 
+            Lunar::LunarConstants::OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX, 
             m_objectCB->GetResource()->GetGPUVirtualAddress());
     }
 }

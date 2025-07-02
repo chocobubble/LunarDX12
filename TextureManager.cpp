@@ -14,135 +14,20 @@ using namespace DirectX;
 namespace Lunar
 {
 	
-void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, D3D12_CPU_DESCRIPTOR_HANDLE& srvHandle)
 {
 	LOG_FUNCTION_ENTRY();
 
-	CreateSRVDescriptorHeap(Lunar::Constants::TEXTURE_INFO.size(), device);
-
-    for (auto& textureInfo : Lunar::Constants::TEXTURE_INFO)
+    for (auto& textureInfo : Lunar::LunarConstants::TEXTURE_INFO)
     {
         Texture texture = {};
         texture.Resource = LoadTexture(textureInfo, device, commandList, textureInfo.path, texture.UploadBuffer);
         m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
-	    CreateShaderResourceView(textureInfo, device);
+	    CreateShaderResourceView(textureInfo, device, srvHandle);
     }
 }
-	
-ComPtr<ID3D12Resource> TextureManager::LoadTexture(const Constants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
-{
-	LOG_FUNCTION_ENTRY();
 
-    D3D12_RESOURCE_DESC textureDesc = {};
-    textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    textureDesc.DepthOrArraySize = 1;
-    textureDesc.MipLevels = 1;
-    textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // stbi load with RGBA(4)
-    textureDesc.SampleDesc.Count = 1;
-    textureDesc.SampleDesc.Quality = 0;
-    textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-    UINT64 rowSizeInBytes;
-    
-    if (textureInfo.dimensionType == Constants::TextureDimension::CUBEMAP)
-    {
-        textureDesc.DepthOrArraySize = 6;
-        
-        std::vector<std::string> faceFiles = {
-            filename + "_right.jpg",   // +X
-            filename + "_left.jpg",    // -X  
-            filename + "_top.jpg",     // +Y
-            filename + "_bottom.jpg",  // -Y
-            filename + "_front.jpg",   // +Z
-            filename + "_back.jpg"     // -Z
-        };
-        
-        std::vector<uint8_t*> faceData(6);
-        int width, height, channels;
-        
-        for (int face = 0; face < 6; ++face) {
-            faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
-            if (!faceData[face]) {
-                LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
-                for (int i = 0; i < face; ++i) {
-                    stbi_image_free(faceData[i]);
-                }
-                throw std::runtime_error("Failed to load cubemap face: " + faceFiles[face]);
-            }
-        }
-        
-        LOG_DEBUG("Cubemap loaded: ", filename, " (", width, "x", height, ")");
-        textureDesc.Width = static_cast<UINT>(width);
-        textureDesc.Height = static_cast<UINT>(height);
-        rowSizeInBytes = UINT64(width) * 4; // RGBA
-        
-        ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceData, rowSizeInBytes, uploadBuffer);
-        
-        for (int i = 0; i < 6; ++i) {
-            stbi_image_free(faceData[i]);
-        }
-        
-        return texture;
-    }
-    
-    uint8_t* data = nullptr;
-    if (textureInfo.fileType == Constants::FileType::DEFAULT) 
-    {
-        int width, height, channels;
-        data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
-        if (!data)
-        {
-            LOG_ERROR("Failed to load texture: ", filename);
-            throw std::runtime_error("Failed to load simple texture: " + filename);
-        }
-        LOG_DEBUG("Texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
-        textureDesc.Width = static_cast<UINT>(width);
-        textureDesc.Height = static_cast<UINT>(height);
-        rowSizeInBytes = UINT64(width) * 4; // RGBA
-    }
-    else if (textureInfo.fileType == Constants::FileType::DDS)
-    {
-        DirectX::ScratchImage image;
-        std::wstring wfilename(filename.begin(), filename.end());
-        HRESULT hr = DirectX::LoadFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
-        if (FAILED(hr))
-        {
-            LOG_ERROR("Failed to load DDS texture: ", filename);
-            throw std::runtime_error("Failed to load DDS texture: " + filename);
-        }
-        
-        const DirectX::Image* img = image.GetImage(0, 0, 0);
-        data = img->pixels;
-        LOG_DEBUG("DDS texture loaded: ", filename, " (", img->width, "x", img->height, ")");
-        
-        textureDesc.Width = static_cast<UINT>(img->width);
-        textureDesc.Height = static_cast<UINT>(img->height);
-        textureDesc.Format = img->format;
-        rowSizeInBytes = img->rowPitch;
-        
-        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
-        return texture;
-    }
-
-	ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
-	if (textureInfo.fileType == Constants::FileType::DEFAULT) stbi_image_free(data);
-    return texture;
-}
-
-void TextureManager::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device)
-{
-	LOG_FUNCTION_ENTRY();
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums);
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NodeMask = 0;
-	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
-	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
-}
-	
-void TextureManager::CreateShaderResourceView(const Constants::TextureInfo& textureInfo, ID3D12Device* device)
+void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE& srvHandle)
 {
 	LOG_FUNCTION_ENTRY();
 
@@ -199,7 +84,7 @@ void TextureManager::CreateShaderResourceView(const Constants::TextureInfo& text
 	srvDesc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(textureInfo.dimensionType);
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	
-	if (textureInfo.dimensionType == Constants::TextureDimension::CUBEMAP) {
+	if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) {
 		srvDesc.TextureCube.MipLevels = 1;
 		srvDesc.TextureCube.MostDetailedMip = 0;
 		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
@@ -212,8 +97,109 @@ void TextureManager::CreateShaderResourceView(const Constants::TextureInfo& text
 
 	Texture* texture = m_textureMap[textureInfo.name].get();
 	srvDesc.Format = texture->Resource->GetDesc().Format;
-	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, m_srvHandle);
-	m_srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, srvHandle);
+	srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+}
+
+ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
+{
+	LOG_FUNCTION_ENTRY();
+
+    D3D12_RESOURCE_DESC textureDesc = {};
+    textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    textureDesc.DepthOrArraySize = 1;
+    textureDesc.MipLevels = 1;
+    textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // stbi load with RGBA(4)
+    textureDesc.SampleDesc.Count = 1;
+    textureDesc.SampleDesc.Quality = 0;
+    textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    UINT64 rowSizeInBytes;
+    
+    if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
+    {
+        textureDesc.DepthOrArraySize = 6;
+        
+        std::vector<std::string> faceFiles = {
+            filename + "_right.jpg",   // +X
+            filename + "_left.jpg",    // -X  
+            filename + "_top.jpg",     // +Y
+            filename + "_bottom.jpg",  // -Y
+            filename + "_front.jpg",   // +Z
+            filename + "_back.jpg"     // -Z
+        };
+        
+        std::vector<uint8_t*> faceData(6);
+        int width, height, channels;
+        
+        for (int face = 0; face < 6; ++face) {
+            faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
+            if (!faceData[face]) {
+                LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
+                for (int i = 0; i < face; ++i) {
+                    stbi_image_free(faceData[i]);
+                }
+                throw std::runtime_error("Failed to load cubemap face: " + faceFiles[face]);
+            }
+        }
+        
+        LOG_DEBUG("Cubemap loaded: ", filename, " (", width, "x", height, ")");
+        textureDesc.Width = static_cast<UINT>(width);
+        textureDesc.Height = static_cast<UINT>(height);
+        rowSizeInBytes = UINT64(width) * 4; // RGBA
+        
+        ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceData, rowSizeInBytes, uploadBuffer);
+        
+        for (int i = 0; i < 6; ++i) {
+            stbi_image_free(faceData[i]);
+        }
+        
+        return texture;
+    }
+    
+    uint8_t* data = nullptr;
+    if (textureInfo.fileType == LunarConstants::FileType::DEFAULT) 
+    {
+        int width, height, channels;
+        data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
+        if (!data)
+        {
+            LOG_ERROR("Failed to load texture: ", filename);
+            throw std::runtime_error("Failed to load simple texture: " + filename);
+        }
+        LOG_DEBUG("Texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
+        textureDesc.Width = static_cast<UINT>(width);
+        textureDesc.Height = static_cast<UINT>(height);
+        rowSizeInBytes = UINT64(width) * 4; // RGBA
+    }
+    else if (textureInfo.fileType == LunarConstants::FileType::DDS)
+    {
+        DirectX::ScratchImage image;
+        std::wstring wfilename(filename.begin(), filename.end());
+        HRESULT hr = DirectX::LoadFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+        if (FAILED(hr))
+        {
+            LOG_ERROR("Failed to load DDS texture: ", filename);
+            throw std::runtime_error("Failed to load DDS texture: " + filename);
+        }
+        
+        const DirectX::Image* img = image.GetImage(0, 0, 0);
+        data = img->pixels;
+        LOG_DEBUG("DDS texture loaded: ", filename, " (", img->width, "x", img->height, ")");
+        
+        textureDesc.Width = static_cast<UINT>(img->width);
+        textureDesc.Height = static_cast<UINT>(img->height);
+        textureDesc.Format = img->format;
+        rowSizeInBytes = img->rowPitch;
+        
+        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
+        return texture;
+    }
+
+	ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
+	if (textureInfo.fileType == LunarConstants::FileType::DEFAULT) stbi_image_free(data);
+    return texture;
 }
 
 ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_DESC& textureDesc, const uint8_t* srcData, UINT64 rowSizeInBytes, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)

@@ -28,4 +28,4 @@ private:
     int                      m_selectedLightIndex = 0;
     std::vector<int>         m_lights;
 };
-}
+} // namespace Lunar
