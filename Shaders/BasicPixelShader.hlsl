@@ -115,18 +115,32 @@ float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toE
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
-	// float4 posW = float4(pIn.posW, 1.0);
-	// float4 shadowCoord = mul(posW, shadowTransform);
- //    float depth = shadowCoord.z;
-	// float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
-	// float shadow = depth > shadowDepth ? 0.5 : 0.0;
-	// float4 wallColor = wallTexture.Sample(g_sampler, pIn.texCoord);
-	// wallColor.xyz -= shadow;
-	// return wallColor;
-
+	float4 diffuseColor = wallTexture.Sample(g_sampler, pIn.texCoord);
+	float3 normalSample = normalTexture.Sample(g_sampler, pIn.texCoord).rgb;
+	
 	float3x3 TBN = GetTBN(pIn.normal, pIn.tangent);
-	float3 normalSample = normalTexture.Sample(g_sampler, pIn.texCoord);	
-	float3 normalTS = PixelNormalTS(normalSample, TBN);
-	return float4(normalTS, 1.0);
-
+	float3 normalWS = NormalTSToWS(normalSample, TBN);
+	
+	float shadowFactor = 1.0;
+	float4 posW = float4(pIn.posW, 1.0);
+	float4 shadowCoord = mul(posW, shadowTransform);
+	
+	if (shadowCoord.x >= 0.0 && shadowCoord.x <= 1.0 && shadowCoord.y >= 0.0 && shadowCoord.y <= 1.0 && shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
+    {
+		float currentDepth = shadowCoord.z;
+		float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
+		
+		float3 lightDir = normalize(lights[0].direction);
+		
+		shadowFactor = currentDepth > shadowDepth ? 0.3 : 1.0;
+	}
+	
+	float3 toEye = normalize(eyePos - pIn.posW);
+	float3 finalColor = ambientLight.rgb * diffuseColor.rgb;
+	
+	finalColor += ComputeDirectionalLight(-lights[0].direction, normalWS, toEye, lights[0].strength) * shadowFactor;
+	finalColor += ComputePointLight(lights[1], pIn.posW, normalWS, toEye);
+    finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
+	
+	return float4(finalColor, diffuseColor.a);
 }
