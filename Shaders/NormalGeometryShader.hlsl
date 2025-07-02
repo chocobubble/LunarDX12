@@ -1,4 +1,4 @@
-#include "common.hlsl"
+#include "Common.hlsl"
 
 struct GeometryIn
 {

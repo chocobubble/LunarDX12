@@ -41,15 +41,6 @@ struct MaterialConstants
     
     DirectX::XMFLOAT3 F0;               // Fresnel reflectance at normal incidence
     float ao;                           // Ambient occlusion
-    
-    int useAlbedoTexture;
-    int useNormalTexture;
-    int useMetallicTexture;
-    int useRoughnessTexture;
-    
-    int usePBR;                         // 0 = Basic lighting, 1 = PBR
-    int debugMode;                      // 0 = None, 1 = Albedo, 2 = Normal, etc.
-    float dummy[2];                   
 };
 
 class ConstantBuffer

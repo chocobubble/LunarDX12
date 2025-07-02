@@ -58,7 +58,7 @@ struct ShaderInfo
 	const char* path;
 	const char* target;
 };
-static constexpr std::array<ShaderInfo, 14> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 12> SHADER_INFO = {{
 	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_0" },
 	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_0" },
 	{ "billboardVS", "Shaders\\BillboardVertexShader.hlsl", "vs_5_0" },
@@ -71,8 +71,6 @@ static constexpr std::array<ShaderInfo, 14> SHADER_INFO = {{
 	{ "normalVS", "Shaders\\NormalVertexShader.hlsl", "vs_5_0" },
 	{ "normalGS", "Shaders\\NormalGeometryShader.hlsl", "gs_5_0" },
 	{ "normalPS", "Shaders\\NormalPixelShader.hlsl", "ps_5_0" },
-	{ "pbrVS",        "Shaders\\PBRVertexShader.hlsl",        "vs_5_0" },
-	{ "pbrPS",        "Shaders\\PBRPixelShader.hlsl",         "ps_5_0" }
 }};
 
 /////////////// Lights ///////////////
@@ -114,10 +112,10 @@ namespace LightVizColors
 struct PBRMaterialPreset
 {
 	const char* name;
-	const float albedo[3];
+	const DirectX::XMFLOAT3 albedo;
 	const float metallic;
 	const float roughness;
-	const float F0[3];
+	const DirectX::XMFLOAT3 F0;
 	const float ao;
 };
 

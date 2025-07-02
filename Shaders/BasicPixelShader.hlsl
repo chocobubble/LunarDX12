@@ -1,4 +1,4 @@
-#include "common.hlsl"
+#include "Common.hlsl"
 
 Texture2D tileTexture : register(t3);
 Texture2D shadowTexture : register(t6);
