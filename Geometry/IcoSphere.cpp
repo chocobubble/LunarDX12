@@ -47,6 +47,7 @@ void IcoSphere::CreateGeometry()
     CalculateTexCoords();
     CalculateColors();
 	FixSeamVertices();
+	ComputeTangents();
 }
 
 uint16_t IcoSphere::GetMiddlePoint(UINT p1, UINT p2)

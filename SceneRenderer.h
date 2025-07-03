@@ -45,6 +45,7 @@ struct GeometryEntry
 
 class SceneRenderer
 {
+	friend SceneViewModel;
 public:
     SceneRenderer();
     ~SceneRenderer();

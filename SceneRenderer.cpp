@@ -188,6 +188,7 @@ void SceneRenderer::UpdateScene(float deltaTime)
     m_lightingSystem->UpdateLightData(m_basicConstants);
 	m_shadowManager->UpdateShadowCB(m_basicConstants);
 	m_basicConstants.shadowTransform = m_shadowManager->GetShadowTransform();
+	// LOG_DEBUG("Normal Map Index : ", m_basicConstants.normalMapIndex);
     m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 

@@ -139,7 +139,7 @@ void Geometry::ComputeTangents()
 		float deltaV2 = XMVectorGetY(uv2) - XMVectorGetY(uv0);
 
 		float det = deltaU1 * deltaV2 - deltaU2 * deltaV1;
-		if (det < 1e-4) continue;
+		if (abs(det) < 1e-6) continue;
 		float r = 1.0f / det;
 		
 		XMVECTOR tangent = (deltaPos1 * deltaV2 - deltaPos2 * deltaV1) * r;

@@ -21,6 +21,7 @@ cbuffer BasicConstants : register(b0)
 	float4x4 view;
 	float4x4 projection;
 	float3 eyePos;
+	float normalMapIndex;
 	float4 ambientLight;
 	Light lights[3];
 	float4x4 shadowTransform;
@@ -123,6 +124,13 @@ float4 main(PixelIn pIn) : SV_TARGET
 	
 	float3x3 TBN = GetTBN(pIn.normal, pIn.tangent);
 	float3 normalWS = NormalTSToWS(normalSample, TBN);
+	if (normalMapIndex < 0.5) normalWS = pIn.normal;
+	// if (normalMapIndex < 0.5) return float4(normalWS, 1.0);
+	// else 
+	// {
+	// 	float3 debugColor = pIn.normal.xyz * 0.5f + 0.5f;
+	// 	return float4(debugColor, 1.0);
+	// }
 
 	// return float4(normalWS, 1.0);
 	float shadowFactor = 1.0;
@@ -138,12 +146,12 @@ float4 main(PixelIn pIn) : SV_TARGET
 	}
 	
 	float3 toEye = normalize(eyePos - pIn.posW.xyz);
-	// float3 finalColor = ambientLight.rgb;
-	float3 finalColor = ambientLight.rgb * diffuseColor.rgb;
+	float3 finalColor = diffuseColor.rgb;
+	// float3 finalColor = ambientLight.rgb * diffuseColor.rgb;
 	
 	finalColor += ComputeDirectionalLight(-lights[0].direction, normalWS, toEye, lights[0].strength) * shadowFactor;
 	finalColor += ComputePointLight(lights[1], pIn.posW, normalWS, toEye);
-    finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
+ finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
 
 	return float4(finalColor, diffuseColor.a);
 }

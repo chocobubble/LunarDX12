@@ -17,6 +17,7 @@ void SceneViewModel::Initialize(LunarGui* gui, SceneRenderer* sceneRenderer)
     m_geometryNames = sceneRenderer->GetGeometryNames();
     m_materialNames = sceneRenderer->GetMaterialManager()->GetMaterialNames();
     m_lights = sceneRenderer->GetLightingSystem()->GetLightIndices();
+	gui->BindSlider("NormalMapIndex", &(sceneRenderer->m_basicConstants.normalMapIndex), 0.0f, 1.0f); 
 
     // geometry
  //    gui->BindListBox("Geometry", &m_selectedGeometryIndex, &m_geometryNames, 
