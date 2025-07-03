@@ -25,6 +25,7 @@ struct BasicConstants
 struct ObjectConstants
 {
 	DirectX::XMFLOAT4X4 World;
+    DirectX::XMFLOAT4X4 WorldInvTranspose;
 	int textureIndex;
 	float dummy[3];
 };

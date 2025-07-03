@@ -29,6 +29,7 @@ cbuffer BasicConstants : register(b0)
 cbuffer ObjectConstants : register(b1)
 {
 	float4x4 world;
+	float4x4 worldInvTranspose;
 	int textureIndex;	
 }
 
@@ -128,13 +129,13 @@ float4 main(PixelIn pIn) : SV_TARGET
 	float4 posW = float4(pIn.posW, 1.0);
 	float4 shadowCoord = mul(posW, shadowTransform);
 	
-	// if (shadowCoord.x >= 0.0 && shadowCoord.x <= 1.0 && shadowCoord.y >= 0.0 && shadowCoord.y <= 1.0 && shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
- //    {
+	if (shadowCoord.x >= 0.0 && shadowCoord.x <= 1.0 && shadowCoord.y >= 0.0 && shadowCoord.y <= 1.0 && shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
+    {
 		float currentDepth = shadowCoord.z;
 		float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
 		
 		shadowFactor = currentDepth > shadowDepth ? 0.3 : 1.0;
-	// }
+	}
 	
 	float3 toEye = normalize(eyePos - pIn.posW.xyz);
 	// float3 finalColor = ambientLight.rgb;

@@ -97,6 +97,7 @@ void Geometry::UpdateWorldMatrix()
 
 void Geometry::UpdateObjectConstants()
 {
+    XMStoreFLoat4x4(&m_objectConstants.WorldInvTranspose, XMMatrixTranspose(XMMatrixInverse(nullptr, m_objectConstants.world)));
     m_objectCB->CopyData(&m_objectConstants, sizeof(ObjectConstants));
     m_needsConstantBufferUpdate = false;
 }

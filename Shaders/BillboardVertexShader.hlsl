@@ -9,6 +9,7 @@ cbuffer BasicConstants : register(b0)
 cbuffer ObjectConstants : register(b1)
 {
 	float4x4 world;
+	float4x4 worldInvTranspose;
 	int textureIndex;
 }
 

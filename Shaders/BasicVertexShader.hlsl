@@ -1,6 +1,6 @@
 struct Light
 {
-	float3 lightStrength;
+	float3 strength;
 	float fallOffStart;
 	float3 direction;
 	float fallOffEnd;
@@ -15,11 +15,13 @@ cbuffer BasicConstants : register(b0)
 	float3 eyePos;
 	float4 ambientLight;
 	Light lights[3];
+	float4x4 shadowTransform;
 }
 
 cbuffer ObjectConstants : register(b1)
 {
 	float4x4 world;
+	float4x4 worldInvTranspose;
 	int textureIndex;	
 }
 
@@ -56,8 +58,7 @@ PixelIn main(VertexIn vIn)
     pIn.color = vIn.color;
 	pIn.texCoord = vIn.texCoord;
 	
-    // Assumes nonuniform scaling
-	pIn.normal = mul(vIn.normal, (float3x3)world);
+    pIn.normal = mul(vIn.normal, (float3x3)worldInvTranspose);
 	pIn.tangent = mul(vIn.tangent, (float3x3)world);
 	
     return pIn;
