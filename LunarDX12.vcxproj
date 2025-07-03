@@ -139,6 +139,7 @@
     <ClCompile Include="Geometry\Transform.cpp" />
     <ClCompile Include="Geometry\Tree.cpp" />
     <ClCompile Include="LightingSystem.cpp" />
+    <ClCompile Include="LightViewModel.cpp" />
     <ClCompile Include="LunarConstants.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="LunarGUI.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="Geometry\Plane.h" />
     <ClInclude Include="Geometry\GeometryFactory.h" />
     <ClInclude Include="LightingSystem.h" />
+    <ClInclude Include="LightViewModel.h" />
     <ClInclude Include="LunarConstants.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="LunarGUI.h" />

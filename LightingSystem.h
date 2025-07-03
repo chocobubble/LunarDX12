@@ -37,6 +37,7 @@ public:
     void SetLightDirection(const std::string& name, const DirectX::XMFLOAT3& direction);
     void SetLightColor(const std::string& name, const DirectX::XMFLOAT3& color);
     void SetLightRange(const std::string& name, float range);
+    void SetLightSpotPower(const std::string& name, float spotPower);
     void SetLightEnabled(const std::string& name, bool enabled);
 
     const LightData* GetLight(const std::string& name) const;

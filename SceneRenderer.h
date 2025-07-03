@@ -16,6 +16,7 @@ namespace Lunar
 {
 
 class ShadowViewModel;
+class LightViewModel;
 class TextureManager;
 class ShadowManager;
 class PipelineStateManager;
@@ -76,7 +77,9 @@ public:
     std::vector<std::string> GetGeometryNames() const;
     const MaterialManager* GetMaterialManager() const { return m_materialManager.get();}
     const SceneViewModel* GetSceneViewModel() const { return m_sceneViewModel.get(); }
+    const LightViewModel* GetLightViewModel() const { return m_lightViewModel.get(); }
     const LightingSystem* GetLightingSystem() const { return m_lightingSystem.get(); }
+    LightingSystem* GetLightingSystem() { return m_lightingSystem.get(); }
 	BasicConstants& GetBasicConstants() { return m_basicConstants; }
 	ID3D12DescriptorHeap* GetSRVHeap() { return m_srvHeap.Get(); };
 	ID3D12DescriptorHeap* GetDSVHeap() { return m_dsvHeap.Get(); };
@@ -89,6 +92,7 @@ private:
 	std::unique_ptr<ShadowManager> m_shadowManager;
 	std::unique_ptr<ShadowViewModel> m_shadowViewModel;
     std::unique_ptr<SceneViewModel> m_sceneViewModel;
+    std::unique_ptr<LightViewModel> m_lightViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;
 	PipelineStateManager* m_pipelineStateManager = nullptr;

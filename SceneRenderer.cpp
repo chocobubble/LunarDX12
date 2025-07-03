@@ -11,6 +11,7 @@
 #include "Utils.h"
 #include "Geometry/Plane.h"
 #include "ShadowViewModel.h"
+#include "LightViewModel.h"
 
 using namespace DirectX;
 using namespace std;
@@ -24,6 +25,7 @@ SceneRenderer::SceneRenderer()
 	m_geometriesByName.clear();
     m_materialManager = make_unique<MaterialManager>();
     m_sceneViewModel = make_unique<SceneViewModel>();
+    m_lightViewModel = make_unique<LightViewModel>();
     m_lightingSystem = make_unique<LightingSystem>();
 	m_shadowManager = make_unique<ShadowManager>();
 	m_textureManager = make_unique<TextureManager>();
@@ -47,6 +49,7 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
     m_lightingSystem->Initialize(device, Lunar::LunarConstants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this);
+    m_lightViewModel->Initialize(gui, m_lightingSystem.get());
 	m_materialManager->Initialize(device);
     for (auto& [layer, geometryEntries] : m_layeredGeometries)
     {
