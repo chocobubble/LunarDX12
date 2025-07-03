@@ -599,7 +599,7 @@ void MainApp::InitializeGeometry()
     Transform transform = {};
     transform.Location = XMFLOAT3(0.0f, 1.5f, 0.0f);
     m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
-    // m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::World);
+    m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::Normal); // TODO : Delete
 	transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
 	Transform mirrorTransform = transform;
 	mirrorTransform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);

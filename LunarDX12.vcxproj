@@ -191,6 +191,21 @@
     <None Include="Shaders\common.hlsl">
         <ShaderType>Header</ShaderType>
     </None>
+    <FxCompile Include="Shaders\NormalGeometryShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.0</ShaderModel>
+      <ShaderType>Geometry</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\NormalVertexShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.0</ShaderModel>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\NormalPixelShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.0</ShaderModel>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="Shaders\BillboardGeometryShader.hlsl">
       <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>

@@ -35,6 +35,19 @@ void Geometry::Draw(ID3D12GraphicsCommandList* commandList)
     commandList->DrawIndexedInstanced(static_cast<UINT>(m_indices.size()), 1, 0, 0, 0);
 }
 
+void Geometry::DrawNormals(ID3D12GraphicsCommandList* commandList)
+{
+	if (m_needsConstantBufferUpdate)
+	{
+		UpdateObjectConstants();
+	}
+    
+	BindObjectConstants(commandList);
+	commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+	commandList->DrawInstanced(static_cast<UINT>(m_vertices.size()), 1, 0, 0);
+}
+
 void Geometry::SetWorldMatrix(DirectX::XMFLOAT4X4 worldMatrix)
 {
 	m_objectConstants.World = worldMatrix;

@@ -24,6 +24,7 @@ public:
     
     virtual void Initialize(ID3D12Device* device);
     virtual void Draw(ID3D12GraphicsCommandList* commandList);
+	virtual void DrawNormals(ID3D12GraphicsCommandList* commandList);
 
 	void SetWorldMatrix(DirectX::XMFLOAT4X4 worldMatrix);
     void SetTransform(const Transform& transform);

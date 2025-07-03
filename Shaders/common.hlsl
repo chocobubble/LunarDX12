@@ -1,3 +1,31 @@
+struct Light
+{
+	float3 strength;
+	float fallOffStart;
+	float3 direction;
+	float fallOffEnd;
+	float3 position;
+	float spotPower;
+};
+
+cbuffer BasicConstants : register(b0)
+{
+	float4x4 view;
+	float4x4 projection;
+	float3 eyePos;
+	float normalMapIndex;
+	float4 ambientLight;
+	Light lights[3];
+	float4x4 shadowTransform;
+}
+
+cbuffer ObjectConstants : register(b1)
+{
+	float4x4 world;
+	float4x4 worldInvTranspose;
+	int textureIndex;	
+}
+
 float3x3 GetTBN(float3 normal, float3 tangent)
 {
 	float3 N = normalize(normal);

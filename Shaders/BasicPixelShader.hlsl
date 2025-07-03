@@ -6,34 +6,6 @@ Texture2D wallTexture : register(t0);
 Texture2D normalTexture : register(t4);
 SamplerState g_sampler : register(s0);
 
-struct Light
-{
-	float3 strength;
-	float fallOffStart;
-	float3 direction;
-	float fallOffEnd;
-	float3 position;
-	float spotPower;
-};
-
-cbuffer BasicConstants : register(b0)
-{
-	float4x4 view;
-	float4x4 projection;
-	float3 eyePos;
-	float normalMapIndex;
-	float4 ambientLight;
-	Light lights[3];
-	float4x4 shadowTransform;
-}
-
-cbuffer ObjectConstants : register(b1)
-{
-	float4x4 world;
-	float4x4 worldInvTranspose;
-	int textureIndex;	
-}
-
 cbuffer Material : register(b2)
 {
 	float4 diffuseAlbedo;

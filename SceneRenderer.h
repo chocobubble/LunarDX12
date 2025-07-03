@@ -32,6 +32,7 @@ enum class RenderLayer
 	Reflect,
 	Billboard,
     Translucent,
+	Normal,
     UI
 };
 
@@ -104,5 +105,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 	UINT m_srvDescriptorSize;
+
+	bool m_drawNormals = true;
 };
 }

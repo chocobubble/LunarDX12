@@ -372,6 +372,18 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     			commandList->OMSetStencilRef(0);
     			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
     			break;
+    		case RenderLayer::Normal :
+    			if (m_drawNormals)
+    			{
+    				commandList->OMSetStencilRef(0);
+    				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
+    				// Refactor
+    				for (auto& entry : m_layeredGeometries[RenderLayer::World])
+    				{
+    					entry->GeometryData->DrawNormals(commandList);
+    				}
+    			}
+    			break;
 			default:
     			LOG_ERROR("Not Handled RenderLayerType");
 	    }
