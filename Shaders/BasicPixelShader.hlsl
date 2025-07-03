@@ -1,8 +1,8 @@
 #include "common.hlsl"
 
-Texture2D wallTexture : register(t0);
+Texture2D tileTexture : register(t0);
 Texture2D shadowTexture : register(t6);
-Texture2D tileTexture : register(t4);
+Texture2D wallTexture : register(t4);
 Texture2D normalTexture : register(t5);
 SamplerState g_sampler : register(s0);
 
@@ -71,7 +71,9 @@ float3 BlinnPhong(float3 normal, float3 toEye, float lightVector, float lambertL
 	float3 hv = normalize(lightVector + toEye);
 	float roughnessFactor = CalculateRoughnessFactor(hv, normal, shininess);
 	float3 fresnelFactor = SchlickFresnel(fresnelR0, toEye, hv);
-	return (diffuseAlbedo.rgb + roughnessFactor * fresnelFactor) * lambertLightStrength;	
+	float3 specAlbedo = fresnelFactor * roughnessFactor;
+	specAlbedo = specAlbedo / (specAlbedo + 1.0f);
+	return (diffuseAlbedo.rgb + specAlbedo) * lambertLightStrength;	
 }
 
 float3 ComputeDirectionalLight(float3 lightVector, float3 normalVector, float3 toEye, float3 lightStrength)
@@ -115,32 +117,32 @@ float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toE
 
 float4 main(PixelIn pIn) : SV_TARGET
 {
-	float4 diffuseColor = wallTexture.Sample(g_sampler, pIn.texCoord);
+	float4 diffuseColor = tileTexture.Sample(g_sampler, pIn.texCoord);
 	float3 normalSample = normalTexture.Sample(g_sampler, pIn.texCoord).rgb;
 	
 	float3x3 TBN = GetTBN(pIn.normal, pIn.tangent);
 	float3 normalWS = NormalTSToWS(normalSample, TBN);
-	
+
+	// return float4(normalWS, 1.0);
 	float shadowFactor = 1.0;
 	float4 posW = float4(pIn.posW, 1.0);
 	float4 shadowCoord = mul(posW, shadowTransform);
 	
-	if (shadowCoord.x >= 0.0 && shadowCoord.x <= 1.0 && shadowCoord.y >= 0.0 && shadowCoord.y <= 1.0 && shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
-    {
+	// if (shadowCoord.x >= 0.0 && shadowCoord.x <= 1.0 && shadowCoord.y >= 0.0 && shadowCoord.y <= 1.0 && shadowCoord.z >= 0.0 && shadowCoord.z <= 1.0)
+ //    {
 		float currentDepth = shadowCoord.z;
 		float shadowDepth = shadowTexture.Sample(g_sampler, shadowCoord.xy).r;
 		
-		float3 lightDir = normalize(lights[0].direction);
-		
 		shadowFactor = currentDepth > shadowDepth ? 0.3 : 1.0;
-	}
+	// }
 	
-	float3 toEye = normalize(eyePos - pIn.posW);
+	float3 toEye = normalize(eyePos - pIn.posW.xyz);
+	// float3 finalColor = ambientLight.rgb;
 	float3 finalColor = ambientLight.rgb * diffuseColor.rgb;
 	
 	finalColor += ComputeDirectionalLight(-lights[0].direction, normalWS, toEye, lights[0].strength) * shadowFactor;
 	finalColor += ComputePointLight(lights[1], pIn.posW, normalWS, toEye);
     finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
-	
+
 	return float4(finalColor, diffuseColor.a);
 }

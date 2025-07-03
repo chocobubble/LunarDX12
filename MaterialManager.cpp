@@ -34,7 +34,7 @@ void MaterialManager::CreateMaterials(ID3D12Device* device)
             std::make_unique<ConstantBuffer>(device, sizeof(MaterialConstants))
         };
     };
-	createMaterial("default", XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f), XMFLOAT3(0.01f, 0.01f, 0.01f), 0.125f);
+	createMaterial("default", XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f), XMFLOAT3(0.01f, 0.01f, 0.01f), 0.125f);
 }
 
 void MaterialManager::UpdateMaterial(const std::string& name, const MaterialConstants& material)

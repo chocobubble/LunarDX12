@@ -46,8 +46,8 @@ static constexpr std::array<TextureInfo, 6> TEXTURE_INFO = {{
     {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
-	{"tile_color", "Assets\\Textures\\tile\\tile-color.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_normal", "Assets\\Textures\\tile\\tile-normal.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_color", "Assets\\Textures\\Rock\\Rock-Color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_normal", "Assets\\Textures\\Rock\\Rock-Normal.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
 }};
 struct ShaderInfo
 {
@@ -85,8 +85,8 @@ struct LightInfo
 };
 static constexpr std::array<LightInfo, 3> LIGHT_INFO = { {
 	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {7.0f, 7.0f, 7.0f}, 0.0f, 0.0f, 0.0f },
-	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {0.0f, 0.0f, 0.0f}, {0.0f, 3.0f, 0.0f}, 2.0f, 8.0f, 0.0f},
-	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.0f, -0.5f, 1.0f}, {0.0f, 1.5f, 0.0f}, 1.0f, 10.0f, 16.0f }
+	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {-0.57735f, -0.57735f, 0.57735f}, {0.0f, 3.0f, 0.0f}, 2.0f, 8.0f, 0.0f},
+	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.0f, -0.707f, -0.707f}, {0.0f, 1.5f, 0.0f}, 1.0f, 10.0f, 16.0f }
 }};
 }	
 }

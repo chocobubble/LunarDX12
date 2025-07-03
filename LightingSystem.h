@@ -65,7 +65,7 @@ private:
     // for now, set 1 directional, 1 point, 1 spot
     UINT m_maxLights = 3;
     bool m_needsUpdate = true;
-    DirectX::XMFLOAT4 m_ambientLight = {0.1f, 0.1f, 0.1f, 1.0f};
+    DirectX::XMFLOAT4 m_ambientLight = {0.6f, 0.6f, 0.6f, 1.0f};
 
     LunarConstants::LightType GetLightType(const std::string& name) const;
     void                      AddLight(const std::string& name, const LightData& lightData, LunarConstants::LightType type);
