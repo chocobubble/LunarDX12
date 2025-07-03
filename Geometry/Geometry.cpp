@@ -84,7 +84,10 @@ void Geometry::SetScale(const XMFLOAT3& scale)
 
 void Geometry::SetColor(const XMFLOAT4& color)
 {
-    m_color = color;
+    for (auto& vertex : m_vertices)
+    {
+        vertex.color = color;
+    }
 }
 
 void Geometry::SetTextureIndex(int index)

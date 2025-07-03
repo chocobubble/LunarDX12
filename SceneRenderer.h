@@ -34,6 +34,7 @@ enum class RenderLayer
 	Billboard,
     Translucent,
 	Normal,
+    Debug,
     UI
 };
 
@@ -62,8 +63,8 @@ public:
 	void UpdateScene(float deltaTime);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
-    bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
-    bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
+    bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
+    bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
     bool AddPlane(const std::string& name, const Transform& spawnTransform = Transform(), float width = 10.0f, float height = 10.0f, RenderLayer layer = RenderLayer::World);
 	bool AddTree(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::Billboard);
     
@@ -111,5 +112,12 @@ private:
 	UINT m_srvDescriptorSize;
 
 	bool m_drawNormals = true;
+
+    // Debug Section
+public:
+    // Light Visualization
+    void CreateLightVisualizationCubes();
+    void UpdateLightVisualization();
+
 };
 }

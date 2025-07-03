@@ -6,15 +6,13 @@
 #include <d3d12.h>
 #include <DirectXMath.h>
 
-// #include "ConstantBuffers.h"
+#include "LunarConstants.h"
 
 namespace Lunar
 {
-	namespace LunarConstants {
-		enum class LightType;
-	}
+class LightViewModel;
 
-	struct BasicConstants;
+struct BasicConstants;
 struct LightData
 {
     DirectX::XMFLOAT3 Strength = {1.0f, 1.0f, 1.0f};
@@ -41,6 +39,7 @@ public:
     void SetLightEnabled(const std::string& name, bool enabled);
 
     const LightData* GetLight(const std::string& name) const;
+    LightData* GetLight(const std::string& name);
     uint32_t GetLightIndex(const std::string& name) const;
 
     bool UpdateLightData(BasicConstants& basicConstants);
@@ -70,6 +69,5 @@ private:
 
     LunarConstants::LightType GetLightType(const std::string& name) const;
     void                      AddLight(const std::string& name, const LightData& lightData, LunarConstants::LightType type);
-    LightData*                GetLight(const std::string& name);
 };
 }

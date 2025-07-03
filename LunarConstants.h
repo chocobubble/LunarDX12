@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <array>
 #include <dxgi1_6.h>
+#include <DirectXMath.h>
 
 namespace Lunar 
 {
@@ -87,9 +88,20 @@ struct LightInfo
 	const float spotPower;
 };
 static constexpr std::array<LightInfo, 3> LIGHT_INFO = { {
-	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {7.0f, 7.0f, 7.0f}, 0.0f, 0.0f, 0.0f },
-	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {-0.57735f, -0.57735f, 0.57735f}, {0.0f, 3.0f, 0.0f}, 2.0f, 8.0f, 0.0f},
-	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.0f, -0.707f, -0.707f}, {0.0f, 1.5f, 0.0f}, 1.0f, 10.0f, 16.0f }
+	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {-3.0f, 3.0f, -3.0f}, 0.0f, 0.0f, 0.0f },
+	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {-0.57735f, -0.57735f, 0.57735f}, {3.0f, 3.0f, -3.0f}, 2.0f, 8.0f, 0.0f},
+	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.0f, -0.707f, -0.707f}, {0.0f, 3.0f, 3.0f}, 1.0f, 10.0f, 16.0f }
 }};
+
+// Light Visualization Colors
+namespace LightVizColors 
+{
+    static constexpr DirectX::XMFLOAT4 DIRECTIONAL_LIGHT = {1.0f, 1.0f, 0.0f, 1.0f};    // yellow
+    static constexpr DirectX::XMFLOAT4 DIRECTIONAL_ARROW = {1.0f, 0.5f, 0.0f, 1.0f};    // orange 
+    static constexpr DirectX::XMFLOAT4 POINT_LIGHT = {1.0f, 0.0f, 0.0f, 1.0f};          // red 
+    static constexpr DirectX::XMFLOAT4 SPOT_LIGHT = {0.0f, 0.0f, 1.0f, 1.0f};           // blue 
+    static constexpr DirectX::XMFLOAT4 SPOT_ARROW = {0.0f, 0.8f, 1.0f, 1.0f};           // sky-blue 
+}
+
 }	
 }
