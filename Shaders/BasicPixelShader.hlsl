@@ -1,9 +1,9 @@
 #include "common.hlsl"
 
-Texture2D tileTexture : register(t0);
+Texture2D tileTexture : register(t3);
 Texture2D shadowTexture : register(t6);
-Texture2D wallTexture : register(t4);
-Texture2D normalTexture : register(t5);
+Texture2D wallTexture : register(t0);
+Texture2D normalTexture : register(t4);
 SamplerState g_sampler : register(s0);
 
 struct Light
