@@ -7,6 +7,7 @@ namespace Lunar
 
 class LunarGui;
 class LightingSystem;
+class SceneRenderer;
 
 /*
  * Light Control UI Layout:
@@ -58,7 +59,7 @@ public:
     LightViewModel() = default;
     ~LightViewModel() = default;
 
-    void Initialize(LunarGui* gui, LightingSystem* lightingSystem);
+    void Initialize(LunarGui* gui, LightingSystem* lightingSystem, SceneRenderer* sceneRenderer);
 
 private:
     bool m_showLightWindow = true;
@@ -87,6 +88,7 @@ private:
     float m_spotPower;
     
     LightingSystem* m_lightingSystem = nullptr;
+    SceneRenderer* m_sceneRenderer = nullptr;
     
     void UpdateAmbientLight();
     void UpdateDirectionalLight();

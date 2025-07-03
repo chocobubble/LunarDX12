@@ -40,7 +40,6 @@ public:
     const DirectX::XMFLOAT3& GetLocation() const { return m_transform.Location; }
     const DirectX::XMFLOAT3& GetRotation() const { return m_transform.Rotation; }
     const DirectX::XMFLOAT3& GetScale() const { return m_transform.Scale; }
-    const DirectX::XMFLOAT4& GetColor() const { return m_color; }
     const std::string& GetMaterialName() const { return m_materialName; }
     
     void UpdateObjectConstants();
@@ -52,8 +51,7 @@ protected:
     std::vector<uint16_t> m_indices;
 
 	ObjectConstants m_objectConstants;
-    Transform m_transform;  
-    DirectX::XMFLOAT4 m_color = {1.0f, 1.0f, 1.0f, 1.0f};  // TODO: delete 
+    Transform m_transform; 
     
     Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;

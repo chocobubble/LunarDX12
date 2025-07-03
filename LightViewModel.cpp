@@ -9,17 +9,18 @@ using namespace DirectX;
 namespace Lunar
 {
 
-void LightViewModel::Initialize(LunarGui* gui, LightingSystem* lightingSystem)
+void LightViewModel::Initialize(LunarGui* gui, LightingSystem* lightingSystem, SceneRenderer* sceneRenderer)
 {
     LOG_FUNCTION_ENTRY();
     
-    if (!gui || !lightingSystem)
+    if (!gui || !lightingSystem || !sceneRenderer)
     {
-        LOG_ERROR("LightViewModel: Invalid gui or lightingSystem pointer");
+        LOG_ERROR("LightViewModel: Invalid gui, lightingSystem, or sceneRenderer pointer");
         return;
     }
     
     m_lightingSystem = lightingSystem;
+    m_sceneRenderer = sceneRenderer;
     
     auto* dirLight = m_lightingSystem->GetLight("SunLight");
     auto* pointLight = m_lightingSystem->GetLight("RoomLight");
@@ -138,6 +139,10 @@ void LightViewModel::UpdateDirectionalLight()
         m_lightingSystem->SetLightDirection("SunLight", m_directionalDirection);
         m_lightingSystem->SetLightColor("SunLight", m_directionalColor);
     }
+    
+    if (m_sceneRenderer) {
+        m_sceneRenderer->UpdateLightVisualization();
+    }
 }
 
 void LightViewModel::UpdatePointLight()
@@ -149,6 +154,10 @@ void LightViewModel::UpdatePointLight()
         m_lightingSystem->SetLightPosition("RoomLight", m_pointPosition);
         m_lightingSystem->SetLightColor("RoomLight", m_pointColor);
         m_lightingSystem->SetLightRange("RoomLight", m_pointRange);
+    }
+    
+    if (m_sceneRenderer) {
+        m_sceneRenderer->UpdateLightVisualization();
     }
 }
 
@@ -163,6 +172,10 @@ void LightViewModel::UpdateSpotLight()
         m_lightingSystem->SetLightColor("FlashLight", m_spotColor);
         m_lightingSystem->SetLightRange("FlashLight", m_spotRange);
         m_lightingSystem->SetLightSpotPower("FlashLight", m_spotPower);
+    }
+    
+    if (m_sceneRenderer) {
+        m_sceneRenderer->UpdateLightVisualization();
     }
 }
 
