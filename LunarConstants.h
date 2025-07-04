@@ -34,8 +34,7 @@ enum class TextureDimension : uint8_t {
     TEXTURE2D = 4,
     CUBEMAP = 9
 }; 
-struct TextureInfo
-{
+struct TextureInfo{
     const char* name;
     const char* path;
     FileType fileType;
@@ -82,9 +81,9 @@ struct LightInfo
 	const float spotPower;
 };
 static constexpr std::array<LightInfo, 3> LIGHT_INFO = { {
-	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {7.0f, 7.0f, 7.0f}, 0.0f, 0.0f, 0.0f },
-	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {0.0f, 0.0f, 0.0f}, {0.0f, 3.0f, 0.0f}, 2.0f, 8.0f, 0.0f},
-	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.0f, -0.5f, 1.0f}, {0.0f, 1.5f, 0.0f}, 1.0f, 10.0f, 16.0f }
+	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {-3.0f, 3.0f, -3.0f}, 0.0f, 0.0f, 0.0f },
+	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {-0.57735f, -0.57735f, 0.57735f}, {3.0f, 3.0f, -3.0f}, 2.0f, 8.0f, 0.0f},
+	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.57735f, -0.57735f, -0.57735f}, {-3.0f, 3.0f, 3.0f}, 1.0f, 10.0f, 16.0f }
 }};
 }	
 }

@@ -91,7 +91,7 @@ void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHea
 
 void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)
 {
-	m_basicConstants = {};
+	m_basicConstants = basicConstants;
 	// const float* dir = LunarConstants::LIGHT_INFO[0].direction;
 	XMVECTOR lightDir = XMVectorSet(m_posX, m_posY, m_posZ, 0.0f);
 	XMVECTOR lightPos = -2.0f * m_sceneRadius * lightDir;

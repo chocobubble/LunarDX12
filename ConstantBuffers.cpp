@@ -55,5 +55,7 @@ ConstantBuffer::~ConstantBuffer()
 void ConstantBuffer::CopyData(void* data, UINT size)
 {
 	memcpy(m_mappedData, data, size);
+	// memcpy(m_mappedData, data, Utils::CalculateConstantBufferByteSize(ize););
+
 }
 } // namespace Lunar

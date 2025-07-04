@@ -66,13 +66,13 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if (m_mouseMoving) OnMouseMove(LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_LBUTTONUP:
-			LOG_DEBUG("Left mouse button");
+			// LOG_DEBUG("Left mouse button");
 			break;
 		case WM_RBUTTONUP:
-			LOG_DEBUG("Right mouse button");
+			// LOG_DEBUG("Right mouse button");
 			break;
 		case WM_KEYDOWN:
-			LOG_DEBUG("Key ", (int)wParam, " down");
+			// LOG_DEBUG("Key ", (int)wParam, " down");
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage(0);
@@ -290,8 +290,9 @@ void MainApp::Update(double dt)
 	BasicConstants& constants = m_sceneRenderer->GetBasicConstants();
 	XMStoreFloat4x4(&constants.view, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetViewMatrix())));
 	XMStoreFloat4x4(&constants.projection, XMMatrixTranspose(XMLoadFloat4x4(&m_camera->GetProjMatrix())));
-	constants.eyePos = m_camera->GetPosition();
-
+	constants.eyePos = XMFLOAT4(m_camera->GetPosition().x, m_camera->GetPosition().y, m_camera->GetPosition().z, 0.0f);
+	// LOG_DEBUG("Camera Pos : ", constants.eyePos.x, ", ", constants.eyePos.y, ", ", constants.eyePos.z);
+	
     m_sceneRenderer->UpdateScene(dt);
 }
 
@@ -347,7 +348,7 @@ void MainApp::Render(double dt)
 
 	m_commandList->SetGraphicsRootDescriptorTable(0, m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
 	
-	m_sceneRenderer->RenderShadowMap(m_commandList.Get());
+	// m_sceneRenderer->RenderShadowMap(m_commandList.Get());
 
 	m_viewport = {};
 	m_viewport.TopLeftX = 0.0f;

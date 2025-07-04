@@ -1,6 +1,6 @@
 struct Light
 {
-	float3 lightStrength;
+	float3 strength;
 	float fallOffStart;
 	float3 direction;
 	float fallOffEnd;
@@ -12,15 +12,17 @@ cbuffer BasicConstants : register(b0)
 {
 	float4x4 view;
 	float4x4 projection;
-	float3 eyePos;
+	float4 eyePos;
 	float4 ambientLight;
 	Light lights[3];
+	float4x4 shadowTransform;
 }
 
 cbuffer ObjectConstants : register(b1)
 {
 	float4x4 world;
-	int textureIndex;	
+	float4x4 worldInvTranspose;
+	int textureIndex;
 }
 
 struct VertexIn
@@ -37,20 +39,22 @@ struct PixelIn
     float4 color : COLOR;
 	float2 texCoord : TEXCOORD;
 	float3 normal : NORMAL;
-	float3 posW : POSITION;
+	float3 posW : POSITION0;
+	float3 eyePosW : POSITION1;
 };
 
 PixelIn main(VertexIn vIn)
 {
     PixelIn pIn;
 	float4 pos = float4(vIn.pos, 1.0f);
-	// pIn.pos = mul(pos, model);
 	pIn.pos = mul(pos, world);
-	pIn.posW = pIn.pos;
+	// pIn.pos = pos;
+	pIn.posW = mul(pos, world);
 	pIn.pos = mul(pIn.pos, view);
 	pIn.pos = mul(pIn.pos, projection);
     pIn.color = vIn.color;
 	pIn.texCoord = vIn.texCoord;
-	pIn.normal = vIn.normal;
+	pIn.normal = normalize(mul(vIn.normal, (float3x3)(worldInvTranspose)));
+	pIn.eyePosW = mul(eyePos, world);
     return pIn;
 }
