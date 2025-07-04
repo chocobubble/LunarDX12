@@ -113,7 +113,11 @@ void Geometry::UpdateWorldMatrix()
 
 void Geometry::UpdateObjectConstants()
 {
-    XMStoreFloat4x4(&m_objectConstants.WorldInvTranspose, XMMatrixTranspose(XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_objectConstants.World))));
+    XMMATRIX worldMatrix = XMLoadFloat4x4(&m_objectConstants.World);
+	worldMatrix.r[3] = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+	XMMATRIX worldInv = XMMatrixInverse(nullptr, worldMatrix);
+	XMMATRIX worldInvTranspose = XMMatrixTranspose(worldInv);
+	XMStoreFloat4x4(&m_objectConstants.WorldInvTranspose, XMMatrixTranspose(worldInvTranspose));
     m_objectCB->CopyData(&m_objectConstants, sizeof(ObjectConstants));
     m_needsConstantBufferUpdate = false;
 }

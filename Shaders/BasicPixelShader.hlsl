@@ -10,7 +10,7 @@ cbuffer Material : register(b2)
 {
 	float4 diffuseAlbedo;
 	float3 fresnelR0;
-	float roughness;
+	float shininess;
 }
 
 struct PixelIn
@@ -28,32 +28,33 @@ float CalculateAttenuation(float distanceFromLight, Light light)
 	return saturate((light.fallOffEnd - distanceFromLight) / (light.fallOffEnd - light.fallOffStart));
 }
 
-float CalculateRoughnessFactor(float3 halfVector, float normalVector, float Shininess)
+float CalculateRoughnessFactor(float3 halfVector, float3 normalVector, float shininess)
 {
-	return pow(max(dot(halfVector, normalVector), 0.0f), Shininess) * (Shininess + 8.0f) / 8.0f;
+    shininess *= 256.0f;
+	return pow(saturate(dot(halfVector, normalVector)), shininess) * (shininess + 8.0f) / 8.0f;
 }
 
-float3 SchlickFresnel(float3 R0, float3 toEye, float3 halfVector)
+float3 SchlickFresnel(float3 R0, float3 normalVector, float3 halfVector)
 {
-	float cosTheta = max(dot(halfVector, toEye), 0.0);
+	float cosTheta = max(dot(halfVector, normalVector), 0.0);
 	return R0 + (1 - R0) * pow((1 - cosTheta), 5);	
 }
 
-float3 BlinnPhong(float3 normal, float3 toEye, float lightVector, float lambertLightStrength)
+float3 BlinnPhong(float3 normal, float3 toEye, float3 lightVector, float3 lambertLightStrength)
 {
-	float shininess = 32.0;
 	float3 hv = normalize(lightVector + toEye);
 	float roughnessFactor = CalculateRoughnessFactor(hv, normal, shininess);
-	float3 fresnelFactor = SchlickFresnel(fresnelR0, toEye, hv);
+	float3 fresnelFactor = SchlickFresnel(fresnelR0, normal, hv);
 	float3 specAlbedo = fresnelFactor * roughnessFactor;
 	specAlbedo = specAlbedo / (specAlbedo + 1.0f);
 	return (diffuseAlbedo.rgb + specAlbedo) * lambertLightStrength;	
 }
 
-float3 ComputeDirectionalLight(float3 lightVector, float3 normalVector, float3 toEye, float3 lightStrength)
+float3 ComputeDirectionalLight(Light light, float3 pos, float3 normalVector, float3 toEye)
 {
-	float lambertLightStrength = lightStrength * max(dot(lightVector, normalVector), 0.0f);
-	return BlinnPhong(normalVector, toEye, lightVector, lambertLightStrength);
+    float3 nLightVector = normalize(-light.direction);
+	float3 lambertLightStrength = light.strength * max(dot(nLightVector, normalVector), 0.0f);
+	return BlinnPhong(normalVector, toEye, nLightVector, lambertLightStrength);
 }
 
 float3 ComputePointLight(Light light, float3 pos, float3 normalVector, float3 toEye)
@@ -93,7 +94,8 @@ float4 main(PixelIn pIn) : SV_TARGET
 {
 	float4 diffuseColor = tileTexture.Sample(g_sampler, pIn.texCoord);
 	float3 normalSample = normalTexture.Sample(g_sampler, pIn.texCoord).rgb;
-	
+
+	pIn.normal = normalize(pIn.normal);
 	float3x3 TBN = GetTBN(pIn.normal, pIn.tangent);
 	float3 normalWS = NormalTSToWS(normalSample, TBN);
 	if (normalMapIndex < 0.5) normalWS = pIn.normal;
@@ -116,14 +118,16 @@ float4 main(PixelIn pIn) : SV_TARGET
 		
 		shadowFactor = currentDepth > shadowDepth ? 0.3 : 1.0;
 	}
+	shadowFactor = 1.0;
 	
 	float3 toEye = normalize(eyePos - pIn.posW.xyz);
-	float3 finalColor = diffuseColor.rgb;
+	// float3 finalColor = diffuseColor.rgb;
 	// float3 finalColor = ambientLight.rgb * diffuseColor.rgb;
-	
-	finalColor += ComputeDirectionalLight(-lights[0].direction, normalWS, toEye, lights[0].strength) * shadowFactor;
+	float3 finalColor = float3(0, 0, 0);
+	finalColor += ComputeDirectionalLight(lights[0], pIn.posW, normalWS, toEye) * shadowFactor;
 	finalColor += ComputePointLight(lights[1], pIn.posW, normalWS, toEye);
- finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
+    finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
 
-	return float4(finalColor, diffuseColor.a);
+	return float4(finalColor, 1.0);
+	// return float4(finalColor, diffuseColor.a);
 }
