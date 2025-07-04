@@ -51,10 +51,10 @@ float CalculateAttenuation(float distanceFromLight, Light light)
 	return saturate((light.fallOffEnd - distanceFromLight) / (light.fallOffEnd - light.fallOffStart));
 }
 
-float CalculateRoughnessFactor(float3 halfVector, float normalVector, float shininess)
+float CalculateRoughnessFactor(float3 halfVector, float3 normalVector, float shininess)
 {
-	shininess *= 256.0f;
-	return pow(max(dot(halfVector, normalVector), 0.0f), shininess) * (shininess + 8.0f) / 8.0f;
+	shininess = 256.0f;
+	return pow(saturate(dot(halfVector, normalVector)), shininess) * (shininess + 8.0f) / 8.0f;
 }
 
 float3 SchlickFresnel(float3 R0, float3 lightVector, float3 halfVector)
@@ -67,7 +67,7 @@ float3 BlinnPhong(float3 normal, float3 toEye, float3 lightVector, float3 lamber
 {
 	float3 hv = normalize(lightVector + toEye);
 	float roughnessFactor = CalculateRoughnessFactor(hv, normal, shininess);
-	float3 fresnelFactor = SchlickFresnel(fresnelR0, lightVector, hv);
+	float3 fresnelFactor = SchlickFresnel(fresnelR0, normal, hv);
 	float3 t = roughnessFactor * fresnelFactor;
 	t = t / (t + 1.0f);
 	return (diffuseAlbedo.rgb + t) * lambertLightStrength;
@@ -131,9 +131,9 @@ float4 main(PixelIn pIn) : SV_TARGET
 	// float3 toEye = normalize((-3.5, 0.5, -3.5, 0.0) - pIn.posW);
 	// float3 toEye = normalize(temp - pIn.posW);
 	float3 finalColor = float3(0, 0, 0);
-	// finalColor += ComputeDirectionalLight(normalize(-(lights[0].direction)), pIn.normal, toEye, lights[0].strength);
+	finalColor += ComputeDirectionalLight(normalize(-(lights[0].direction)), pIn.normal, toEye, lights[0].strength);
 	// finalColor += ComputePointLight(lights[1], pIn.posW, pIn.normal, toEye);
-	finalColor += ComputeSpotLight(lights[2], pIn.posW, pIn.normal, toEye);
+	// finalColor += ComputeSpotLight(lights[2], pIn.posW, pIn.normal, toEye);
 	return float4(finalColor, 1);
 
 	

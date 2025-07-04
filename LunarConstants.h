@@ -82,8 +82,8 @@ struct LightInfo
 };
 static constexpr std::array<LightInfo, 3> LIGHT_INFO = { {
 	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {-3.0f, 3.0f, -3.0f}, 0.0f, 0.0f, 0.0f },
-	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {-0.57735f, -0.57735f, 0.57735f}, {3.0f, 3.0f, -3.0f}, 2.0f, 8.0f, 0.0f},
-	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.57735f, -0.57735f, -0.57735f}, {-3.0f, 3.0f, 3.0f}, 1.0f, 10.0f, 16.0f }
+	{ LightType::Point, "RoomLight", {1.0f, 0.0f, 0.7f},     {-0.57735f, -0.57735f, 0.57735f}, {3.0f, 3.0f, -3.0f}, 2.0f, 8.0f, 0.0f},
+	{ LightType::Spot, "FlashLight", {0.0f, 1.0f, 0.9f}, {0.57735f, -0.57735f, -0.57735f}, {-3.0f, 3.0f, 3.0f}, 1.0f, 10.0f, 16.0f }
 }};
 }	
 }
