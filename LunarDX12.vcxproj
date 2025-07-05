@@ -193,7 +193,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -204,7 +204,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -215,7 +215,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -226,7 +226,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -237,7 +237,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -248,7 +248,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -259,7 +259,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -270,7 +270,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -281,7 +281,7 @@
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>
       <EntryPointName>main</EntryPointName>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
@@ -289,7 +289,7 @@
     </FxCompile>
     <FxCompile Include="Shaders\ParticlesComputeShader.hlsl">
       <EntryPointName>main</EntryPointName>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>5.1</ShaderModel>
       <ShaderType>Compute</ShaderType>
     </FxCompile>
   </ItemGroup>

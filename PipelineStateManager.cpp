@@ -26,10 +26,7 @@ PipelineStateManager::PipelineStateManager()
 		},
 		{
 			"billboard", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }}
-		},
-        {
-            "particles", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }}
-        }
+		}
 	};
 }
 
@@ -85,11 +82,11 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	textureSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	D3D12_DESCRIPTOR_RANGE shadowMapSrvRange = {};
-	particleSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	particleSrvRange.NumDescriptors = 1;
-	particleSrvRange.BaseShaderRegister = 0;
-	particleSrvRange.RegisterSpace = 1;
-	particleSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	shadowMapSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	shadowMapSrvRange.NumDescriptors = 1;
+	shadowMapSrvRange.BaseShaderRegister = 0;
+	shadowMapSrvRange.RegisterSpace = 1;
+	shadowMapSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
     D3D12_DESCRIPTOR_RANGE particleSrvRange = {};
     particleSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -376,8 +373,8 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC mirrorStencilPsoDesc = opaquePsoDesc;
 		mirrorStencilPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 		mirrorStencilPsoDesc.DepthStencilState.StencilEnable = true;
-        psoDesc.DepthStencilState.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-        psoDesc.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+        mirrorStencilPsoDesc.DepthStencilState.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+        mirrorStencilPsoDesc.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
 
 		/*
 		typedef struct D3D12_DEPTH_STENCILOP_DESC
@@ -448,13 +445,24 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	
     // PSO for particle system
     {
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC particlesUpdatePsoDesc = opaquePsoDesc;
+    	/*
+    	typedef struct D3D12_COMPUTE_PIPELINE_STATE_DESC
+    	{
+    		ID3D12RootSignature *pRootSignature;
+    		D3D12_SHADER_BYTECODE CS;
+    		UINT NodeMask;
+    		D3D12_CACHED_PIPELINE_STATE CachedPSO;
+    		D3D12_PIPELINE_STATE_FLAGS Flags;
+    	} 	D3D12_COMPUTE_PIPELINE_STATE_DESC;
+		*/
+
+		D3D12_COMPUTE_PIPELINE_STATE_DESC particlesUpdatePsoDesc = {};
+    	particlesUpdatePsoDesc.pRootSignature = m_rootSignature.Get();
+    	particlesUpdatePsoDesc.NodeMask = 0;
         particlesUpdatePsoDesc.CS.pShaderBytecode = m_shaderMap["particlesUpdateCS"]->GetBufferPointer();
         particlesUpdatePsoDesc.CS.BytecodeLength = m_shaderMap["particlesUpdateCS"]->GetBufferSize();
-        m_inputLayout = m_inputLayoutMap["particles"];
-        particlesUpdatePsoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
-        particlesUpdatePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-        THROW_IF_FAILED(device->CreateGraphicsPipelineState(&particlesUpdatePsoDesc, 
+    	particlesUpdatePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        THROW_IF_FAILED(device->CreateComputePipelineState(&particlesUpdatePsoDesc, 
             IID_PPV_ARGS(m_psoMap["particlesUpdate"].GetAddressOf())))
     }
 }

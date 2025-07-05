@@ -1,11 +1,16 @@
 #include "ParticleSystem.h"
 
+#include <d3d12.h>
+
+#include "Logger.h"
+#include "Utils.h"
+
 using namespace DirectX;
 
 namespace Lunar
 {
 
-void Particle::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+void ParticleSystem::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
 {
     // Create 500 particles with random positions and velocities and colors 
     // 1. initial velocities are towards the up direction of the screen
@@ -23,7 +28,7 @@ void Particle::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* comma
     // 6. With transition barrier, copy the data from the upload buffer to the default buffer
     // 7. Transition the particle buffer to the generic read state
 
-    D3DX12_HEAP_PROPERTIES defaultHeapProperties = {};
+    D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
     defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
     defaultHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
     defaultHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -50,7 +55,7 @@ void Particle::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* comma
         nullptr, 
         IID_PPV_ARGS(&m_particleInputBuffer)));
 
-    D3DX12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
+    D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
     uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
 
     // upload buffer description is same as the particle buffer
@@ -102,7 +107,7 @@ void Particle::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* comma
         outputBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
         outputBufferDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-        D3DX12_HEAP_PROPERTIES outputHeapProperties = {};
+        D3D12_HEAP_PROPERTIES outputHeapProperties = {};
         outputHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
         outputHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
         outputHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -119,7 +124,7 @@ void Particle::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* comma
     }
 }
 
-int Particle::AddSRVToDescriptorHeap(ID3D12Device* device, ID3D12DescriptorHeap* descriptorHeap, int descriptorIndex)
+int ParticleSystem::AddSRVToDescriptorHeap(ID3D12Device* device, ID3D12DescriptorHeap* descriptorHeap, int descriptorIndex)
 {
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -150,12 +155,12 @@ int Particle::AddSRVToDescriptorHeap(ID3D12Device* device, ID3D12DescriptorHeap*
     return descriptorIndex;
 }
 
-void Particle::EmitParticles(const XMFLOAT3& position)
+void ParticleSystem::EmitParticles(const XMFLOAT3& position)
 {
     ResetParticles(position);
 }
 
-void Particle::ResetParticles(const XMFLOAT3& position)
+void ParticleSystem::ResetParticles(const XMFLOAT3& position)
 {
     for (auto& particle : particles)
     {
@@ -181,7 +186,7 @@ void Particle::ResetParticles(const XMFLOAT3& position)
     }
 }
 
-void Particle::DrawParticles(ID3D12GraphicsCommandList* commandList)
+void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
 {
     int particlesToDraw = 0;
     for (const auto& particle : particles)

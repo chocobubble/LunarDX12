@@ -6,7 +6,7 @@ struct Particle
     float4 color;
     float lifetime;
     float age;    
-}
+};
 
 StructuredBuffer<Particle> particlesInput : register(t0, space2);
 RWStructuredBuffer<Particle> particlesOutput : register(u0);

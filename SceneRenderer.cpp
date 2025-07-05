@@ -39,7 +39,6 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
 	m_dsvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	m_srvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	
-    m_particleSystem->Initialize(device, commandList);
 	m_shadowManager->Initialize(device);
 	m_shadowViewModel->Initialize(gui, m_shadowManager.get());
 	CreateDSVDescriptorHeap(device);
@@ -134,7 +133,7 @@ void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* devi
 	LOG_FUNCTION_ENTRY();
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 1;
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 3;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
@@ -148,8 +147,10 @@ void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsComma
 	m_textureManager->Initialize(device, commandList, m_srvHandle);
 	m_shadowManager->CreateSRV(device, m_srvHeap.Get());
 
+	// REFACTORING: Rename or refactor this method
+	m_particleSystem->Initialize(device, commandList);
     // REFACTORING: To calculate the descriptor handle increment size
-    m_particleSystem->AddSRVToDescriptorHeap(device, m_srvHeap.Get(), LunarConstants::TEXTURE_INFO.size() + 1);
+    m_particleSystem->AddSRVToDescriptorHeap(device, m_srvHeap.Get(), LunarConstants::TEXTURE_INFO.size() + 2);
 }
 
 void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
