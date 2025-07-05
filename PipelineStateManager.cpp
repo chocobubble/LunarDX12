@@ -77,13 +77,27 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 		UINT OffsetInDescriptorsFromTableStart;
 	} 	D3D12_DESCRIPTOR_RANGE;
 	*/
-	D3D12_DESCRIPTOR_RANGE srvTable = {};
-	srvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	srvTable.NumDescriptors = 5;
-	srvTable.BaseShaderRegister = 0;
-	srvTable.RegisterSpace = 0;
-	srvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-	
+	D3D12_DESCRIPTOR_RANGE textureSrvRange = {};
+	textureSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	textureSrvRange.NumDescriptors = LunarConstants::TEXTURE_INFO.size();
+	textureSrvRange.BaseShaderRegister = 0;
+	textureSrvRange.RegisterSpace = 0;
+	textureSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	D3D12_DESCRIPTOR_RANGE shadowMapSrvRange = {};
+	particleSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	particleSrvRange.NumDescriptors = 1;
+	particleSrvRange.BaseShaderRegister = 0;
+	particleSrvRange.RegisterSpace = 1;
+	particleSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	D3D12_DESCRIPTOR_RANGE particleSrvRange = {};
+	particleSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	particleSrvRange.NumDescriptors = 1;
+	particleSrvRange.BaseShaderRegister = 0;
+	particleSrvRange.RegisterSpace = 2;
+	particleSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	/*
 	typedef struct D3D12_ROOT_PARAMETER
 	{
@@ -97,26 +111,30 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 		D3D12_SHADER_VISIBILITY ShaderVisibility;
 	} 	D3D12_ROOT_PARAMETER;
 	*/
-	D3D12_ROOT_PARAMETER rootParameters[4];
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameters[0].DescriptorTable.pDescriptorRanges = &srvTable;
-	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	D3D12_ROOT_PARAMETER rootParameters[5];
+    size_t index = LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX;
+	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[index].DescriptorTable.NumDescriptorRanges = 3;
+	rootParameters[index].DescriptorTable.pDescriptorRanges = &textureSrvRange;
+	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	rootParameters[1].Descriptor.RegisterSpace = 0;
-	rootParameters[1].Descriptor.ShaderRegister = 0;
-	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    index = LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX;
+	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[index].Descriptor.RegisterSpace = 0;
+	rootParameters[index].Descriptor.ShaderRegister = 0;
+	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	rootParameters[2].Descriptor.RegisterSpace = 0;
-	rootParameters[2].Descriptor.ShaderRegister = 1;
-	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    index = LunarConstants::OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX;
+	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[index].Descriptor.RegisterSpace = 0;
+	rootParameters[index].Descriptor.ShaderRegister = 1;
+	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	rootParameters[3].Descriptor.RegisterSpace = 0;
-	rootParameters[3].Descriptor.ShaderRegister = 2;
-	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    index = LunarConstants::MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX;
+	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[index].Descriptor.RegisterSpace = 0;
+	rootParameters[index].Descriptor.ShaderRegister = 2;
+	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	/*
 	typedef struct D3D12_STATIC_SAMPLER_DESC

@@ -1,5 +1,5 @@
 Texture2D wallTexture : register(t0);
-Texture2D shadowTexture : register(t4);
+Texture2D shadowTexture : register(t0, space1);
 SamplerState g_sampler : register(s0);
 
 struct Light

@@ -345,7 +345,14 @@ void MainApp::Render(double dt)
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
 	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	m_commandList->SetGraphicsRootDescriptorTable(0, m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
+    D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart(); 
+	m_commandList->SetGraphicsRootDescriptorTable(0, descriptorHandle); 
+    descriptorHandle.ptr += LunarConstants::TEXTURE_INFO.size() * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	m_commandList->SetGraphicsRootDescriptorTable(1, descriptorHandle);
+    descriptorHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_commandList->SetGraphicsRootDescriptorTable(2, descriptorHandle);
+    descriptorHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_commandList->SetComputeRootDescriptorTable(0, descriptorHandle);
 	
 	m_sceneRenderer->RenderShadowMap(m_commandList.Get());
 
