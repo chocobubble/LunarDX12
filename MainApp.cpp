@@ -73,6 +73,14 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_KEYDOWN:
 			LOG_DEBUG("Key ", (int)wParam, " down");
+            if (wParam == VK_ESCAPE) 
+            {
+                ::PostQuitMessage(0);
+            }
+            else if (wParam == 'F')
+            {
+                m_mouseMoving = !m_mouseMoving;
+            }
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage(0);
@@ -320,10 +328,6 @@ void MainApp::ProcessInput(double dt)
         cameraDeltaRight += dt;
         cameraDirty = true;
     }
-	if (GetAsyncKeyState('F') & 0x8000)
-	{
-		m_mouseMoving = !m_mouseMoving;
-	}
 
     if (cameraDirty)
     {
