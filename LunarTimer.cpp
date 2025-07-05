@@ -1,4 +1,4 @@
-﻿#include "LunarTimer.h"
+#include "LunarTimer.h"
 #include <windows.h>
 
 #include <algorithm>

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Geometry.h"
 
 namespace Lunar
