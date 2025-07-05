@@ -11,6 +11,7 @@
 #include "Utils.h"
 #include "Geometry/Plane.h"
 #include "ShadowViewModel.h"
+#include "ParticleSystem.h"
 
 using namespace DirectX;
 using namespace std;
@@ -28,6 +29,7 @@ SceneRenderer::SceneRenderer()
 	m_shadowManager = make_unique<ShadowManager>();
 	m_textureManager = make_unique<TextureManager>();
 	m_shadowViewModel = make_unique<ShadowViewModel>();
+    m_particleSystem = make_unique<ParticleSystem>();
 }
 
 SceneRenderer::~SceneRenderer() = default;
@@ -37,15 +39,16 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
 	m_dsvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	m_srvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	
+    m_particleSystem->Initialize(device, commandList);
 	m_shadowManager->Initialize(device);
 	m_shadowViewModel->Initialize(gui, m_shadowManager.get());
 	CreateDSVDescriptorHeap(device);
 	CreateDepthStencilView(device);
-	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);
+	CreateSRVDescriptorHeap(LunarConstants::TEXTURE_INFO.size(), device);
 	
 	m_pipelineStateManager = pipelineManager;
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
-    m_lightingSystem->Initialize(device, Lunar::LunarConstants::LIGHT_COUNT);
+    m_lightingSystem->Initialize(device, LunarConstants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this);
 	m_materialManager->Initialize(device);
     for (auto& [layer, geometryEntries] : m_layeredGeometries)
@@ -144,6 +147,9 @@ void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsComma
 {
 	m_textureManager->Initialize(device, commandList, m_srvHandle);
 	m_shadowManager->CreateSRV(device, m_srvHeap.Get());
+
+    // REFACTORING: To calculate the descriptor handle increment size
+    m_particleSystem->AddSRVToDescriptorHeap(device, m_srvHeap.Get(), LunarConstants::TEXTURE_INFO.size() + 1);
 }
 
 void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
@@ -273,6 +279,11 @@ bool SceneRenderer::AddTree(const std::string& name, const Transform& spawnTrans
 	m_geometriesByName[name] = entry;
     
 	return true;
+}
+
+void SceneRenderer::EmitParticles(const XMFLOAT3& position)
+{
+    m_particleSystem->EmitParticles(position);
 }
 
 bool SceneRenderer::SetGeometryTransform(const string& name, const Transform& newTransform)

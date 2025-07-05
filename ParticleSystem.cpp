@@ -11,30 +11,8 @@ void Particle::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* comma
     // 1. initial velocities are towards the up direction of the screen
     // 2. for now, initial positions are in the center of the world
     // 3. colors are random
-    particles.resize(500);
-    for (auto& particle : particles)
-    {
-        // x for index 0, y for index 1, z for index 2
-        particle.position[0] = 0.0f; 
-        particle.position[1] = 0.0f; 
-        particle.position[2] = 0.0f; 
-
-        particle.velocity[0] = static_cast<float>(rand() % 100) / 100.0f; 
-        particle.velocity[1] = static_cast<float>(rand() % 100) / 100.0f + 1.0f;
-        particle.velocity[2] = static_cast<float>(rand() % 100) / 100.0f;
-
-        particle.force[0] = 0.0f;
-        particle.force[1] = -9.81f; // Gravity force in the negative Y direction
-        particle.force[2] = 0.0f; 
-
-        particle.color[0] = static_cast<float>(rand() % 256) / 255.0f;
-        particle.color[1] = static_cast<float>(rand() % 256) / 255.0f;
-        particle.color[2] = static_cast<float>(rand() % 256) / 255.0f;
-        particle.color[3] = 1.0f;
-
-        particle.lifetime = static_cast<float>(rand() % 10 + 1); 
-        particle.age = 0.0f; 
-    }
+    particles.resize(512);
+    ResetParticles();
 
     // Create a input buffer for the particles
     // 1. Create a default heap for the particle buffer
@@ -170,6 +148,50 @@ int Particle::AddSRVToDescriptorHeap(ID3D12Device* device, ID3D12DescriptorHeap*
     ++descriptorIndex;
 
     return descriptorIndex;
+}
+
+void Particle::EmitParticles(const XMFLOAT3& position)
+{
+    ResetParticles(position);
+}
+
+void Particle::ResetParticles(const XMFLOAT3& position)
+{
+    for (auto& particle : particles)
+    {
+        particle.position[0] = position.x; 
+        particle.position[1] = position.y; 
+        particle.position[2] = position.z; 
+
+        particle.velocity[0] = static_cast<float>(rand() % 100) / 100.0f; 
+        particle.velocity[1] = static_cast<float>(rand() % 100) / 100.0f + 1.0f;
+        particle.velocity[2] = static_cast<float>(rand() % 100) / 100.0f;
+
+        particle.force[0] = 0.0f;
+        particle.force[1] = -9.81f; // Gravity force in the negative Y direction
+        particle.force[2] = 0.0f; 
+
+        particle.color[0] = static_cast<float>(rand() % 256) / 255.0f;
+        particle.color[1] = static_cast<float>(rand() % 256) / 255.0f;
+        particle.color[2] = static_cast<float>(rand() % 256) / 255.0f;
+        particle.color[3] = 1.0f;
+
+        particle.lifetime = static_cast<float>(rand() % 10 + 1); 
+        particle.age = 0.0f; 
+    }
+}
+
+void Particle::DrawParticles(ID3D12GraphicsCommandList* commandList)
+{
+    int particlesToDraw = 0;
+    for (const auto& particle : particles)
+    {
+        if (particle.age < particle.lifetime)
+        {
+            ++particlesToDraw;
+        }
+    }
+    LOG_DEBUG("Number of particles to draw: {}", particlesToDraw);
 }
 
 } // namespace Lunar

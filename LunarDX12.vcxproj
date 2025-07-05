@@ -147,6 +147,7 @@
     <ClCompile Include="LunarTimer.cpp" />
     <ClCompile Include="MaterialManager.cpp" />
     <ClCompile Include="MathUtils.cpp" />
+    <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="LunarTimer.h" />
     <ClInclude Include="MaterialManager.h" />
     <ClInclude Include="MathUtils.h" />
+    <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
@@ -284,6 +286,11 @@
       <DisableOptimizations>true</DisableOptimizations>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>
       <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\ParticlesComputeShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.0</ShaderModel>
+      <ShaderType>Compute</ShaderType>
     </FxCompile>
   </ItemGroup>
 </Project>

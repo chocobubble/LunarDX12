@@ -81,6 +81,11 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 m_mouseMoving = !m_mouseMoving;
             }
+            else if (wParam == 'G')
+            {
+                XMFLOAT3 pos = m_camera->GetPosition() + m_camera->GetForwardVector() * 5.0f; 
+                m_sceneRenderer->EmitParticles(pos);
+            }
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage(0);
@@ -349,6 +354,7 @@ void MainApp::Render(double dt)
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
 	m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
+    // REFACTORING: Calculate descriptor handle indexes not hardcoded
     D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart(); 
 	m_commandList->SetGraphicsRootDescriptorTable(0, descriptorHandle); 
     descriptorHandle.ptr += LunarConstants::TEXTURE_INFO.size() * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -357,6 +363,9 @@ void MainApp::Render(double dt)
     m_commandList->SetGraphicsRootDescriptorTable(2, descriptorHandle);
     descriptorHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     m_commandList->SetComputeRootDescriptorTable(0, descriptorHandle);
+
+    // TODO: Does it really work?
+    m_commandList->Dispatch(8, 1, 1, 0, nullptr); // 512 / 64 = 8, 1, 1
 	
 	m_sceneRenderer->RenderShadowMap(m_commandList.Get());
 

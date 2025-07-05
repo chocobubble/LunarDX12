@@ -24,6 +24,7 @@ static constexpr UINT TEXTURE_SR_ROOT_PARAMETER_INDEX = 0;
 static constexpr UINT BASIC_CONSTANTS_ROOT_PARAMETER_INDEX = 1;
 static constexpr UINT OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX = 2;
 static constexpr UINT MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX = 3;
+static constexpr UINT UAV_TABLE_ROOT_PARAMETER_INDEX = 4;
 
 /////////////// textures  ///////////////
 enum class FileType : uint8_t {
@@ -63,7 +64,8 @@ static constexpr std::array<ShaderInfo, 9> SHADER_INFO = {{
 	{ "skyBoxVS",     "Shaders\\SkyBoxVertexShader.hlsl",     "vs_5_0" },
 	{ "skyBoxPS",     "Shaders\\SkyBoxPixelShader.hlsl",      "ps_5_0" },
 	{ "shadowMapVS",     "Shaders\\ShadowMapVertexShader.hlsl",     "vs_5_0" },
-	{ "shadowMapPS",     "Shaders\\ShadowMapPixelShader.hlsl",      "ps_5_0" }
+	{ "shadowMapPS",     "Shaders\\ShadowMapPixelShader.hlsl",      "ps_5_0" },
+    { "particlesUpdateCS", "Shaders\\ParticlesComputeShader.hlsl", "cs_5_0" }
 }};
 enum class LightType
 {

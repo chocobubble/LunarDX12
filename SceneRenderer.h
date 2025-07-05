@@ -22,6 +22,7 @@ class PipelineStateManager;
 class LunarGui;
 class LightingSystem;
 class ConstantBuffer;
+class ParticleSystem;
 struct BasicConstants;
 
 enum class RenderLayer
@@ -63,6 +64,8 @@ public:
     bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
     bool AddPlane(const std::string& name, const Transform& spawnTransform = Transform(), float width = 10.0f, float height = 10.0f, RenderLayer layer = RenderLayer::World);
 	bool AddTree(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::Billboard);
+
+    void EmitParticles(const DirectX::XMFLOAT3& position);
     
     bool SetGeometryTransform(const std::string& name, const Transform& newTransform);
     bool SetGeometryLocation(const std::string& name, const DirectX::XMFLOAT3& newLocation);
@@ -88,6 +91,7 @@ private:
 	std::unique_ptr<ShadowViewModel> m_shadowViewModel;
     std::unique_ptr<SceneViewModel> m_sceneViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
+    std::unique_ptr<ParticleSystem> m_particleSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;
 	PipelineStateManager* m_pipelineStateManager = nullptr;
 
