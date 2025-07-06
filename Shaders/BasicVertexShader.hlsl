@@ -33,7 +33,7 @@ PixelIn main(VertexIn vIn)
     pIn.color = vIn.color;
 	pIn.texCoord = vIn.texCoord;
 	
-    pIn.normal = mul(vIn.normal, (float3x3)worldInvTranspose);
+    pIn.normal = normalize(mul(vIn.normal, (float3x3)worldInvTranspose));
 	pIn.tangent = mul(vIn.tangent, (float3x3)world);
 	
     return pIn;

@@ -17,8 +17,13 @@ void SceneViewModel::Initialize(LunarGui* gui, SceneRenderer* sceneRenderer)
     m_geometryNames = sceneRenderer->GetGeometryNames();
     m_materialNames = sceneRenderer->GetMaterialManager()->GetMaterialNames();
     m_lights = sceneRenderer->GetLightingSystem()->GetLightIndices();
+	gui->BindCheckbox("Scene Settings Enabled", &m_showSceneWindow);
 	gui->BindSlider("NormalMapIndex", &(sceneRenderer->m_basicConstants.normalMapIndex), 0.0f, 1.0f);
 	gui->BindCheckbox("DrawNormals", &sceneRenderer->m_drawNormals);
+	vector<string> elementIds = {
+		"NormalMapIndex", 
+	};
+	gui->BindWindow("Settings", "Settings", &m_showSceneWindow, elementIds);
 
     // geometry
  //    gui->BindListBox("Geometry", &m_selectedGeometryIndex, &m_geometryNames, 

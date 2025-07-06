@@ -63,11 +63,11 @@ void LunarGui::Render(float dt)
 {
     BeginFrame();
 
-    // TODO : Fix the first window to be rendered by RenderBoundWindow method.
+ //    // TODO : Fix the first window to be rendered by RenderBoundWindow method.
 	ImGui::Begin("Settings");
 	ImGui::Text("FPS: %.2f", 1.0f / dt);
-
-	for (auto& pair : m_boundValues) 
+ 
+	for (auto& pair : m_boundValues)
 	{
 		const string& id = pair.first;
 		BoundValue&value = pair.second;
@@ -81,58 +81,59 @@ void LunarGui::Render(float dt)
 				value.OnChange(value.DataPtr);
 			}
 		}
-		else if (value.ElementType == UIElementType::Slider)
-		{
-            switch (value.DataType)
-            {
-                case DataType::Int:
-                {
-                    int* intValue = static_cast<int*>(value.DataPtr);
-                    int minValue = value.GetMinValue<int>();
-                    int maxValue = value.GetMaxValue<int>();
-                    if (ImGui::SliderInt(id.c_str(), intValue, minValue, maxValue) && value.OnChange)
-                    {
-                        value.OnChange(value.DataPtr);
-                    }
-                    break;
-                }
-                case DataType::Float:
-                {
-                    float* floatValue = static_cast<float*>(value.DataPtr);
-                    float minValue = value.GetMinValue<float>();
-                    float maxValue = value.GetMaxValue<float>();
-                    if (ImGui::SliderFloat(id.c_str(), floatValue, minValue, maxValue) && value.OnChange)
-                    {
-                        value.OnChange(value.DataPtr);
-                    }
-                    break;
-                }
-                case DataType::Float3:
-                {
-                    float* dataPtr = reinterpret_cast<float*>(value.DataPtr);
-                    auto minValue = value.GetMinValue<XMFLOAT3>();
-                    auto maxValue = value.GetMaxValue<XMFLOAT3>();
-                    if (ImGui::SliderFloat3(id.c_str(), dataPtr, minValue.x, maxValue.x) && value.OnChange)
-                    {
-                        value.OnChange(value.DataPtr);
-                    }
-                    break;
-                }
-                default:
-                    LOG_ERROR("Invalid data type for slider.");
-                    break;
-            }
-		}
-        else if (value.ElementType == UIElementType::ListBox)
-        {
-	        const char* const* items = static_cast<const char* const*>(value.DataPtr);
-            if (ImGui::ListBox(id.c_str(), value.SelectedValue, items, value.GetMaxValue<int>()) && value.OnChange)
-            {
-                value.OnChange(value.DataPtr);
-            }
-        }
 	}
-
+	// 	else if (value.ElementType == UIElementType::Slider)
+	// 	{
+ //            switch (value.DataType)
+ //            {
+ //                case DataType::Int:
+ //                {
+ //                    int* intValue = static_cast<int*>(value.DataPtr);
+ //                    int minValue = value.GetMinValue<int>();
+ //                    int maxValue = value.GetMaxValue<int>();
+ //                    if (ImGui::SliderInt(id.c_str(), intValue, minValue, maxValue) && value.OnChange)
+ //                    {
+ //                        value.OnChange(value.DataPtr);
+ //                    }
+ //                    break;
+ //                }
+ //                case DataType::Float:
+ //                {
+ //                    float* floatValue = static_cast<float*>(value.DataPtr);
+ //                    float minValue = value.GetMinValue<float>();
+ //                    float maxValue = value.GetMaxValue<float>();
+ //                    if (ImGui::SliderFloat(id.c_str(), floatValue, minValue, maxValue) && value.OnChange)
+ //                    {
+ //                        value.OnChange(value.DataPtr);
+ //                    }
+ //                    break;
+ //                }
+ //                case DataType::Float3:
+ //                {
+ //                    float* dataPtr = reinterpret_cast<float*>(value.DataPtr);
+ //                    auto minValue = value.GetMinValue<XMFLOAT3>();
+ //                    auto maxValue = value.GetMaxValue<XMFLOAT3>();
+ //                    if (ImGui::SliderFloat3(id.c_str(), dataPtr, minValue.x, maxValue.x) && value.OnChange)
+ //                    {
+ //                        value.OnChange(value.DataPtr);
+ //                    }
+ //                    break;
+ //                }
+ //                default:
+ //                    LOG_ERROR("Invalid data type for slider.");
+ //                    break;
+ //            }
+	// 	}
+ //        else if (value.ElementType == UIElementType::ListBox)
+ //        {
+	//         const char* const* items = static_cast<const char* const*>(value.DataPtr);
+ //            if (ImGui::ListBox(id.c_str(), value.SelectedValue, items, value.GetMaxValue<int>()) && value.OnChange)
+ //            {
+ //                value.OnChange(value.DataPtr);
+ //            }
+ //        }
+	// }
+ //
 	for (auto& pair : m_callbacks) 
 	{
 		const string& id = pair.first;
@@ -140,7 +141,7 @@ void LunarGui::Render(float dt)
     
 		if (ImGui::Button(id.c_str())) callback(); 
 	}
-
+ 
 	ImGui::End();
     
     // Render bound windows
@@ -314,7 +315,7 @@ void LunarGui::BindWindow(const string& id, const string& title, bool* isOpen, c
 
 void LunarGui::RenderBoundWindow(const string& windowId, const WindowData& windowData)
 {
-    if (!windowData.isOpen || !*windowData.isOpen) return; // check if the pointer(isOpen) is null first 
+    if (!windowData.isOpen || !*windowData.isOpen) return;
     
     if (ImGui::Begin(windowData.title.c_str(), windowData.isOpen))
     {
@@ -391,6 +392,55 @@ void LunarGui::RenderBoundWindow(const string& windowId, const WindowData& windo
                             }
                         }
                         break;
+                    }
+                	case UIElementType::Checkbox:
+                    {
+                        bool* boolValue = static_cast<bool*>(value.DataPtr);
+                        if (ImGui::Checkbox(elementId.c_str(), boolValue) && value.OnChange)
+                        {
+                            value.OnChange(value.DataPtr);
+                        }
+                        break;
+                    }
+                    case UIElementType::Slider:
+                    {
+	                    switch (value.DataType)
+	                    {
+	                    	case DataType::Float:
+	                    	{
+	                    		float* floatValue = static_cast<float*>(value.DataPtr);
+	                    		float minValue = value.GetMinValue<float>();
+	                    		float maxValue = value.GetMaxValue<float>();
+	                    		if (ImGui::SliderFloat(elementId.c_str(), floatValue, minValue, maxValue) && value.OnChange)
+	                    		{
+	                    			value.OnChange(value.DataPtr);
+	                    		}
+	                    		break;
+	                    	}
+	                    	case DataType::Int:
+	                    	{
+	                    		int* intValue = static_cast<int*>(value.DataPtr);
+	                    		int minValue = value.GetMinValue<int>();
+	                    		int maxValue = value.GetMaxValue<int>();
+	                    		if (ImGui::SliderInt(elementId.c_str(), intValue, minValue, maxValue) && value.OnChange)
+	                    		{
+	                    			value.OnChange(value.DataPtr);
+	                    		}
+	                    		break;
+	                    	}
+	                    	case DataType::Float3:
+	                    	{
+	                    		float* dataPtr = reinterpret_cast<float*>(value.DataPtr);
+	                    		auto minValue = value.GetMinValue<XMFLOAT3>();
+	                    		auto maxValue = value.GetMaxValue<XMFLOAT3>();
+	                    		if (ImGui::SliderFloat3(elementId.c_str(), dataPtr, minValue.x, maxValue.x) && value.OnChange)
+	                    		{
+	                    			value.OnChange(value.DataPtr);
+	                    		}
+	                    		break;
+	                    	}
+	                    }
+                    	break;
                     }
                     default:
                         break;

@@ -27,5 +27,6 @@ private:
     std::vector<std::string> m_materialNames;
     int                      m_selectedLightIndex = 0;
     std::vector<int>         m_lights;
+	bool                     m_showSceneWindow = true;
 };
 } // namespace Lunar

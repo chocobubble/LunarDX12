@@ -429,6 +429,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		psoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
 		psoDesc.RasterizerState.FrontCounterClockwise = false;
 		psoDesc.DepthStencilState.StencilEnable = false;
+		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_psoMap["normal"].GetAddressOf())))
 	}

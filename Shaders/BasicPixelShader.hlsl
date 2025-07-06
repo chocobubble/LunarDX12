@@ -28,7 +28,7 @@ float CalculateAttenuation(float distanceFromLight, Light light)
 	return saturate((light.fallOffEnd - distanceFromLight) / (light.fallOffEnd - light.fallOffStart));
 }
 
-float CalculateRoughnessFactor(float3 halfVector, float normalVector, float Shininess)
+float CalculateRoughnessFactor(float3 halfVector, float3 normalVector, float Shininess)
 {
 	return pow(max(dot(halfVector, normalVector), 0.0f), Shininess) * (Shininess + 8.0f) / 8.0f;
 }
@@ -39,21 +39,23 @@ float3 SchlickFresnel(float3 R0, float3 toEye, float3 halfVector)
 	return R0 + (1 - R0) * pow((1 - cosTheta), 5);	
 }
 
-float3 BlinnPhong(float3 normal, float3 toEye, float lightVector, float lambertLightStrength)
+float3 BlinnPhong(float3 normal, float3 nToEye, float3 nLightVector, float3 lambertLightStrength)
 {
 	float shininess = 32.0;
-	float3 hv = normalize(lightVector + toEye);
+	float3 hv = normalize(nLightVector + nToEye);
 	float roughnessFactor = CalculateRoughnessFactor(hv, normal, shininess);
-	float3 fresnelFactor = SchlickFresnel(fresnelR0, toEye, hv);
+	float3 fresnelFactor = SchlickFresnel(fresnelR0, nToEye, hv);
 	float3 specAlbedo = fresnelFactor * roughnessFactor;
-	specAlbedo = specAlbedo / (specAlbedo + 1.0f);
+	// specAlbedo = specAlbedo / (specAlbedo + 1.0f);
 	return (diffuseAlbedo.rgb + specAlbedo) * lambertLightStrength;	
 }
 
-float3 ComputeDirectionalLight(float3 lightVector, float3 normalVector, float3 toEye, float3 lightStrength)
+float3 ComputeDirectionalLight(Light light, float3 pos, float3 normalVector, float3 nToEye)
 {
-	float lambertLightStrength = lightStrength * max(dot(lightVector, normalVector), 0.0f);
-	return BlinnPhong(normalVector, toEye, lightVector, lambertLightStrength);
+	float3 lightVector = -light.direction;
+	float3 nLightVector = normalize(lightVector);
+	float3 lambertLightStrength = light.strength * max(dot(nLightVector, normalVector), 0.0f);
+	return BlinnPhong(normalVector, nToEye, nLightVector, lambertLightStrength);
 }
 
 float3 ComputePointLight(Light light, float3 pos, float3 normalVector, float3 toEye)
@@ -117,13 +119,20 @@ float4 main(PixelIn pIn) : SV_TARGET
 		shadowFactor = currentDepth > shadowDepth ? 0.3 : 1.0;
 	}
 	
-	float3 toEye = normalize(eyePos - pIn.posW.xyz);
-	float3 finalColor = diffuseColor.rgb;
+	float3 toEye = eyePos - pIn.posW.xyz;
+	float3 nToEye = normalize(toEye);
+	float3 finalColor = float4(0, 0, 0, 1);
 	// float3 finalColor = ambientLight.rgb * diffuseColor.rgb;
 	
-	finalColor += ComputeDirectionalLight(-lights[0].direction, normalWS, toEye, lights[0].strength) * shadowFactor;
+	finalColor += ComputeDirectionalLight(lights[0], pIn.posW, normalWS, nToEye) * shadowFactor;
 	finalColor += ComputePointLight(lights[1], pIn.posW, normalWS, toEye);
- finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
+ // finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
 
-	return float4(finalColor, diffuseColor.a);
+	// return float4(finalColor, diffuseColor.a);
+	// return float4(normalize(normalWS), 1);
+	// float3 nLightVector = normalize(-lights[0].direction) /* 위에서 계산 */;
+	// float  d = dot(normalWS, nLightVector);   // -1‥1
+	// return float4(d * 0.5f + 0.5f, d * 0.5f + 0.5f, d * 0.5f + 0.5f, 1);    // 흰 = +, 검 = −
+
+	return float4(diffuseAlbedo);
 }
