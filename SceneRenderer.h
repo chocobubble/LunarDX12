@@ -16,6 +16,7 @@ namespace Lunar
 {
 
 class ShadowViewModel;
+class LightViewModel;
 class TextureManager;
 class ShadowManager;
 class PipelineStateManager;
@@ -33,6 +34,8 @@ enum class RenderLayer
 	Reflect,
 	Billboard,
     Translucent,
+	Normal,
+    Debug,
     UI
 };
 
@@ -46,6 +49,7 @@ struct GeometryEntry
 
 class SceneRenderer
 {
+	friend SceneViewModel;
 public:
     SceneRenderer();
     ~SceneRenderer();
@@ -60,8 +64,8 @@ public:
 	void UpdateScene(float deltaTime);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
-    bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
-    bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World);
+    bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
+    bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
     bool AddPlane(const std::string& name, const Transform& spawnTransform = Transform(), float width = 10.0f, float height = 10.0f, RenderLayer layer = RenderLayer::World);
 	bool AddTree(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::Billboard);
 
@@ -77,7 +81,9 @@ public:
     std::vector<std::string> GetGeometryNames() const;
     const MaterialManager* GetMaterialManager() const { return m_materialManager.get();}
     const SceneViewModel* GetSceneViewModel() const { return m_sceneViewModel.get(); }
+    const LightViewModel* GetLightViewModel() const { return m_lightViewModel.get(); }
     const LightingSystem* GetLightingSystem() const { return m_lightingSystem.get(); }
+    LightingSystem* GetLightingSystem() { return m_lightingSystem.get(); }
 	BasicConstants& GetBasicConstants() { return m_basicConstants; }
 	ID3D12DescriptorHeap* GetSRVHeap() { return m_srvHeap.Get(); };
 	ID3D12DescriptorHeap* GetDSVHeap() { return m_dsvHeap.Get(); };
@@ -90,6 +96,7 @@ private:
 	std::unique_ptr<ShadowManager> m_shadowManager;
 	std::unique_ptr<ShadowViewModel> m_shadowViewModel;
     std::unique_ptr<SceneViewModel> m_sceneViewModel;
+    std::unique_ptr<LightViewModel> m_lightViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
     std::unique_ptr<ParticleSystem> m_particleSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;
@@ -107,5 +114,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 	UINT m_srvDescriptorSize;
+
+	bool m_drawNormals = true;
+
+    // Debug Section
+public:
+    // Light Visualization
+    void CreateLightVisualizationCubes();
+    void UpdateLightVisualization();
+
 };
 }

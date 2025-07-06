@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <dxgi1_6.h>
+#include <DirectXMath.h>
 
 namespace Lunar 
 {
@@ -43,10 +44,12 @@ struct TextureInfo
     FileType fileType;
     TextureDimension dimensionType; 
 };
-static constexpr std::array<TextureInfo, 4> TEXTURE_INFO = {{
+static constexpr std::array<TextureInfo, 6> TEXTURE_INFO = {{
     {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
+	{"tile_color", "Assets\\Textures\\Rock\\Rock-Color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_normal", "Assets\\Textures\\Rock\\Rock-Normal.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
 }};
 struct ShaderInfo
@@ -55,16 +58,19 @@ struct ShaderInfo
 	const char* path;
 	const char* target;
 };
-static constexpr std::array<ShaderInfo, 10> SHADER_INFO = {{
-	{ "basicVS",      "Shaders\\BasicVertexShader.hlsl",     "vs_5_1" },
-	{ "basicPS",      "Shaders\\BasicPixelShader.hlsl",      "ps_5_1" },
-	{ "billboardVS",  "Shaders\\BillboardVertexShader.hlsl", "vs_5_1" },
-	{ "billboardGS",  "Shaders\\BillboardGeometryShader.hlsl","gs_5_1" },
-	{ "billboardPS",  "Shaders\\BillboardPixelShader.hlsl",   "ps_5_1" },
-	{ "skyBoxVS",     "Shaders\\SkyBoxVertexShader.hlsl",     "vs_5_1" },
-	{ "skyBoxPS",     "Shaders\\SkyBoxPixelShader.hlsl",      "ps_5_1" },
-	{ "shadowMapVS",     "Shaders\\ShadowMapVertexShader.hlsl",     "vs_5_1" },
-	{ "shadowMapPS",     "Shaders\\ShadowMapPixelShader.hlsl",      "ps_5_1" },
+static constexpr std::array<ShaderInfo, 13> SHADER_INFO = {{
+	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_0" },
+	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_0" },
+	{ "billboardVS", "Shaders\\BillboardVertexShader.hlsl", "vs_5_0" },
+	{ "billboardGS", "Shaders\\BillboardGeometryShader.hlsl", "gs_5_0" },
+	{ "billboardPS", "Shaders\\BillboardPixelShader.hlsl", "ps_5_0" },
+	{ "skyBoxVS", "Shaders\\SkyBoxVertexShader.hlsl", "vs_5_0" },
+	{ "skyBoxPS", "Shaders\\SkyBoxPixelShader.hlsl", "ps_5_0" },
+	{ "shadowMapVS", "Shaders\\ShadowMapVertexShader.hlsl", "vs_5_0" },
+	{ "shadowMapPS", "Shaders\\ShadowMapPixelShader.hlsl", "ps_5_0" },
+	{ "normalVS", "Shaders\\NormalVertexShader.hlsl", "vs_5_0" },
+	{ "normalGS", "Shaders\\NormalGeometryShader.hlsl", "gs_5_0" },
+	{ "normalPS", "Shaders\\NormalPixelShader.hlsl", "ps_5_0" },
     { "particlesUpdateCS", "Shaders\\ParticlesComputeShader.hlsl", "cs_5_1" }
 }};
 enum class LightType
@@ -85,9 +91,20 @@ struct LightInfo
 	const float spotPower;
 };
 static constexpr std::array<LightInfo, 3> LIGHT_INFO = { {
-	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {7.0f, 7.0f, 7.0f}, 0.0f, 0.0f, 0.0f },
-	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f},     {0.0f, 0.0f, 0.0f}, {0.0f, 3.0f, 0.0f}, 2.0f, 8.0f, 0.0f},
-	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.0f, -0.5f, 1.0f}, {0.0f, 1.5f, 0.0f}, 1.0f, 10.0f, 16.0f }
+	{ LightType::Directional, "SunLight", {1.2f, 1.0f, 0.8f}, {0.57735f, -0.57735f, 0.57735f}, {-3.0f, 3.0f, -3.0f}, 0.0f, 0.0f, 0.0f },
+	{ LightType::Point, "RoomLight", {1.0f, 0.9f, 0.7f}, {-0.57735f, -0.57735f, 0.57735f}, {3.0f, 3.0f, -3.0f}, 2.0f, 8.0f, 0.0f},
+	{ LightType::Spot, "FlashLight", {1.0f, 1.0f, 0.9f}, {0.0f, -0.707f, -0.707f}, {0.0f, 3.0f, 3.0f}, 1.0f, 10.0f, 16.0f }
 }};
+
+// Light Visualization Colors
+namespace LightVizColors 
+{
+    static constexpr DirectX::XMFLOAT4 DIRECTIONAL_LIGHT = {1.0f, 1.0f, 0.0f, 1.0f};    // yellow
+    static constexpr DirectX::XMFLOAT4 DIRECTIONAL_ARROW = {1.0f, 0.5f, 0.0f, 1.0f};    // orange 
+    static constexpr DirectX::XMFLOAT4 POINT_LIGHT = {1.0f, 0.0f, 0.0f, 1.0f};          // red 
+    static constexpr DirectX::XMFLOAT4 SPOT_LIGHT = {0.0f, 0.0f, 1.0f, 1.0f};           // blue 
+    static constexpr DirectX::XMFLOAT4 SPOT_ARROW = {0.0f, 0.8f, 1.0f, 1.0f};           // sky-blue 
+}
+
 }	
 }

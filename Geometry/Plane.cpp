@@ -16,6 +16,7 @@ void Plane::CreateGeometry()
 {
     CreatePlaneVertices();
     CreatePlaneIndices();
+	ComputeTangents();
 }
 
 XMFLOAT4 Plane::GetPlaneEquation()

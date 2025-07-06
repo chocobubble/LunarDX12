@@ -12,6 +12,7 @@
 #include "Geometry/Plane.h"
 #include "ShadowViewModel.h"
 #include "ParticleSystem.h"
+#include "LightViewModel.h"
 
 using namespace DirectX;
 using namespace std;
@@ -25,6 +26,7 @@ SceneRenderer::SceneRenderer()
 	m_geometriesByName.clear();
     m_materialManager = make_unique<MaterialManager>();
     m_sceneViewModel = make_unique<SceneViewModel>();
+    m_lightViewModel = make_unique<LightViewModel>();
     m_lightingSystem = make_unique<LightingSystem>();
 	m_shadowManager = make_unique<ShadowManager>();
 	m_textureManager = make_unique<TextureManager>();
@@ -49,6 +51,11 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
     m_lightingSystem->Initialize(device, LunarConstants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this);
+    m_lightViewModel->Initialize(gui, m_lightingSystem.get(), this);
+    
+    // Debugging
+    CreateLightVisualizationCubes();
+    
 	m_materialManager->Initialize(device);
     for (auto& [layer, geometryEntries] : m_layeredGeometries)
     {
@@ -207,7 +214,7 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
     RenderLayers(commandList);
 }
 
-bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform, RenderLayer layer)
+bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform, RenderLayer layer, const DirectX::XMFLOAT4& color)
 {
     if (DoesGeometryExist(name))
     {
@@ -217,6 +224,7 @@ bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform,
     
     auto cube = GeometryFactory::CreateCube();
     cube->SetTransform(spawnTransform);
+    cube->SetColor(color); 
     
     auto entry = make_shared<GeometryEntry>(GeometryEntry{move(cube), name, layer});
     
@@ -226,7 +234,7 @@ bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform,
     return true;
 }
 
-bool SceneRenderer::AddSphere(const string& name, const Transform& spawnTransform, RenderLayer layer)
+bool SceneRenderer::AddSphere(const string& name, const Transform& spawnTransform, RenderLayer layer,  const XMFLOAT4& color)
 {
     if (DoesGeometryExist(name))
     {
@@ -285,6 +293,116 @@ bool SceneRenderer::AddTree(const std::string& name, const Transform& spawnTrans
 void SceneRenderer::EmitParticles(const XMFLOAT3& position)
 {
     m_particleSystem->EmitParticles(position);
+}
+
+void SceneRenderer::CreateLightVisualizationCubes()
+{
+    LOG_FUNCTION_ENTRY();
+    
+    // Directional Light - Yellow cube
+    const LightData* dirLight = m_lightingSystem->GetLight("SunLight");
+    if (dirLight) 
+    {
+        Transform dirTransform;
+        dirTransform.Location = dirLight->Position;
+        dirTransform.Scale = {0.3f, 0.3f, 0.3f};
+        AddCube("LightViz_Directional", dirTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_LIGHT);
+        
+        // direction arrow - Orange
+        for (int i = 1; i <= 3; ++i) 
+        {
+            XMFLOAT3 arrowPos = {
+                dirLight->Position.x + dirLight->Direction.x * i * 0.5f,
+                dirLight->Position.y + dirLight->Direction.y * i * 0.5f,
+                dirLight->Position.z + dirLight->Direction.z * i * 0.5f
+            };
+            Transform arrowTransform;
+            arrowTransform.Location = arrowPos;
+            arrowTransform.Scale = {0.1f, 0.1f, 0.1f};
+            AddCube("LightViz_DirArrow" + std::to_string(i), arrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_ARROW);
+        }
+    }
+    
+    // Point Light - Red cube
+    auto* pointLight = m_lightingSystem->GetLight("RoomLight");
+    if (pointLight) 
+    {
+        Transform pointTransform;
+        pointTransform.Location = pointLight->Position;
+        pointTransform.Scale = {0.3f, 0.3f, 0.3f};
+        AddCube("LightViz_Point", pointTransform, RenderLayer::Debug, LunarConstants::LightVizColors::POINT_LIGHT);
+    }
+    
+    // Spot Light - Blue cube
+    auto* spotLight = m_lightingSystem->GetLight("FlashLight");
+    if (spotLight) {
+        Transform spotTransform;
+        spotTransform.Location = spotLight->Position;
+        spotTransform.Scale = {0.3f, 0.3f, 0.3f};
+        AddCube("LightViz_Spot", spotTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_LIGHT);
+        
+        // direction arrow - sky-blue
+        for (int i = 1; i <= 2; ++i) 
+        {
+            XMFLOAT3 spotArrowPos = {
+                spotLight->Position.x + spotLight->Direction.x * i * 0.5f,
+                spotLight->Position.y + spotLight->Direction.y * i * 0.5f,
+                spotLight->Position.z + spotLight->Direction.z * i * 0.5f
+            };
+            Transform spotArrowTransform;
+            spotArrowTransform.Location = spotArrowPos;
+            spotArrowTransform.Scale = {0.1f, 0.1f, 0.1f};
+            AddCube("LightViz_SpotArrow" + std::to_string(i), spotArrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_ARROW);
+        }
+    }
+    
+    LOG_FUNCTION_EXIT();
+}
+
+void SceneRenderer::UpdateLightVisualization()
+{
+    // Directional Light 
+    auto* dirLight = m_lightingSystem->GetLight("SunLight");
+    if (dirLight) 
+    {
+        SetGeometryLocation("LightViz_Directional", dirLight->Position);
+        
+        // arrow 
+        for (int i = 1; i <= 3; ++i) 
+        {
+            XMFLOAT3 arrowPos = {
+                dirLight->Position.x + dirLight->Direction.x * i * 0.5f,
+                dirLight->Position.y + dirLight->Direction.y * i * 0.5f,
+                dirLight->Position.z + dirLight->Direction.z * i * 0.5f
+            };
+            SetGeometryLocation("LightViz_DirArrow" + std::to_string(i), arrowPos);
+        }
+    }
+    
+    // Point Light 
+    auto* pointLight = m_lightingSystem->GetLight("RoomLight");
+    if (pointLight)
+    {
+        SetGeometryLocation("LightViz_Point", pointLight->Position);
+    }
+    
+    // Spot Light 
+    auto* spotLight = m_lightingSystem->GetLight("FlashLight");
+    if (spotLight) 
+    {
+        SetGeometryLocation("LightViz_Spot", spotLight->Position);
+        
+        // arrow
+        for (int i = 1; i <= 2; ++i) 
+        {
+            XMFLOAT3 spotArrowPos = {
+                spotLight->Position.x + spotLight->Direction.x * i * 0.5f,
+                spotLight->Position.y + spotLight->Direction.y * i * 0.5f,
+                spotLight->Position.z + spotLight->Direction.z * i * 0.5f
+            };
+            SetGeometryLocation("LightViz_SpotArrow" + std::to_string(i), spotArrowPos);
+        }
+    }
 }
 
 bool SceneRenderer::SetGeometryTransform(const string& name, const Transform& newTransform)
@@ -383,6 +501,22 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     			commandList->OMSetStencilRef(0);
     			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
     			break;
+    		case RenderLayer::Normal :
+    			if (m_drawNormals)
+    			{
+    				commandList->OMSetStencilRef(0);
+    				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
+    				// Refactor
+    				for (auto& entry : m_layeredGeometries[RenderLayer::World])
+    				{
+    					entry->GeometryData->DrawNormals(commandList);
+    				}
+    			}
+    			break;
+    		case RenderLayer::Debug :
+    			commandList->OMSetStencilRef(0);
+    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
+    			break;
 			default:
     			LOG_ERROR("Not Handled RenderLayerType");
 	    }
@@ -422,4 +556,4 @@ std::vector<std::string> SceneRenderer::GetGeometryNames() const
     return names;
 }
 
-}
+} // namespace Lunar

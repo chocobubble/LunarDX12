@@ -7,7 +7,6 @@
 #include <memory>
 
 #include "LunarConstants.h"
-#include "LunarTimer.h"
 
 namespace Lunar
 {
@@ -16,6 +15,8 @@ class PipelineStateManager;
 class SceneRenderer;
 class Camera;
 class LunarGui;
+class PerformanceProfiler;
+class PerformanceViewModel;
 	
 class MainApp {
 public:
@@ -73,7 +74,8 @@ private:
 	D3D12_VIEWPORT m_viewport;
 	D3D12_RECT m_scissorRect;
 
-	Lunar::LunarTimer m_lunarTimer;
+	std::unique_ptr<PerformanceProfiler> m_performanceProfiler;
+	std::unique_ptr<PerformanceViewModel> m_performanceViewModel;
 	
     std::unique_ptr<LunarGui> m_gui;
 

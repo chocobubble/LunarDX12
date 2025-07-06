@@ -22,7 +22,9 @@ PipelineStateManager::PipelineStateManager()
 			"default", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }, 
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }},
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			},
 		},
 		{
 			"billboard", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }}
@@ -441,6 +443,25 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		billboardPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&billboardPsoDesc,
 			IID_PPV_ARGS(m_psoMap["billboard"].GetAddressOf())))
+	}
+
+	// PSO for normal
+	{
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC normalPsoDesc = opaquePsoDesc;
+		m_inputLayout = m_inputLayoutMap["default"];
+		normalPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+		normalPsoDesc.VS.pShaderBytecode = m_shaderMap["normalVS"]->GetBufferPointer();
+		normalPsoDesc.VS.BytecodeLength = m_shaderMap["normalVS"]->GetBufferSize();
+		normalPsoDesc.GS.pShaderBytecode = m_shaderMap["normalGS"]->GetBufferPointer();
+		normalPsoDesc.GS.BytecodeLength = m_shaderMap["normalGS"]->GetBufferSize();
+		normalPsoDesc.PS.pShaderBytecode = m_shaderMap["normalPS"]->GetBufferPointer();
+		normalPsoDesc.PS.BytecodeLength = m_shaderMap["normalPS"]->GetBufferSize();
+		normalPsoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
+		normalPsoDesc.RasterizerState.FrontCounterClockwise = false;
+		normalPsoDesc.DepthStencilState.StencilEnable = false;
+		normalPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+		normalPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&normalPsoDesc, IID_PPV_ARGS(m_psoMap["normal"].GetAddressOf())))
 	}
 	
     // PSO for particle system

@@ -96,8 +96,13 @@ void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo&
 	}
 
 	Texture* texture = m_textureMap[textureInfo.name].get();
+	if (!texture || !texture->Resource) {
+		LOG_ERROR("Failed to create texture resource for: ", textureInfo.name);
+		return;
+	}
 	srvDesc.Format = texture->Resource->GetDesc().Format;
 	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, srvHandle);
+	LOG_DEBUG("Created SRV for texture: ", textureInfo.name, " at handle: ", srvHandle.ptr);
 	srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
@@ -370,18 +375,22 @@ ComPtr<ID3D12Resource> TextureManager::CreateCubemapResource(
     std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(6);
     std::vector<UINT> numRows(6);
     std::vector<UINT64> rowPitch(6);
-    UINT64 totalUploadBufferSize;
+    UINT64 totalUploadBufferSize = 0;
     
-    device->GetCopyableFootprints(
-        &textureDesc,           
-        0,                      
-        6,                      
-        0,                      
-        layouts.data(),         
-        numRows.data(),         
-        rowPitch.data(),        
-        &totalUploadBufferSize  
-    );
+    for (int face = 0; face < 6; ++face) {
+        UINT64 faceUploadSize;
+        device->GetCopyableFootprints(
+            &textureDesc,           
+            face,                   
+            1,                      
+            totalUploadBufferSize,  
+            &layouts[face],         
+            &numRows[face],         
+            &rowPitch[face],        
+            &faceUploadSize         
+        );
+        totalUploadBufferSize += faceUploadSize;
+    }
 
     D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
     uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
