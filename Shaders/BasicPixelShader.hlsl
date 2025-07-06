@@ -10,7 +10,7 @@ cbuffer Material : register(b2)
 {
 	float4 diffuseAlbedo;
 	float3 fresnelR0;
-	float roughness;
+	float shininess;
 }
 
 struct PixelIn
@@ -28,14 +28,15 @@ float CalculateAttenuation(float distanceFromLight, Light light)
 	return saturate((light.fallOffEnd - distanceFromLight) / (light.fallOffEnd - light.fallOffStart));
 }
 
-float CalculateRoughnessFactor(float3 halfVector, float3 normalVector, float Shininess)
+float CalculateRoughnessFactor(float3 halfVector, float3 normalVector, float shininess)
 {
-	return pow(max(dot(halfVector, normalVector), 0.0f), Shininess) * (Shininess + 8.0f) / 8.0f;
+    shininess *= 256.0f;
+	return pow(saturate(dot(halfVector, normalVector)), shininess) * (shininess + 8.0f) / 8.0f;
 }
 
-float3 SchlickFresnel(float3 R0, float3 toEye, float3 halfVector)
+float3 SchlickFresnel(float3 R0, float3 normalVector, float3 halfVector)
 {
-	float cosTheta = max(dot(halfVector, toEye), 0.0);
+	float cosTheta = max(dot(halfVector, normalVector), 0.0);
 	return R0 + (1 - R0) * pow((1 - cosTheta), 5);	
 }
 
@@ -46,7 +47,7 @@ float3 BlinnPhong(float3 normal, float3 nToEye, float3 nLightVector, float3 lamb
 	float roughnessFactor = CalculateRoughnessFactor(hv, normal, shininess);
 	float3 fresnelFactor = SchlickFresnel(fresnelR0, nToEye, hv);
 	float3 specAlbedo = fresnelFactor * roughnessFactor;
-	// specAlbedo = specAlbedo / (specAlbedo + 1.0f);
+	specAlbedo = specAlbedo / (specAlbedo + 1.0f);
 	return (diffuseAlbedo.rgb + specAlbedo) * lambertLightStrength;	
 }
 
@@ -95,10 +96,11 @@ float4 main(PixelIn pIn) : SV_TARGET
 {
 	float4 diffuseColor = tileTexture.Sample(g_sampler, pIn.texCoord);
 	float3 normalSample = normalTexture.Sample(g_sampler, pIn.texCoord).rgb;
-	
+
+	pIn.normal = normalize(pIn.normal);
 	float3x3 TBN = GetTBN(pIn.normal, pIn.tangent);
 	float3 normalWS = NormalTSToWS(normalSample, TBN);
-	if (normalMapIndex < 0.5) normalWS = pIn.normal;
+	if (normalMapIndex > 0.5) normalWS = pIn.normal;
 	// if (normalMapIndex < 0.5) return float4(normalWS, 1.0);
 	// else 
 	// {
@@ -126,13 +128,7 @@ float4 main(PixelIn pIn) : SV_TARGET
 	
 	finalColor += ComputeDirectionalLight(lights[0], pIn.posW, normalWS, nToEye) * shadowFactor;
 	finalColor += ComputePointLight(lights[1], pIn.posW, normalWS, toEye);
- // finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
+ finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
 
-	// return float4(finalColor, diffuseColor.a);
-	// return float4(normalize(normalWS), 1);
-	// float3 nLightVector = normalize(-lights[0].direction) /* 위에서 계산 */;
-	// float  d = dot(normalWS, nLightVector);   // -1‥1
-	// return float4(d * 0.5f + 0.5f, d * 0.5f + 0.5f, d * 0.5f + 0.5f, 1);    // 흰 = +, 검 = −
-
-	return float4(diffuseAlbedo);
+	return float4(finalColor, diffuseColor.a);
 }

@@ -35,7 +35,7 @@ struct MaterialConstants
 {
 	DirectX::XMFLOAT4 DiffuseAlbedo;
 	DirectX::XMFLOAT3 FresnelR0;
-	float             Roughness;
+	float             Shininess;
 };
 
 class ConstantBuffer

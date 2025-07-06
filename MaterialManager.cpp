@@ -23,16 +23,17 @@ void MaterialManager::Initialize(ID3D12Device* device)
 
 void MaterialManager::CreateMaterials(ID3D12Device* device)
 {
-    auto createMaterial = [&](string name, XMFLOAT4 diffuse, XMFLOAT3 fresnelR0, float roughness) {
+    auto createMaterial = [&](string name, XMFLOAT4 diffuse, XMFLOAT3 fresnelR0, float shininess) {
         MaterialConstants material = {
             diffuse,
             fresnelR0,
-            roughness
+            shininess 
         };
         m_materialMap[name] = {
             material,
             std::make_unique<ConstantBuffer>(device, sizeof(MaterialConstants))
         };
+    	UpdateMaterial("default", material);
     };
 	// createMaterial("default", XMFLOAT4(0.6f, 0.6f, 0.6f, 1.0f), XMFLOAT3(0.01f, 0.01f, 0.01f), 0.125f);
 	createMaterial("default", XMFLOAT4(0.4f, 0.35f, 0.3f, 1.0f), XMFLOAT3(0.04f, 0.04f, 0.04f), 0.8f);
