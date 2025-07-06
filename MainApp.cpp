@@ -12,6 +12,7 @@
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
 #include "LunarGui.h"
+#include "ParticleSystem.h"
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
 #include "PerformanceProfiler.h"
@@ -362,23 +363,64 @@ void MainApp::Render(double dt)
 		m_commandAllocator->Reset(); // Cautions!
 		m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
-		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 		// Set Constant Buffer Descriptor heap
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
 		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		
+		// Transition particle output buffer: SRV → UAV (for compute shader)
+		if (!m_sceneRenderer->GetParticleSystem()->IsFirstFrame())
+		{
+			D3D12_RESOURCE_BARRIER preComputeBarrier = {};
+			preComputeBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			preComputeBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			preComputeBarrier.Transition.pResource = m_sceneRenderer->GetParticleSystem()->GetOutputBuffer();
+			preComputeBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_GENERIC_READ;
+			preComputeBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+			preComputeBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			m_commandList->ResourceBarrier(1, &preComputeBarrier);
+		}
+        else
+        {
+            m_sceneRenderer->GetParticleSystem()->SetFirstFrameComplete();
+        }
+
+		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
+		m_commandList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
+		m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("particlesUpdate"));
+		
+		// Bind Particle SRV (input) - (6 textures + 1 shadow map)
+		D3D12_GPU_DESCRIPTOR_HANDLE particleSrvHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart();
+		particleSrvHandle.ptr += (LunarConstants::TEXTURE_INFO.size() + 1) * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		m_commandList->SetComputeRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, particleSrvHandle);
+		
+		// Bind Particle UAV (output) - 8
+		D3D12_GPU_DESCRIPTOR_HANDLE particleUavHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart();
+		particleUavHandle.ptr += (LunarConstants::TEXTURE_INFO.size() + 2) * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		m_commandList->SetComputeRootDescriptorTable(LunarConstants::UAV_TABLE_ROOT_PARAMETER_INDEX, particleUavHandle);
+		
+		// Dispatch compute shader
+		m_commandList->Dispatch(8, 1, 1); // 512 / 64 = 8, 1, 1
+		
+		// Transition particle buffers for graphics pipeline: UAV → SRV
+		D3D12_RESOURCE_BARRIER postComputeBarrier = {};
+		postComputeBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		postComputeBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		postComputeBarrier.Transition.pResource = m_sceneRenderer->GetParticleSystem()->GetOutputBuffer();
+		postComputeBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		postComputeBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+		postComputeBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		m_commandList->ResourceBarrier(1, &postComputeBarrier);
+		
+		
+		// Switch to graphics pipeline
 
 		// REFACTORING: Calculate descriptor handle indexes not hardcoded
 		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart(); 
-		m_commandList->SetGraphicsRootDescriptorTable(0, descriptorHandle); 
+		m_commandList->SetGraphicsRootDescriptorTable(3, descriptorHandle); 
 		descriptorHandle.ptr += LunarConstants::TEXTURE_INFO.size() * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		m_commandList->SetGraphicsRootDescriptorTable(1, descriptorHandle);
-		descriptorHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		m_commandList->SetGraphicsRootDescriptorTable(2, descriptorHandle);
-		descriptorHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		m_commandList->SetComputeRootDescriptorTable(0, descriptorHandle);
-	
+		m_commandList->SetGraphicsRootDescriptorTable(3, descriptorHandle);
+		
 		// TODO: Does it really work?
-		m_commandList->Dispatch(8, 1, 1); // 512 / 64 = 8, 1, 1
 		
 		m_sceneRenderer->RenderShadowMap(m_commandList.Get());
 

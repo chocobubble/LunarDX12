@@ -148,8 +148,9 @@ int ParticleSystem::AddSRVToDescriptorHeap(ID3D12Device* device, ID3D12Descripto
     uavDesc.Buffer.CounterOffsetInBytes = 0;
     uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE; 
 
-	D3D12_CPU_DESCRIPTOR_HANDLE uavHandle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    device->CreateUnorderedAccessView(m_particleOutputBuffer.Get(), nullptr, &uavDesc, uavHandle);
+	handle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	device->CreateUnorderedAccessView(m_particleOutputBuffer.Get(), nullptr, &uavDesc, handle);
+	++descriptorIndex;
 
     return descriptorIndex;
 }

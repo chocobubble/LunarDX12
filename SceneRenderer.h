@@ -87,6 +87,7 @@ public:
 	BasicConstants& GetBasicConstants() { return m_basicConstants; }
 	ID3D12DescriptorHeap* GetSRVHeap() { return m_srvHeap.Get(); };
 	ID3D12DescriptorHeap* GetDSVHeap() { return m_dsvHeap.Get(); };
+	ParticleSystem* GetParticleSystem() { return m_particleSystem.get(); };
     
 private:
     std::map<RenderLayer, std::vector<std::shared_ptr<GeometryEntry>>> m_layeredGeometries;

@@ -3,7 +3,6 @@
 Texture2D wallTexture : register(t0);
 Texture2D tileTexture : register(t3);
 Texture2D normalTexture : register(t4);
-Texture2D shadowTexture : register(t6);
 Texture2D shadowTexture : register(t0, space1);
 SamplerState g_sampler : register(s0);
 

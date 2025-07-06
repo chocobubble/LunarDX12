@@ -140,7 +140,7 @@ void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* devi
 	LOG_FUNCTION_ENTRY();
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 3;
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) +4;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
