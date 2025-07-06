@@ -424,7 +424,7 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
     			break;
     		case RenderLayer::Normal :
-    			if (m_drawNormals)
+    			if (m_basicConstants.debugFlags & LunarConstants::DebugFlags::SHOW_NORMALS)
     			{
     				commandList->OMSetStencilRef(0);
     				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
@@ -434,6 +434,7 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     					entry->GeometryData->DrawNormals(commandList);
     				}
     			}
+    			continue;
     			break;
     		case RenderLayer::Debug :
     			commandList->OMSetStencilRef(0);

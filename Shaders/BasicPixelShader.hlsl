@@ -128,6 +128,8 @@ float4 main(PixelIn pIn) : SV_TARGET
 	pIn.normal = normalize(pIn.normal);
 	float3x3 TBN = GetTBN(pIn.normal, pIn.tangent);
 	float3 normalWS = NormalTSToWS(normalSample, TBN);
+	uint normalMapMask = 0x02;
+	if (!(normalMapMask & debugFlags)) normalWS = pIn.normal;
 
 	float shadowFactor = 1.0;
 	float4 posW = float4(pIn.posW, 1.0);

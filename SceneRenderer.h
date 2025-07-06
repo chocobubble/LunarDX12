@@ -109,8 +109,6 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 	UINT m_srvDescriptorSize;
 
-	bool m_drawNormals = true;
-
 // TODO: Move to proper location
 public: // Template Section
     template<typename T>
