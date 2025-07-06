@@ -32,6 +32,11 @@ SceneRenderer::SceneRenderer()
 	m_textureManager = make_unique<TextureManager>();
 	m_shadowViewModel = make_unique<ShadowViewModel>();
     m_debugViewModel = make_unique<DebugViewModel>();
+
+    // set default debug mode
+    m_basicConstants.debugMode = 
+        LunarConstants::NORMAL_MAP_ENABLED | 
+        LunarConstants::PBR_ENABLED;
 }
 
 SceneRenderer::~SceneRenderer() = default;
@@ -198,7 +203,6 @@ void SceneRenderer::UpdateScene(float deltaTime)
     m_lightingSystem->UpdateLightData(m_basicConstants);
 	m_shadowManager->UpdateShadowCB(m_basicConstants);
 	m_basicConstants.shadowTransform = m_shadowManager->GetShadowTransform();
-	// LOG_DEBUG("Normal Map Index : ", m_basicConstants.normalMapIndex);
     m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 

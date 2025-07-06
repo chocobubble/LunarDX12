@@ -1,4 +1,5 @@
 #include "Common.hlsl"
+#include "PBR.hlsl"
 
 Texture2D tileTexture : register(t3);
 Texture2D shadowTexture : register(t6);
@@ -34,10 +35,9 @@ float CalculateRoughnessFactor(float3 halfVector, float3 normalVector, float shi
 	return pow(saturate(dot(halfVector, normalVector)), shininess) * (shininess + 8.0f) / 8.0f;
 }
 
-float3 SchlickFresnel(float3 R0, float3 normalVector, float3 halfVector)
+float3 SchlickFresnelBP(float3 R0, float nDotH)
 {
-	float cosTheta = max(dot(halfVector, normalVector), 0.0);
-	return R0 + (1 - R0) * pow((1 - cosTheta), 5);	
+	return R0 + (1 - R0) * pow((1 - nDotH), 5);
 }
 
 float3 BlinnPhong(float3 normal, float3 nToEye, float3 nLightVector, float3 lambertLightStrength)
@@ -45,51 +45,86 @@ float3 BlinnPhong(float3 normal, float3 nToEye, float3 nLightVector, float3 lamb
 	float shininess = 32.0;
 	float3 hv = normalize(nLightVector + nToEye);
 	float roughnessFactor = CalculateRoughnessFactor(hv, normal, shininess);
-	float3 fresnelFactor = SchlickFresnel(fresnelR0, nToEye, hv);
+    float nDotH = max(dot(normal, hv), 0.0f);
+	float3 fresnelFactor = SchlickFresnelBP(fresnelR0, nDotH);
 	float3 specAlbedo = fresnelFactor * roughnessFactor;
 	specAlbedo = specAlbedo / (specAlbedo + 1.0f);
 	return (diffuseAlbedo.rgb + specAlbedo) * lambertLightStrength;	
 }
 
-float3 ComputeDirectionalLight(Light light, float3 pos, float3 normalVector, float3 nToEye)
+// float3 ComputeDirectionalLight(Light light, float3 pos, float3 normalVector, float3 nToEye)
+// {
+// 	float3 lightVector = -light.direction;
+// 	float3 nLightVector = normalize(lightVector);
+// 	float3 lambertLightStrength = light.strength * max(dot(nLightVector, normalVector), 0.0f);
+// 	return BlinnPhong(normalVector, nToEye, nLightVector, lambertLightStrength);
+// }
+
+// float3 ComputePointLight(Light light, float3 pos, float3 normalVector, float3 toEye)
+// {
+// 	float3 lightVector = light.position - pos;
+// 	float distanceFromLight = length(lightVector); 
+// 	if (distanceFromLight > light.fallOffEnd)
+// 		return 0.0f;
+// 	float3 nLightVector = normalize(lightVector);
+// 	float ndotl = max(dot(nLightVector, normalVector), 0.0f);
+// 	float3 lambertLightStrength = light.strength * ndotl;
+// 	float attenuation = CalculateAttenuation(distanceFromLight, light);
+// 	lambertLightStrength *= attenuation;
+// 	return BlinnPhong(normalVector, toEye, nLightVector, lambertLightStrength);
+// }
+
+// float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toEye)
+// {
+// 	float3 lightVector = light.position - pos;
+// 	float distanceFromLight = length(lightVector);
+// 	if (distanceFromLight > light.fallOffEnd)
+// 		return 0.0f;
+// 	float3 nLightVector = normalize(lightVector);
+// 	float ndotl = max(dot(nLightVector, normalVector), 0.0f);
+// 	float3 lambertLightStrength = light.strength * ndotl;
+
+// 	float attenuation = CalculateAttenuation(distanceFromLight, light);
+// 	lambertLightStrength *= attenuation;
+
+// 	float spotFactor = pow(max(dot(-nLightVector, light.direction), 0.0f), light.spotPower);
+// 	lambertLightStrength *= spotFactor;
+
+// 	return BlinnPhong(normalVector, toEye, nLightVector, lambertLightStrength);
+// }
+
+float3 ComputeLight(Light light, float3 pos, float3 normalVector, float3 toEye)
 {
-	float3 lightVector = -light.direction;
-	float3 nLightVector = normalize(lightVector);
-	float3 lambertLightStrength = light.strength * max(dot(nLightVector, normalVector), 0.0f);
-	return BlinnPhong(normalVector, nToEye, nLightVector, lambertLightStrength);
-}
+    float3 lightVector = -light.direction;
+    float distanceFromLight = 0.0f;
+    float attenuation = 1.0f;
+    if (light.fallOffEnd > 0.0f) // point or spot light
+    {
+        lightVector = light.position - pos; 
+        distanceFromLight = length(lightVector);
+        if (distanceFromLight > light.fallOffEnd)
+            return float3(0.0f, 0.0f, 0.0f);
+        attenuation = CalculateAttenuation(distanceFromLight, light);
+    }
+    float3 nLightVector = normalize(lightVector);
+    float ndotl = max(dot(nLightVector, normalVector), 0.0f);
+    float3 lambertLightStrength = light.strength * ndotl * attenuation;
 
-float3 ComputePointLight(Light light, float3 pos, float3 normalVector, float3 toEye)
-{
-	float3 lightVector = light.position - pos;
-	float distanceFromLight = length(lightVector); 
-	if (distanceFromLight > light.fallOffEnd)
-		return 0.0f;
-	float3 nLightVector = normalize(lightVector);
-	float ndotl = max(dot(nLightVector, normalVector), 0.0f);
-	float3 lambertLightStrength = light.strength * ndotl;
-	float attenuation = CalculateAttenuation(distanceFromLight, light);
-	lambertLightStrength *= attenuation;
-	return BlinnPhong(normalVector, toEye, nLightVector, lambertLightStrength);
-}
+    if (light.spotPower > 0.0f) // spot light
+    {
+        float spotFactor = pow(max(dot(-nLightVector, light.direction), 0.0f), light.spotPower);
+        lambertLightStrength *= spotFactor;
+    }
 
-float3 ComputeSpotLight(Light light, float3 pos, float3 normalVector, float3 toEye)
-{
-	float3 lightVector = light.position - pos;
-	float distanceFromLight = length(lightVector);
-	if (distanceFromLight > light.fallOffEnd)
-		return 0.0f;
-	float3 nLightVector = normalize(lightVector);
-	float ndotl = max(dot(nLightVector, normalVector), 0.0f);
-	float3 lambertLightStrength = light.strength * ndotl;
-
-	float attenuation = CalculateAttenuation(distanceFromLight, light);
-	lambertLightStrength *= attenuation;
-
-	float spotFactor = pow(max(dot(-nLightVector, light.direction), 0.0f), light.spotPower);
-	lambertLightStrength *= spotFactor;
-
-	return BlinnPhong(normalVector, toEye, nLightVector, lambertLightStrength);
+    static const uint PBR_ENABLED = 0x08;
+    if (debugMode & PBR_ENABLED)
+    {
+        return CookTorrance(normalVector, nLightVector, toEye) * lambertLightStrength;
+    }
+    else
+    {
+        return BlinnPhong(normalVector, toEye, nLightVector, lambertLightStrength);
+    }
 }
 
 float4 main(PixelIn pIn) : SV_TARGET
@@ -100,15 +135,7 @@ float4 main(PixelIn pIn) : SV_TARGET
 	pIn.normal = normalize(pIn.normal);
 	float3x3 TBN = GetTBN(pIn.normal, pIn.tangent);
 	float3 normalWS = NormalTSToWS(normalSample, TBN);
-	if (normalMapIndex > 0.5) normalWS = pIn.normal;
-	// if (normalMapIndex < 0.5) return float4(normalWS, 1.0);
-	// else 
-	// {
-	// 	float3 debugColor = pIn.normal.xyz * 0.5f + 0.5f;
-	// 	return float4(debugColor, 1.0);
-	// }
 
-	// return float4(normalWS, 1.0);
 	float shadowFactor = 1.0;
 	float4 posW = float4(pIn.posW, 1.0);
 	float4 shadowCoord = mul(posW, shadowTransform);
