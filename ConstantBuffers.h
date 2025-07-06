@@ -15,7 +15,7 @@ struct BasicConstants
 	DirectX::XMFLOAT4X4 view;
 	DirectX::XMFLOAT4X4 projection;
 	DirectX::XMFLOAT3   eyePos;
-    uint32_t debugMode;  // Debug mode flags
+    uint32_t debugFlags;  // Debug mode flags
     DirectX::XMFLOAT4   ambientLight;
 	LightData lights[Lunar::LunarConstants::LIGHT_COUNT];
 	DirectX::XMFLOAT4X4 shadowTransform;

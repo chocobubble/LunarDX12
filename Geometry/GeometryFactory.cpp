@@ -62,7 +62,7 @@ std::unique_ptr<Geometry> GeometryFactory::CloneGeometry(const Geometry* origina
 	}
 	else if (auto plane = dynamic_cast<const Plane*>(original))
 	{
-		return CreatePlane(plane->GetWidth(), plane->GetHeight());
+		return CreatePlane();
 	}
 	return nullptr;
 }

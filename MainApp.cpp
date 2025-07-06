@@ -16,6 +16,8 @@
 #include "PipelineStateManager.h"
 #include "PerformanceProfiler.h"
 #include "PerformanceViewModel.h"
+#include "Geometry/IcoSphere.h"
+#include "Geometry/Cube.h"
 #include "Geometry/Transform.h"
 
 using namespace std;
@@ -26,7 +28,6 @@ using namespace Microsoft::WRL;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Lunar {
-
 MainApp *g_mainApp = nullptr;
 
 LRESULT WINAPI WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -598,8 +599,8 @@ void MainApp::InitializeGeometry()
 	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
     Transform transform = {};
     transform.Location = XMFLOAT3(0.0f, 1.5f, 0.0f);
-    m_sceneRenderer->AddSphere("Sphere0", transform, RenderLayer::World);
-    m_sceneRenderer->AddCube("Cube0", transform, RenderLayer::Normal); // TODO : Delete
+    m_sceneRenderer->AddGeometry<IcoSphere>("Sphere0", transform, RenderLayer::World);
+    m_sceneRenderer->AddGeometry<Cube>("Cube0", transform, RenderLayer::Normal); // TODO : Delete
 	transform.Scale = XMFLOAT3(10.0f, 0.1f, 10.0f);
 	Transform mirrorTransform = transform;
 	mirrorTransform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -612,7 +613,7 @@ void MainApp::InitializeGeometry()
 	// m_sceneRenderer->AddPlane("ShadowMapPlane", {{0, 0, 0}, {0, 0, 0}, {3, 3, 1}}, 3.0f, 3.0f, RenderLayer::World);
 	transform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	transform.Scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
-	m_sceneRenderer->AddSphere("SkyBox0", transform, RenderLayer::Background);
+	m_sceneRenderer->AddGeometry<IcoSphere>("SkyBox0", transform, RenderLayer::Background);
 
 	m_sceneRenderer->InitializeScene(m_device.Get(), m_gui.get(), m_pipelineStateManager.get());
 }

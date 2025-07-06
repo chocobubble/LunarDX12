@@ -13,7 +13,7 @@ cbuffer BasicConstants : register(b0)
 	float4x4 view;
 	float4x4 projection;
 	float3 eyePos;
-    uint debugMode;  // Debug mode flags
+    uint debugFlags;  // Debug mode flags
 	float4 ambientLight;
 	Light lights[3];
 	float4x4 shadowTransform;

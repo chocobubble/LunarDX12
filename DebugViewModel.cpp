@@ -1,9 +1,12 @@
 #include "DebugViewModel.h"
+
+#include "ConstantBuffers.h"
 #include "LunarGUI.h"
 #include "LunarConstants.h"
 #include "Logger.h"
 
 using namespace std;
+using namespace Lunar::LunarConstants;
 
 namespace Lunar
 {
@@ -94,7 +97,7 @@ void DebugViewModel::Initialize(LunarGui* gui, BasicConstants& constants)
     
     SyncFromConstants();
     
-    LOG_INFO("DebugViewModel initialized successfully");
+    LOG_DEBUG("DebugViewModel initialized successfully");
 }
 
 void DebugViewModel::SyncFromConstants()

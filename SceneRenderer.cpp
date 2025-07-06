@@ -13,6 +13,8 @@
 #include "ShadowViewModel.h"
 #include "LightViewModel.h"
 #include "DebugViewModel.h"
+#include "Geometry/Cube.h"
+#include "Geometry/IcoSphere.h"
 
 using namespace DirectX;
 using namespace std;
@@ -34,9 +36,9 @@ SceneRenderer::SceneRenderer()
     m_debugViewModel = make_unique<DebugViewModel>();
 
     // set default debug mode
-    m_basicConstants.debugMode = 
-        LunarConstants::NORMAL_MAP_ENABLED | 
-        LunarConstants::PBR_ENABLED;
+    m_basicConstants.debugFlags = 
+        LunarConstants::DebugFlags::NORMAL_MAP_ENABLED | 
+        LunarConstants::DebugFlags::PBR_ENABLED;
 }
 
 SceneRenderer::~SceneRenderer() = default;
@@ -226,7 +228,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
         Transform dirTransform;
         dirTransform.Location = dirLight->Position;
         dirTransform.Scale = {0.3f, 0.3f, 0.3f};
-        AddCube("LightViz_Directional", dirTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_LIGHT);
+        AddGeometry<IcoSphere>("LightViz_Directional", dirTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_LIGHT);
         
         // direction arrow - Orange
         for (int i = 1; i <= 3; ++i) 
@@ -239,7 +241,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
             Transform arrowTransform;
             arrowTransform.Location = arrowPos;
             arrowTransform.Scale = {0.1f, 0.1f, 0.1f};
-            AddCube("LightViz_DirArrow" + std::to_string(i), arrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_ARROW);
+            AddGeometry<Cube>("LightViz_DirArrow" + std::to_string(i), arrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_ARROW);
         }
     }
     
@@ -250,7 +252,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
         Transform pointTransform;
         pointTransform.Location = pointLight->Position;
         pointTransform.Scale = {0.3f, 0.3f, 0.3f};
-        AddCube("LightViz_Point", pointTransform, RenderLayer::Debug, LunarConstants::LightVizColors::POINT_LIGHT);
+        AddGeometry<Cube>("LightViz_Point", pointTransform, RenderLayer::Debug, LunarConstants::LightVizColors::POINT_LIGHT);
     }
     
     // Spot Light - Blue cube
@@ -259,7 +261,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
         Transform spotTransform;
         spotTransform.Location = spotLight->Position;
         spotTransform.Scale = {0.3f, 0.3f, 0.3f};
-        AddCube("LightViz_Spot", spotTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_LIGHT);
+        AddGeometry<Cube>("LightViz_Spot", spotTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_LIGHT);
         
         // direction arrow - sky-blue
         for (int i = 1; i <= 2; ++i) 
@@ -272,7 +274,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
             Transform spotArrowTransform;
             spotArrowTransform.Location = spotArrowPos;
             spotArrowTransform.Scale = {0.1f, 0.1f, 0.1f};
-            AddCube("LightViz_SpotArrow" + std::to_string(i), spotArrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_ARROW);
+            AddGeometry<Cube>("LightViz_SpotArrow" + std::to_string(i), spotArrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_ARROW);
         }
     }
     

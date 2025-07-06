@@ -135,18 +135,21 @@ struct PBRMaterialPreset
 	const float ao;
 };
 
-static constexpr std::array<PBRMaterialPreset, 8> PBR_MATERIAL_PRESETS = {{
+static constexpr std::array<PBRMaterialPreset, 9> PBR_MATERIAL_PRESETS = {{
+	// DEFAULT
+	{"default", {0.7f, 0.7f, 0.7f}, 0.0f,	0.5f, {0.04f, 0.04f, 0.04f}, 1.0f},
+
 	// Metals
-	{"Gold",      {1.000f, 0.766f, 0.336f}, 1.0f, 0.1f,  {1.000f, 0.710f, 0.290f}, 1.0f},
-	{"Silver",    {0.972f, 0.960f, 0.915f}, 1.0f, 0.05f, {0.972f, 0.960f, 0.915f}, 1.0f},
-	{"Copper",    {0.955f, 0.637f, 0.538f}, 1.0f, 0.15f, {0.955f, 0.637f, 0.538f}, 1.0f},
-	{"Iron",      {0.560f, 0.570f, 0.580f}, 1.0f, 0.3f,  {0.560f, 0.570f, 0.580f}, 1.0f},
+	{"gold",      {1.000f, 0.766f, 0.336f}, 1.0f, 0.1f,  {1.000f, 0.710f, 0.290f}, 1.0f},
+	{"silver",    {0.972f, 0.960f, 0.915f}, 1.0f, 0.05f, {0.972f, 0.960f, 0.915f}, 1.0f},
+	{"copper",    {0.955f, 0.637f, 0.538f}, 1.0f, 0.15f, {0.955f, 0.637f, 0.538f}, 1.0f},
+	{"iron",      {0.560f, 0.570f, 0.580f}, 1.0f, 0.3f,  {0.560f, 0.570f, 0.580f}, 1.0f},
 	
 	// Dielectrics
-	{"Plastic",   {0.8f, 0.2f, 0.2f}, 0.0f, 0.5f, {0.04f, 0.04f, 0.04f}, 1.0f},
-	{"Rubber",    {0.1f, 0.1f, 0.1f}, 0.0f, 0.9f, {0.04f, 0.04f, 0.04f}, 1.0f},
-	{"Ceramic",   {0.9f, 0.9f, 0.85f}, 0.0f, 0.1f, {0.05f, 0.05f, 0.05f}, 1.0f},
-	{"Wood",      {0.6f, 0.4f, 0.2f}, 0.0f, 0.8f, {0.04f, 0.04f, 0.04f}, 1.0f}
+	{"plastic",   {0.8f, 0.2f, 0.2f}, 0.0f, 0.5f, {0.04f, 0.04f, 0.04f}, 1.0f},
+	{"rubber",    {0.1f, 0.1f, 0.1f}, 0.0f, 0.9f, {0.04f, 0.04f, 0.04f}, 1.0f},
+	{"ceramic",   {0.9f, 0.9f, 0.85f}, 0.0f, 0.1f, {0.05f, 0.05f, 0.05f}, 1.0f},
+	{"wood",      {0.6f, 0.4f, 0.2f}, 0.0f, 0.8f, {0.04f, 0.04f, 0.04f}, 1.0f}
 }};
 }	
 }

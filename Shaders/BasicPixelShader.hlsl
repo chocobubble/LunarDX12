@@ -7,13 +7,6 @@ Texture2D wallTexture : register(t0);
 Texture2D normalTexture : register(t4);
 SamplerState g_sampler : register(s0);
 
-cbuffer Material : register(b2)
-{
-	float4 diffuseAlbedo;
-	float3 fresnelR0;
-	float shininess;
-}
-
 struct PixelIn
 {
 	float4 pos : SV_POSITION;
@@ -46,10 +39,10 @@ float3 BlinnPhong(float3 normal, float3 nToEye, float3 nLightVector, float3 lamb
 	float3 hv = normalize(nLightVector + nToEye);
 	float roughnessFactor = CalculateRoughnessFactor(hv, normal, shininess);
     float nDotH = max(dot(normal, hv), 0.0f);
-	float3 fresnelFactor = SchlickFresnelBP(fresnelR0, nDotH);
+	float3 fresnelFactor = SchlickFresnelBP(F0, nDotH);
 	float3 specAlbedo = fresnelFactor * roughnessFactor;
 	specAlbedo = specAlbedo / (specAlbedo + 1.0f);
-	return (diffuseAlbedo.rgb + specAlbedo) * lambertLightStrength;	
+	return (albedo.rgb + specAlbedo) * lambertLightStrength;	
 }
 
 // float3 ComputeDirectionalLight(Light light, float3 pos, float3 normalVector, float3 nToEye)
@@ -117,7 +110,7 @@ float3 ComputeLight(Light light, float3 pos, float3 normalVector, float3 toEye)
     }
 
     static const uint PBR_ENABLED = 0x08;
-    if (debugMode & PBR_ENABLED)
+    if (debugFlags & PBR_ENABLED)
     {
         return CookTorrance(normalVector, nLightVector, toEye) * lambertLightStrength;
     }
@@ -153,9 +146,9 @@ float4 main(PixelIn pIn) : SV_TARGET
 	float3 finalColor = float4(0, 0, 0, 1);
 	// float3 finalColor = ambientLight.rgb * diffuseColor.rgb;
 	
-	finalColor += ComputeDirectionalLight(lights[0], pIn.posW, normalWS, nToEye) * shadowFactor;
-	finalColor += ComputePointLight(lights[1], pIn.posW, normalWS, toEye);
- finalColor += ComputeSpotLight(lights[2], pIn.posW, normalWS, toEye);
+	finalColor += ComputeLight(lights[0], pIn.posW, normalWS, nToEye) * shadowFactor;
+	finalColor += ComputeLight(lights[1], pIn.posW, normalWS, toEye);
+	finalColor += ComputeLight(lights[2], pIn.posW, normalWS, toEye);
 
 	return float4(finalColor, diffuseColor.a);
 }

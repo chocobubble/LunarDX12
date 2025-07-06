@@ -7,6 +7,7 @@
 #include <string>
 #include <DirectXMath.h>
 
+#include "Logger.h"
 #include "MaterialManager.h"
 #include "SceneViewModel.h"
 #include "Geometry/Transform.h"
@@ -116,7 +117,7 @@ public: // Template Section
     bool AddGeometry(const std::string& name, 
         const Transform& spawnTransform = Transform(), 
         RenderLayer layer = RenderLayer::World, 
-        const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f}
+        const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f},
         const std::string& materialName = "default")
     {
         if (DoesGeometryExist(name))
