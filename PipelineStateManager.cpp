@@ -27,7 +27,7 @@ PipelineStateManager::PipelineStateManager()
 			},
 		},
 		{
-			"billboard", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }}
+			"point", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }}
 		}
 	};
 }
@@ -438,7 +438,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		billboardPsoDesc.GS.BytecodeLength = m_shaderMap["billboardGS"]->GetBufferSize();
 		billboardPsoDesc.PS.pShaderBytecode = m_shaderMap["billboardPS"]->GetBufferPointer();
 		billboardPsoDesc.PS.BytecodeLength = m_shaderMap["billboardPS"]->GetBufferSize();
-		m_inputLayout = m_inputLayoutMap["billboard"];
+		m_inputLayout = m_inputLayoutMap["point"];
 		billboardPsoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
 		billboardPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&billboardPsoDesc,
@@ -485,6 +485,19 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
     	particlesUpdatePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
         THROW_IF_FAILED(device->CreateComputePipelineState(&particlesUpdatePsoDesc, 
             IID_PPV_ARGS(m_psoMap["particlesUpdate"].GetAddressOf())))
+
+    	D3D12_GRAPHICS_PIPELINE_STATE_DESC particlesPsoDesc = opaquePsoDesc;
+    	particlesPsoDesc.VS.pShaderBytecode = m_shaderMap["particlesVS"]->GetBufferPointer();
+    	particlesPsoDesc.VS.BytecodeLength = m_shaderMap["particlesVS"]->GetBufferSize();
+    	particlesPsoDesc.GS.pShaderBytecode = m_shaderMap["particlesGS"]->GetBufferPointer();
+    	particlesPsoDesc.GS.BytecodeLength = m_shaderMap["particlesGS"]->GetBufferSize();
+    	particlesPsoDesc.PS.pShaderBytecode = m_shaderMap["particlesPS"]->GetBufferPointer();
+    	particlesPsoDesc.PS.BytecodeLength = m_shaderMap["particlesPS"]->GetBufferSize();
+    	m_inputLayout = m_inputLayoutMap["point"];
+    	particlesPsoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
+    	particlesPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+    	THROW_IF_FAILED(device->CreateGraphicsPipelineState(&particlesPsoDesc,
+			IID_PPV_ARGS(m_psoMap["particles"].GetAddressOf())))
     }
 }
 
