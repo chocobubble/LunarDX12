@@ -12,6 +12,7 @@
 #include "Geometry/Plane.h"
 #include "ShadowViewModel.h"
 #include "LightViewModel.h"
+#include "DebugViewModel.h"
 
 using namespace DirectX;
 using namespace std;
@@ -30,6 +31,7 @@ SceneRenderer::SceneRenderer()
 	m_shadowManager = make_unique<ShadowManager>();
 	m_textureManager = make_unique<TextureManager>();
 	m_shadowViewModel = make_unique<ShadowViewModel>();
+    m_debugViewModel = make_unique<DebugViewModel>();
 }
 
 SceneRenderer::~SceneRenderer() = default;
@@ -41,6 +43,7 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
 	
 	m_shadowManager->Initialize(device);
 	m_shadowViewModel->Initialize(gui, m_shadowManager.get());
+    m_debugViewModel->Initialize(gui, m_basicConstants);
 	CreateDSVDescriptorHeap(device);
 	CreateDepthStencilView(device);
 	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);

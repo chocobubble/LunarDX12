@@ -63,86 +63,8 @@ void LunarGui::Render(float dt)
 {
     BeginFrame();
 
- //    // TODO : Fix the first window to be rendered by RenderBoundWindow method.
-	ImGui::Begin("Settings");
-	ImGui::Text("FPS: %.2f", 1.0f / dt);
- 
-	for (auto& pair : m_boundValues)
-	{
-		const string& id = pair.first;
-		BoundValue&value = pair.second;
-    
-		if (value.ElementType == UIElementType::Checkbox) 
-		{
-			bool* boolValue = static_cast<bool*>(value.DataPtr);
-			// ImGui::Checkbox returns true if the value changed.
-			if (ImGui::Checkbox(id.c_str(), boolValue) && value.OnChange) 
-			{
-				value.OnChange(value.DataPtr);
-			}
-		}
-	}
-	// 	else if (value.ElementType == UIElementType::Slider)
-	// 	{
- //            switch (value.DataType)
- //            {
- //                case DataType::Int:
- //                {
- //                    int* intValue = static_cast<int*>(value.DataPtr);
- //                    int minValue = value.GetMinValue<int>();
- //                    int maxValue = value.GetMaxValue<int>();
- //                    if (ImGui::SliderInt(id.c_str(), intValue, minValue, maxValue) && value.OnChange)
- //                    {
- //                        value.OnChange(value.DataPtr);
- //                    }
- //                    break;
- //                }
- //                case DataType::Float:
- //                {
- //                    float* floatValue = static_cast<float*>(value.DataPtr);
- //                    float minValue = value.GetMinValue<float>();
- //                    float maxValue = value.GetMaxValue<float>();
- //                    if (ImGui::SliderFloat(id.c_str(), floatValue, minValue, maxValue) && value.OnChange)
- //                    {
- //                        value.OnChange(value.DataPtr);
- //                    }
- //                    break;
- //                }
- //                case DataType::Float3:
- //                {
- //                    float* dataPtr = reinterpret_cast<float*>(value.DataPtr);
- //                    auto minValue = value.GetMinValue<XMFLOAT3>();
- //                    auto maxValue = value.GetMaxValue<XMFLOAT3>();
- //                    if (ImGui::SliderFloat3(id.c_str(), dataPtr, minValue.x, maxValue.x) && value.OnChange)
- //                    {
- //                        value.OnChange(value.DataPtr);
- //                    }
- //                    break;
- //                }
- //                default:
- //                    LOG_ERROR("Invalid data type for slider.");
- //                    break;
- //            }
-	// 	}
- //        else if (value.ElementType == UIElementType::ListBox)
- //        {
-	//         const char* const* items = static_cast<const char* const*>(value.DataPtr);
- //            if (ImGui::ListBox(id.c_str(), value.SelectedValue, items, value.GetMaxValue<int>()) && value.OnChange)
- //            {
- //                value.OnChange(value.DataPtr);
- //            }
- //        }
-	// }
- //
-	for (auto& pair : m_callbacks) 
-	{
-		const string& id = pair.first;
-		auto& callback = pair.second;
-    
-		if (ImGui::Button(id.c_str())) callback(); 
-	}
- 
-	ImGui::End();
+    // Main settings window - only main category elements
+    RenderCategory("Settings", "main", dt);
     
     // Render bound windows
     for (const auto& [windowId, windowData] : m_boundWindows)
@@ -158,7 +80,7 @@ void LunarGui::EndFrame()
 	ImGui::Render();
 }
 
-void LunarGui::BindCheckbox(const string& id, bool* value, function<void(bool)> onChange)
+void LunarGui::BindCheckbox(const string& id, bool* value, function<void(bool)> onChange, const string& category)
 {
 	if (GetBoundValue<bool>(id)) 
 	{
@@ -169,12 +91,13 @@ void LunarGui::BindCheckbox(const string& id, bool* value, function<void(bool)> 
 	BoundValue boundValue;
 	boundValue.ElementType = UIElementType::Checkbox;
 	boundValue.DataPtr = value;
+	boundValue.Category = category;
 
 	if (onChange) 
 	{
-		boundValue.OnChange = [onChange](bool data) 
+		boundValue.OnChange = [onChange](void* data) 
 		{
-			onChange(data);
+			onChange(*static_cast<bool*>(data));
 		};
 	}
         
@@ -449,6 +372,54 @@ void LunarGui::RenderBoundWindow(const string& windowId, const WindowData& windo
         }
     }
     ImGui::End();
+}
+
+void LunarGui::RenderCategory(const string& windowTitle, const string& category, float dt)
+{
+    ImGui::Begin(windowTitle.c_str());
+    
+    if (category == "main" && dt > 0.0f)
+        ImGui::Text("FPS: %.2f", 1.0f / dt);
+    
+    for (auto& pair : m_boundValues)
+    {
+        const string& id = pair.first;
+        BoundValue& value = pair.second;
+        
+        if (value.Category == category)
+        {
+            RenderElement(id, value);
+        }
+    }
+    
+    if (category == "main")
+    {
+        for (auto& pair : m_callbacks) 
+        {
+            if (ImGui::Button(pair.first.c_str())) 
+                pair.second(); 
+        }
+    }
+    
+    ImGui::End();
+}
+
+void LunarGui::RenderElement(const string& id, BoundValue& value)
+{
+    switch (value.ElementType)
+    {
+        case UIElementType::Checkbox:
+        {
+            bool* boolValue = static_cast<bool*>(value.DataPtr);
+            if (ImGui::Checkbox(id.c_str(), boolValue) && value.OnChange) 
+            {
+                value.OnChange(value.DataPtr);
+            }
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 }

@@ -19,6 +19,9 @@ struct BasicConstants
     DirectX::XMFLOAT4   ambientLight;
 	LightData lights[Lunar::LunarConstants::LIGHT_COUNT];
 	DirectX::XMFLOAT4X4 shadowTransform;
+
+    // Debugging parameters
+    uint32_t debugMode; 
 };
 
 // Root Parameter CBV 2

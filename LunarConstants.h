@@ -73,6 +73,22 @@ static constexpr std::array<ShaderInfo, 12> SHADER_INFO = {{
 	{ "normalPS", "Shaders\\NormalPixelShader.hlsl", "ps_5_0" },
 }};
 
+/////////////// Debug Flags ///////////////
+namespace DebugFlags
+{
+    enum : uint32_t
+    {
+        SHOW_NORMALS       = 1 << 0,  // 0x01
+        NORMAL_MAP_ENABLED = 1 << 1,  // 0x02
+        SHOW_UVS           = 1 << 2,  // 0x04
+        PBR_ENABLED        = 1 << 3,  // 0x08
+        SHADOWS_ENABLED    = 1 << 4,  // 0x10
+        WIREFRAME          = 1 << 5,  // 0x20
+        AO_ENABLED         = 1 << 6,  // 0x40
+        IBL_ENABLED        = 1 << 7,  // 0x80
+    };
+}
+
 /////////////// Lights ///////////////
 enum class LightType
 {

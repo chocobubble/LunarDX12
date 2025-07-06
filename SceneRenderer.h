@@ -23,6 +23,7 @@ class PipelineStateManager;
 class LunarGui;
 class LightingSystem;
 class ConstantBuffer;
+class DebugViewModel;
 struct BasicConstants;
 
 enum class RenderLayer
@@ -89,6 +90,7 @@ private:
 	std::unique_ptr<ShadowViewModel> m_shadowViewModel;
     std::unique_ptr<SceneViewModel> m_sceneViewModel;
     std::unique_ptr<LightViewModel> m_lightViewModel;
+    std::unique_ptr<DebugViewModel> m_debugViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;
 	PipelineStateManager* m_pipelineStateManager = nullptr;
@@ -108,6 +110,7 @@ private:
 
 	bool m_drawNormals = true;
 
+// TODO: Move to proper location
 public: // Template Section
     template<typename T>
     bool AddGeometry(const std::string& name, 
