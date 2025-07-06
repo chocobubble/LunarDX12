@@ -379,12 +379,7 @@ void MainApp::Render(double dt)
 			preComputeBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 			m_commandList->ResourceBarrier(1, &preComputeBarrier);
 		}
-        else
-        {
-            m_sceneRenderer->GetParticleSystem()->SetFirstFrameComplete();
-        }
 
-		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 		m_commandList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
 		m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("particlesUpdate"));
 		
@@ -398,7 +393,7 @@ void MainApp::Render(double dt)
 		particleUavHandle.ptr += (LunarConstants::TEXTURE_INFO.size() + 2) * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		m_commandList->SetComputeRootDescriptorTable(LunarConstants::UAV_TABLE_ROOT_PARAMETER_INDEX, particleUavHandle);
 		
-		// Dispatch compute shader
+		// TODO: Does it really work?
 		m_commandList->Dispatch(8, 1, 1); // 512 / 64 = 8, 1, 1
 		
 		// Transition particle buffers for graphics pipeline: UAV → SRV
@@ -411,16 +406,13 @@ void MainApp::Render(double dt)
 		postComputeBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		m_commandList->ResourceBarrier(1, &postComputeBarrier);
 		
-		
 		// Switch to graphics pipeline
+		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
+        m_sceneRenderer->GetParticleSystem()->SetFirstFrameComplete();
 
 		// REFACTORING: Calculate descriptor handle indexes not hardcoded
 		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart(); 
 		m_commandList->SetGraphicsRootDescriptorTable(3, descriptorHandle); 
-		descriptorHandle.ptr += LunarConstants::TEXTURE_INFO.size() * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		m_commandList->SetGraphicsRootDescriptorTable(3, descriptorHandle);
-		
-		// TODO: Does it really work?
 		
 		m_sceneRenderer->RenderShadowMap(m_commandList.Get());
 
