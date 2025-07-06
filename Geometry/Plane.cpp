@@ -6,8 +6,8 @@ using namespace DirectX;
 
 namespace Lunar
 {
-Plane::Plane(float width, float height, int widthSegments, int heightSegments)
-    : m_width(width), m_height(height), m_widthSegments(widthSegments), m_heightSegments(heightSegments)
+Plane::Plane(int widthSegments, int heightSegments)
+    : m_widthSegments(widthSegments), m_heightSegments(heightSegments)
 {
 	m_planeEquation = XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 }
@@ -29,18 +29,22 @@ void Plane::CreatePlaneVertices()
 {
     m_vertices.clear();
     
-    float halfWidth = m_width * 0.5f;
-    float halfHeight = m_height * 0.5f;
-    
-    float dx = m_width / m_widthSegments;
-    float dz = m_height / m_heightSegments;
-    
+    float width = m_transform.Scale.x;
+    float height = m_transform.Scale.y;
+    float depth = m_transform.Scale.z;
+
+    float halfWidth = width * 0.5f;
+    float halfHeight = height * 0.5f;
+
+    float dx = width / m_widthSegments;
+    float dy = height / m_heightSegments;
+
     float du = 1.0f / m_widthSegments;
     float dv = 1.0f / m_heightSegments;
 
     for (int i = 0; i <= m_heightSegments; ++i)
     {
-        float z = halfHeight - i * dz;
+        float z = halfHeight - i * dy;
         for (int j = 0; j <= m_widthSegments; ++j)
         {
             float x = -halfWidth + j * dx;

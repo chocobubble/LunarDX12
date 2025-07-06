@@ -63,11 +63,6 @@ public:
 	void UpdateScene(float deltaTime);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
-    bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
-    bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
-    bool AddPlane(const std::string& name, const Transform& spawnTransform = Transform(), float width = 10.0f, float height = 10.0f, RenderLayer layer = RenderLayer::World);
-	bool AddTree(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::Billboard);
-    
     bool SetGeometryTransform(const std::string& name, const Transform& newTransform);
     bool SetGeometryLocation(const std::string& name, const DirectX::XMFLOAT3& newLocation);
     bool SetGeometryVisibility(const std::string& name, bool visible);
@@ -113,8 +108,34 @@ private:
 
 	bool m_drawNormals = true;
 
-    // Debug Section
-public:
+public: // Template Section
+    template<typename T>
+    bool AddGeometry(const std::string& name, 
+        const Transform& spawnTransform = Transform(), 
+        RenderLayer layer = RenderLayer::World, 
+        const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f}
+        const std::string& materialName = "default")
+    {
+        if (DoesGeometryExist(name))
+        {
+            LOG_ERROR("Geometry with name " + name + " already exists");
+            return false; 
+        }
+        
+        auto geometry = std::make_unique<T>();
+        geometry->SetTransform(spawnTransform);
+        geometry->SetColor(color);
+        geometry->SetMaterialName(materialName);
+        
+        auto entry = std::make_shared<GeometryEntry>(GeometryEntry{std::move(geometry), name, layer});
+        
+        m_layeredGeometries[layer].push_back(entry);
+        m_geometriesByName[name] = entry;
+        
+        return true;
+    }
+    
+public:  // Debug Section 
     // Light Visualization
     void CreateLightVisualizationCubes();
     void UpdateLightVisualization();
