@@ -67,6 +67,16 @@ void LightingSystem::SetLightRange(const std::string& name, float range)
     }
 }
 
+void LightingSystem::SetLightSpotPower(const std::string& name, float spotPower)
+{
+    auto* light = GetLight(name);
+    if (light)
+    {
+        light->SpotPower = spotPower;
+        m_needsUpdate = true;
+    }
+}
+
 void LightingSystem::SetLightEnabled(const std::string& name, bool enabled)
 {
     auto* light = GetLight(name);

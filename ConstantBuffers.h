@@ -15,7 +15,7 @@ struct BasicConstants
 	DirectX::XMFLOAT4X4 view;
 	DirectX::XMFLOAT4X4 projection;
 	DirectX::XMFLOAT3   eyePos;
-	float dummy;
+	float normalMapIndex;
     DirectX::XMFLOAT4   ambientLight;
 	LightData lights[Lunar::LunarConstants::LIGHT_COUNT];
 	DirectX::XMFLOAT4X4 shadowTransform;
@@ -25,6 +25,7 @@ struct BasicConstants
 struct ObjectConstants
 {
 	DirectX::XMFLOAT4X4 World;
+    DirectX::XMFLOAT4X4 WorldInvTranspose;
 	int textureIndex;
 	float dummy[3];
 };
@@ -34,7 +35,7 @@ struct MaterialConstants
 {
 	DirectX::XMFLOAT4 DiffuseAlbedo;
 	DirectX::XMFLOAT3 FresnelR0;
-	float             Roughness;
+	float             Shininess;
 };
 
 class ConstantBuffer

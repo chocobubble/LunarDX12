@@ -1,27 +1,4 @@
-struct Light
-{
-	float3 lightStrength;
-	float fallOffStart;
-	float3 direction;
-	float fallOffEnd;
-	float3 position;
-	float spotPower;
-};
-
-cbuffer BasicConstants : register(b0)
-{
-	float4x4 view;
-	float4x4 projection;
-	float3 eyePos;
-	float4 ambientLight;
-	Light lights[3];
-}
-
-cbuffer ObjectConstants : register(b1)
-{
-	float4x4 world;
-	int textureIndex;	
-}
+#include "common.hlsl"
 
 struct VertexIn
 {
@@ -29,6 +6,7 @@ struct VertexIn
     float4 color : COLOR;
 	float2 texCoord : TEXCOORD;
 	float3 normal : NORMAL;
+	float3 tangent : TANGENT;
 };
 
 struct PixelIn
@@ -38,19 +16,25 @@ struct PixelIn
 	float2 texCoord : TEXCOORD;
 	float3 normal : NORMAL;
 	float3 posW : POSITION;
+	float3 tangent : TANGENT;
 };
 
 PixelIn main(VertexIn vIn)
 {
     PixelIn pIn;
 	float4 pos = float4(vIn.pos, 1.0f);
-	// pIn.pos = mul(pos, model);
-	pIn.pos = mul(pos, world);
-	pIn.posW = pIn.pos;
-	pIn.pos = mul(pIn.pos, view);
-	pIn.pos = mul(pIn.pos, projection);
+	float4 posW = mul(pos, world);
+	pIn.posW = posW.xyz; 
+	
+    float4 posWV = mul(posW, view); 
+    float4 posWVP = mul(posWV, projection);
+    pIn.pos = posWVP;
+	
     pIn.color = vIn.color;
 	pIn.texCoord = vIn.texCoord;
-	pIn.normal = vIn.normal;
+	
+    pIn.normal = normalize(mul(vIn.normal, (float3x3)worldInvTranspose));
+	pIn.tangent = mul(vIn.tangent, (float3x3)world);
+	
     return pIn;
 }

@@ -139,14 +139,16 @@
     <ClCompile Include="Geometry\Transform.cpp" />
     <ClCompile Include="Geometry\Tree.cpp" />
     <ClCompile Include="LightingSystem.cpp" />
+    <ClCompile Include="LightViewModel.cpp" />
     <ClCompile Include="LunarConstants.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="LunarGUI.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainApp.cpp" />
-    <ClCompile Include="LunarTimer.cpp" />
     <ClCompile Include="MaterialManager.cpp" />
     <ClCompile Include="MathUtils.cpp" />
+    <ClCompile Include="PerformanceProfiler.cpp" />
+    <ClCompile Include="PerformanceViewModel.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="SceneViewModel.cpp" />
@@ -167,13 +169,15 @@
     <ClInclude Include="Geometry\Plane.h" />
     <ClInclude Include="Geometry\GeometryFactory.h" />
     <ClInclude Include="LightingSystem.h" />
+    <ClInclude Include="LightViewModel.h" />
     <ClInclude Include="LunarConstants.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="LunarGUI.h" />
     <ClInclude Include="MainApp.h" />
-    <ClInclude Include="LunarTimer.h" />
     <ClInclude Include="MaterialManager.h" />
     <ClInclude Include="MathUtils.h" />
+    <ClInclude Include="PerformanceProfiler.h" />
+    <ClInclude Include="PerformanceViewModel.h" />
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="SceneViewModel.h" />
@@ -186,6 +190,24 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
+    <None Include="Shaders\common.hlsl">
+        <ShaderType>Header</ShaderType>
+    </None>
+    <FxCompile Include="Shaders\NormalGeometryShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.0</ShaderModel>
+      <ShaderType>Geometry</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\NormalVertexShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.0</ShaderModel>
+      <ShaderType>Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\NormalPixelShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.0</ShaderModel>
+      <ShaderType>Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="Shaders\BillboardGeometryShader.hlsl">
       <ObjectFileOutput>C:\Users\M\Desktop\GitHub\LunarDX12\x64\Debug\%(Filename).cso</ObjectFileOutput>
       <TrackerLogDirectory>LunarDX12\x64\Debug\LunarDX12.tlog\</TrackerLogDirectory>

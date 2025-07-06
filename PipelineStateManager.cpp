@@ -22,7 +22,9 @@ PipelineStateManager::PipelineStateManager()
 			"default", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }, 
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }},
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 48, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			},
 		},
 		{
 			"billboard", {{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }}
@@ -76,7 +78,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	*/
 	D3D12_DESCRIPTOR_RANGE srvTable = {};
 	srvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	srvTable.NumDescriptors = 5;
+	srvTable.NumDescriptors = 7;
 	srvTable.BaseShaderRegister = 0;
 	srvTable.RegisterSpace = 0;
 	srvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -412,6 +414,24 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc,
 			IID_PPV_ARGS(m_psoMap["billboard"].GetAddressOf())))
+	}
+
+	// PSO for normal
+	{
+		m_inputLayout = m_inputLayoutMap["default"];
+		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+		psoDesc.VS.pShaderBytecode = m_shaderMap["normalVS"]->GetBufferPointer();
+		psoDesc.VS.BytecodeLength = m_shaderMap["normalVS"]->GetBufferSize();
+		psoDesc.GS.pShaderBytecode = m_shaderMap["normalGS"]->GetBufferPointer();
+		psoDesc.GS.BytecodeLength = m_shaderMap["normalGS"]->GetBufferSize();
+		psoDesc.PS.pShaderBytecode = m_shaderMap["normalPS"]->GetBufferPointer();
+		psoDesc.PS.BytecodeLength = m_shaderMap["normalPS"]->GetBufferSize();
+		psoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
+		psoDesc.RasterizerState.FrontCounterClockwise = false;
+		psoDesc.DepthStencilState.StencilEnable = false;
+		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_psoMap["normal"].GetAddressOf())))
 	}
 	
 }
