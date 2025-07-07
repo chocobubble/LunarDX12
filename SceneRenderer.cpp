@@ -38,7 +38,13 @@ SceneRenderer::SceneRenderer()
     // set default debug mode
     m_basicConstants.debugFlags = 
         LunarConstants::DebugFlags::NORMAL_MAP_ENABLED | 
-        LunarConstants::DebugFlags::PBR_ENABLED;
+        LunarConstants::DebugFlags::PBR_ENABLED |
+        LunarConstants::DebugFlags::SHADOWS_ENABLED |
+        LunarConstants::DebugFlags::AO_ENABLED |
+        LunarConstants::DebugFlags::HEIGHT_MAP_ENABLED |
+        LunarConstants::DebugFlags::METALLIC_MAP_ENABLED |
+        LunarConstants::DebugFlags::ROUGHNESS_MAP_ENABLED |
+        LunarConstants::DebugFlags::ALBEDO_MAP_ENABLED;
 }
 
 SceneRenderer::~SceneRenderer() = default;

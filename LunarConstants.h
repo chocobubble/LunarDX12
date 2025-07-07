@@ -42,12 +42,16 @@ struct TextureInfo
     FileType fileType;
     TextureDimension dimensionType; 
 };
-static constexpr std::array<TextureInfo, 6> TEXTURE_INFO = {{
+static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
     {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
 	{"tile_color", "Assets\\Textures\\Rock\\Rock-Color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
 	{"tile_normal", "Assets\\Textures\\Rock\\Rock-Normal.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_ao", "Assets\\Textures\\Rock\\Rock-AO.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_height", "Assets\\Textures\\Rock\\Rock-Height.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_metallic", "Assets\\Textures\\Rock\\Rock-Metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_roughness", "Assets\\Textures\\Rock\\Rock-Roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
 }};
 
@@ -86,6 +90,10 @@ namespace DebugFlags
         WIREFRAME          = 1 << 5,  // 0x20
         AO_ENABLED         = 1 << 6,  // 0x40
         IBL_ENABLED        = 1 << 7,  // 0x80
+        HEIGHT_MAP_ENABLED = 1 << 8,  // 0x100
+        METALLIC_MAP_ENABLED = 1 << 9, // 0x200
+        ROUGHNESS_MAP_ENABLED = 1 << 10, // 0x400
+        ALBEDO_MAP_ENABLED = 1 << 11, // 0x800
     };
 }
 

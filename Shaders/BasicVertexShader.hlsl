@@ -1,5 +1,7 @@
 #include "Common.hlsl"
 
+Texture2D heightTexture : register(t7);
+
 struct VertexIn
 {
     float3 pos : POSITION;
@@ -35,6 +37,14 @@ PixelIn main(VertexIn vIn)
 	
     pIn.normal = normalize(mul(vIn.normal, (float3x3)worldInvTranspose));
 	pIn.tangent = mul(vIn.tangent, (float3x3)world);
+
+    float heightScale = 0.1f; // for now, hardcoded
+    uint heightMapEnabledMask = 1 << 8;
+    if ((debugFlags & heightMapEnabledMask) != 0)
+    {
+        float height = heightTexture.SampleLevel(g_sampler, vIn.texCoord, 0).r;
+        pIn.posW += pIn.normal * height * heightScale;
+    }
 	
     return pIn;
 }
