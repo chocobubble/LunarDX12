@@ -29,7 +29,11 @@ private:
     bool m_wireframe = false;
     bool m_aoEnabled = false;
     bool m_iblEnabled = false;
-    
+    bool m_heightMapEnabled = false;
+    bool m_metallicMapEnabled = false;
+    bool m_roughnessMapEnabled = false;
+    bool m_albedoMapEnabled = false;
+
     void UpdateFlags();
     void SyncFromConstants();
 };

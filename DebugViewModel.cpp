@@ -80,6 +80,34 @@ void DebugViewModel::Initialize(LunarGui* gui, BasicConstants& constants)
         else
             constants->debugFlags &= ~DebugFlags::IBL_ENABLED;
     }, "debug");
+
+    gui->BindCheckbox("Enable Height Map", &m_heightMapEnabled, [constants = m_constants](bool value) {
+        if (value)
+            constants->debugFlags |= DebugFlags::HEIGHT_MAP_ENABLED;
+        else
+            constants->debugFlags &= ~DebugFlags::HEIGHT_MAP_ENABLED;
+    }, "debug");
+
+    gui->BindCheckbox("Enable Metallic Map", &m_metallicMapEnabled, [constants = m_constants](bool value) {
+        if (value)
+            constants->debugFlags |= DebugFlags::METALLIC_MAP_ENABLED;
+        else
+            constants->debugFlags &= ~DebugFlags::METALLIC_MAP_ENABLED;
+    }, "debug");
+
+    gui->BindCheckbox("Enable Roughness Map", &m_roughnessMapEnabled, [constants = m_constants](bool value) {
+        if (value)
+            constants->debugFlags |= DebugFlags::ROUGHNESS_MAP_ENABLED;
+        else
+            constants->debugFlags &= ~DebugFlags::ROUGHNESS_MAP_ENABLED;
+    }, "debug");
+
+    gui->BindCheckbox("Enable Albedo Map", &m_albedoMapEnabled, [constants = m_constants](bool value) {
+        if (value)
+            constants->debugFlags |= DebugFlags::ALBEDO_MAP_ENABLED;
+        else
+            constants->debugFlags &= ~DebugFlags::ALBEDO_MAP_ENABLED;
+    }, "debug");
     
     // Debug window with elements in order
     vector<string> debugElementIds = {
@@ -90,7 +118,11 @@ void DebugViewModel::Initialize(LunarGui* gui, BasicConstants& constants)
         "Enable Shadows", 
         "Wireframe",
         "Enable AO",
-        "Enable IBL"
+        "Enable IBL",
+        "Enable Height Map",
+        "Enable Metallic Map",
+        "Enable Roughness Map",
+        "Enable Albedo Map"
     };
     
     gui->BindWindow("Debug Window", "Debug Controls", &m_showDebugWindow, debugElementIds);
@@ -113,6 +145,11 @@ void DebugViewModel::SyncFromConstants()
     m_wireframe = m_constants->debugFlags & DebugFlags::WIREFRAME;
     m_aoEnabled = m_constants->debugFlags & DebugFlags::AO_ENABLED;
     m_iblEnabled = m_constants->debugFlags & DebugFlags::IBL_ENABLED;
+    m_heightMapEnabled = m_constants->debugFlags & DebugFlags::HEIGHT_MAP_ENABLED;
+    m_metallicMapEnabled = m_constants->debugFlags & DebugFlags::METALLIC_MAP_ENABLED;
+    m_roughnessMapEnabled = m_constants->debugFlags & DebugFlags::ROUGHNESS_MAP_ENABLED;
+    m_albedoMapEnabled = m_constants->debugFlags & DebugFlags::ALBEDO_MAP_ENABLED;
+
 }
 
 } // namespace Lunar
