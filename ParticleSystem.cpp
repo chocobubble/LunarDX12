@@ -19,7 +19,7 @@ void ParticleSystem::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
     particles.resize(512);
     ResetParticles();
 
-    // Create a input buffer for the particles
+    // Create double buffers for the particles
     // 1. Create a default heap for the particle buffer
     // 2. Create a resource description for the particle buffer
     // 3. Create the committed resource for the particle buffer
@@ -35,125 +35,85 @@ void ParticleSystem::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
     defaultHeapProperties.CreationNodeMask = 1;
     defaultHeapProperties.VisibleNodeMask = 1;
     
-    D3D12_RESOURCE_DESC inputBufferDesc = {};
-    inputBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    inputBufferDesc.Width = sizeof(Particle) * particles.size();
-    inputBufferDesc.Height = 1;
-    inputBufferDesc.DepthOrArraySize = 1;
-    inputBufferDesc.MipLevels = 1;
-    inputBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-    inputBufferDesc.SampleDesc.Count = 1;
-    inputBufferDesc.SampleDesc.Quality = 0;
-    inputBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    inputBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    D3D12_RESOURCE_DESC bufferDesc = {};
+    bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufferDesc.Width = sizeof(Particle) * particles.size();
+    bufferDesc.Height = 1;
+    bufferDesc.DepthOrArraySize = 1;
+    bufferDesc.MipLevels = 1;
+    bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufferDesc.SampleDesc.Count = 1;
+    bufferDesc.SampleDesc.Quality = 0;
+    bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufferDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
     THROW_IF_FAILED(device->CreateCommittedResource(
         &defaultHeapProperties,
         D3D12_HEAP_FLAG_NONE,
-        &inputBufferDesc,
+        &bufferDesc,
         D3D12_RESOURCE_STATE_COMMON,
         nullptr, 
-        IID_PPV_ARGS(&m_particleInputBuffer)));
+        IID_PPV_ARGS(&m_particleBuffers[0])));
+
+    THROW_IF_FAILED(device->CreateCommittedResource(
+        &defaultHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &bufferDesc,
+        D3D12_RESOURCE_STATE_COMMON,
+        nullptr, 
+        IID_PPV_ARGS(&m_particleBuffers[1])));
 
     D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
     uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+    
+    D3D12_RESOURCE_DESC uploadBufferDesc = bufferDesc;
+    uploadBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-    // upload buffer description is same as the particle buffer
     THROW_IF_FAILED(device->CreateCommittedResource(
         &uploadHeapProperties,
         D3D12_HEAP_FLAG_NONE,
-        &inputBufferDesc,
+        &uploadBufferDesc,
         D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr, 
-        IID_PPV_ARGS(&m_uploadBuffer)));
+        IID_PPV_ARGS(&m_uploadBuffers[0])));
 
-    BYTE* pData = reinterpret_cast<BYTE*>(particles.data());
-    THROW_IF_FAILED(m_uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pData)))
-    memcpy(pData, particles.data(), sizeof(Particle) * particles.size());
-    m_uploadBuffer->Unmap(0, nullptr);
+    THROW_IF_FAILED(device->CreateCommittedResource(
+        &uploadHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &uploadBufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr, 
+        IID_PPV_ARGS(&m_uploadBuffers[1])));
 
-    D3D12_RESOURCE_BARRIER barrier = {};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_particleInputBuffer.Get();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    commandList->ResourceBarrier(1, &barrier);
+    for (int i = 0; i < 2; ++i) {
+        BYTE* pData = nullptr;
+        THROW_IF_FAILED(m_uploadBuffers[i]->Map(0, nullptr, reinterpret_cast<void**>(&pData)));
+        memcpy(pData, particles.data(), sizeof(Particle) * particles.size());
+        m_uploadBuffers[i]->Unmap(0, nullptr);
 
-    commandList->CopyBufferRegion(
-        m_particleInputBuffer.Get(),
-        0,
-        m_uploadBuffer.Get(),
-        0,
-        sizeof(Particle) * particles.size()
-    );
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = m_particleBuffers[i].Get();
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        commandList->ResourceBarrier(1, &barrier);
 
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
-    commandList->ResourceBarrier(1, &barrier);
+        commandList->CopyBufferRegion(
+            m_particleBuffers[i].Get(),
+            0,
+            m_uploadBuffers[i].Get(),
+            0,
+            sizeof(Particle) * particles.size()
+        );
 
-    // Create an output buffer for the particles
-    {
-        D3D12_RESOURCE_DESC outputBufferDesc = {};
-        outputBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        outputBufferDesc.Width = sizeof(Particle) * particles.size();
-        outputBufferDesc.Height = 1;
-        outputBufferDesc.DepthOrArraySize = 1;
-        outputBufferDesc.MipLevels = 1;
-        outputBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-        outputBufferDesc.SampleDesc.Count = 1;
-        outputBufferDesc.SampleDesc.Quality = 0;
-        outputBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-        outputBufferDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-
-        D3D12_HEAP_PROPERTIES outputHeapProperties = {};
-        outputHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-        outputHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-        outputHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        outputHeapProperties.CreationNodeMask = 1;
-        outputHeapProperties.VisibleNodeMask = 1;
-
-        THROW_IF_FAILED(device->CreateCommittedResource(
-            &outputHeapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &outputBufferDesc,
-            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-            nullptr, 
-            IID_PPV_ARGS(&m_particleOutputBuffer)));
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+        commandList->ResourceBarrier(1, &barrier);
     }
 }
 
-int ParticleSystem::AddSRVToDescriptorHeap(ID3D12Device* device, ID3D12DescriptorHeap* descriptorHeap, int descriptorIndex)
-{
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-    srvDesc.Buffer.FirstElement = 0;
-    srvDesc.Buffer.NumElements = particles.size();
-    srvDesc.Buffer.StructureByteStride = sizeof(Particle);
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-    D3D12_CPU_DESCRIPTOR_HANDLE handle = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    handle.ptr += descriptorIndex * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    device->CreateShaderResourceView(m_particleInputBuffer.Get(), &srvDesc, handle);
-    ++descriptorIndex;
-
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.FirstElement = 0;
-    uavDesc.Buffer.NumElements = particles.size();
-    uavDesc.Buffer.StructureByteStride = sizeof(Particle);
-    uavDesc.Buffer.CounterOffsetInBytes = 0;
-    uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE; 
-
-	handle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	device->CreateUnorderedAccessView(m_particleOutputBuffer.Get(), nullptr, &uavDesc, handle);
-	++descriptorIndex;
-
-    return descriptorIndex;
-}
 
 void ParticleSystem::EmitParticles(const XMFLOAT3& position)
 {
@@ -186,17 +146,65 @@ void ParticleSystem::ResetParticles(const XMFLOAT3& position)
     }
 }
 
-void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
+int ParticleSystem::GetActiveParticleCount() const
 {
-    int particlesToDraw = 0;
-    for (const auto& particle : particles)
-    {
-        if (particle.age < particle.lifetime)
-        {
-            ++particlesToDraw;
+    int activeCount = 0;
+    for (const auto& particle : particles) {
+        if (particle.age < particle.lifetime) {
+            ++activeCount;
         }
     }
-    LOG_DEBUG("Number of particles to draw: {}", particlesToDraw);
+    return activeCount;
+}
+
+void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
+{
+    int activeParticles = GetActiveParticleCount();
+    LOG_DEBUG("Drawing {} active particles out of {} total", activeParticles, particles.size());
+
+    if (activeParticles > 0) {
+        commandList->SetGraphicsRootShaderResourceView(
+            LunarConstants::PARTICLE_SRV_ROOT_PARAMETER_INDEX, 
+            m_particleBuffers[m_currentBuffer]->GetGPUVirtualAddress()
+        );
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+        // 모든 파티클을 그리되, Geometry Shader에서 비활성 파티클 필터링
+        commandList->Draw(particles.size(), 1, 0, 0);
+    }
+}
+
+void ParticleSystem::Update(float deltaTime, ID3D12GraphicsCommandList* commandList)
+{
+    int inputBufferIndex = m_currentBuffer;
+    int outputBufferIndex = 1 - m_currentBuffer;
+    
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.Transition.pResource = m_particleBuffers[outputBufferIndex].Get();
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_GENERIC_READ;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    commandList->ResourceBarrier(1, &barrier);
+    
+    commandList->SetComputeRootShaderResourceView(
+        LunarConstants::PARTICLE_SRV_ROOT_PARAMETER_INDEX, 
+        m_particleBuffers[inputBufferIndex]->GetGPUVirtualAddress()
+    );
+    
+    commandList->SetComputeRootUnorderedAccessView(
+        LunarConstants::PARTICLE_UAV_ROOT_PARAMETER_INDEX, 
+        m_particleBuffers[outputBufferIndex]->GetGPUVirtualAddress()
+    );
+    
+    int particlesToDraw = 64;
+    commandList->Dispatch(particlesToDraw, 1, 1);
+
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+    commandList->ResourceBarrier(1, &barrier);
+    
+    m_currentBuffer = outputBufferIndex;
 }
 
 } // namespace Lunar

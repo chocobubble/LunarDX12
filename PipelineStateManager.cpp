@@ -90,20 +90,6 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	shadowMapSrvRange.RegisterSpace = 1;
 	shadowMapSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-    D3D12_DESCRIPTOR_RANGE particleSrvRange = {};
-    particleSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    particleSrvRange.NumDescriptors = 1;
-    particleSrvRange.BaseShaderRegister = 0;
-    particleSrvRange.RegisterSpace = 2;
-    particleSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	D3D12_DESCRIPTOR_RANGE particleUavRange = {};
-	particleUavRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-	particleUavRange.NumDescriptors = 1;
-	particleUavRange.BaseShaderRegister = 0;
-	particleUavRange.RegisterSpace = 0;
-	particleUavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
 	/*
 	typedef struct D3D12_ROOT_PARAMETER
 	{
@@ -117,11 +103,11 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 		D3D12_SHADER_VISIBILITY ShaderVisibility;
 	} 	D3D12_ROOT_PARAMETER;
 	*/
-	D3D12_ROOT_PARAMETER rootParameters[5];
-    D3D12_DESCRIPTOR_RANGE srvRanges[3] = { textureSrvRange, shadowMapSrvRange, particleSrvRange };
+	D3D12_ROOT_PARAMETER rootParameters[6];
+    D3D12_DESCRIPTOR_RANGE srvRanges[2] = { textureSrvRange, shadowMapSrvRange };
     size_t index = LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX;
 	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[index].DescriptorTable.NumDescriptorRanges = 3;
+	rootParameters[index].DescriptorTable.NumDescriptorRanges = 2;
 	rootParameters[index].DescriptorTable.pDescriptorRanges = srvRanges;
 	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
@@ -143,10 +129,16 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	rootParameters[index].Descriptor.ShaderRegister = 2;
 	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-    index = LunarConstants::UAV_TABLE_ROOT_PARAMETER_INDEX;
-    rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-    rootParameters[index].DescriptorTable.NumDescriptorRanges = 1;
-    rootParameters[index].DescriptorTable.pDescriptorRanges = &particleUavRange;
+    index = LunarConstants::PARTICLE_SRV_ROOT_PARAMETER_INDEX;
+    rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParameters[index].Descriptor.RegisterSpace = 2;
+	rootParameters[index].Descriptor.ShaderRegister = 0;
+    rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+    index = LunarConstants::PARTICLE_UAV_ROOT_PARAMETER_INDEX;
+    rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+	rootParameters[index].Descriptor.RegisterSpace = 0;
+	rootParameters[index].Descriptor.ShaderRegister = 0;
     rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	/*

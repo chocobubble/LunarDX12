@@ -25,7 +25,8 @@ static constexpr UINT TEXTURE_SR_ROOT_PARAMETER_INDEX = 3;
 static constexpr UINT BASIC_CONSTANTS_ROOT_PARAMETER_INDEX = 0;
 static constexpr UINT OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX = 1;
 static constexpr UINT MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX = 2;
-static constexpr UINT UAV_TABLE_ROOT_PARAMETER_INDEX = 4;
+static constexpr UINT PARTICLE_SRV_ROOT_PARAMETER_INDEX = 4;
+static constexpr UINT PARTICLE_UAV_ROOT_PARAMETER_INDEX = 5;
 
 /////////////// textures  ///////////////
 enum class FileType : uint8_t {

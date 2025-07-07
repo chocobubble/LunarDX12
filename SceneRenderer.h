@@ -62,7 +62,9 @@ public:
 
 	void RenderShadowMap(ID3D12GraphicsCommandList* commandList);
 	void UpdateScene(float deltaTime);
+    void UpdateParticleSystem(float deltaTime, ID3D12GraphicsCommandList* commandList);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
+    void RenderParticles(ID3D12GraphicsCommandList* commandList);
     
     bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
     bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});

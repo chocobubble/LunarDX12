@@ -156,8 +156,6 @@ void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsComma
 
 	// REFACTORING: Rename or refactor this method
 	m_particleSystem->Initialize(device, commandList);
-    // REFACTORING: To calculate the descriptor handle increment size
-    m_particleSystem->AddSRVToDescriptorHeap(device, m_srvHeap.Get(), LunarConstants::TEXTURE_INFO.size() + 2);
 }
 
 void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
@@ -205,6 +203,11 @@ void SceneRenderer::UpdateScene(float deltaTime)
     m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 
+void SceneRenderer::UpdateParticleSystem(float deltaTime, ID3D12GraphicsCommandList* commandList)
+{
+	m_particleSystem->Update(deltaTime, commandList);
+}
+
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
 {
     commandList->SetGraphicsRootConstantBufferView(
@@ -212,6 +215,12 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
         m_basicCB->GetResource()->GetGPUVirtualAddress());
 
     RenderLayers(commandList);
+}
+
+void SceneRenderer::RenderParticles(ID3D12GraphicsCommandList* commandList)
+{
+    commandList->SetPipelineState(m_pipelineStateManager->GetPSO("particles"));
+    m_particleSystem->DrawParticles(commandList);
 }
 
 bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform, RenderLayer layer, const DirectX::XMFLOAT4& color)
