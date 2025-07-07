@@ -179,7 +179,7 @@ void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
             m_particleBuffers[m_currentBuffer]->GetGPUVirtualAddress()
         );
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-        commandList->DrawInstanced(particles.size(), 1, 0, 0);
+        commandList->DrawInstanced(1, particles.size(), 0, 0);
     }
 }
 
