@@ -3,6 +3,7 @@
 #include <d3d12.h>
 
 #include "Logger.h"
+#include "LunarConstants.h"
 #include "Utils.h"
 
 using namespace DirectX;
@@ -160,7 +161,6 @@ int ParticleSystem::GetActiveParticleCount() const
 void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
 {
     int activeParticles = GetActiveParticleCount();
-    LOG_DEBUG("Drawing {} active particles out of {} total", activeParticles, particles.size());
 
     if (activeParticles > 0) {
         commandList->SetGraphicsRootShaderResourceView(
@@ -168,8 +168,7 @@ void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
             m_particleBuffers[m_currentBuffer]->GetGPUVirtualAddress()
         );
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-        // 모든 파티클을 그리되, Geometry Shader에서 비활성 파티클 필터링
-        commandList->Draw(particles.size(), 1, 0, 0);
+        commandList->DrawInstanced(particles.size(), 1, 0, 0);
     }
 }
 

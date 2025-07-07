@@ -59,7 +59,7 @@ struct ShaderInfo
 	const char* path;
 	const char* target;
 };
-static constexpr std::array<ShaderInfo, 13> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 16> SHADER_INFO = {{
 	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_1" },
 	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_1" },
 	{ "billboardVS", "Shaders\\BillboardVertexShader.hlsl", "vs_5_1" },
@@ -72,7 +72,10 @@ static constexpr std::array<ShaderInfo, 13> SHADER_INFO = {{
 	{ "normalVS", "Shaders\\NormalVertexShader.hlsl", "vs_5_1" },
 	{ "normalGS", "Shaders\\NormalGeometryShader.hlsl", "gs_5_1" },
 	{ "normalPS", "Shaders\\NormalPixelShader.hlsl", "ps_5_1" },
-    { "particlesUpdateCS", "Shaders\\ParticlesComputeShader.hlsl", "cs_5_1" }
+    { "particlesUpdateCS", "Shaders\\ParticlesComputeShader.hlsl", "cs_5_1" },
+    { "particlesVS", "Shaders\\ParticleVertexShader.hlsl", "vs_5_1" },
+    { "particlesPS", "Shaders\\ParticlePixelShader.hlsl", "ps_5_1" },
+    { "particlesGS", "Shaders\\ParticleGeometryShader.hlsl", "gs_5_1" }
 }};
 enum class LightType
 {
