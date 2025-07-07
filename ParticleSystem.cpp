@@ -52,7 +52,7 @@ void ParticleSystem::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
         &defaultHeapProperties,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
-        D3D12_RESOURCE_STATE_COMMON,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr, 
         IID_PPV_ARGS(&m_particleBuffers[0])));
 
@@ -60,7 +60,7 @@ void ParticleSystem::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
         &defaultHeapProperties,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
-        D3D12_RESOURCE_STATE_COMMON,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr, 
         IID_PPV_ARGS(&m_particleBuffers[1])));
 
@@ -86,33 +86,7 @@ void ParticleSystem::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
         nullptr, 
         IID_PPV_ARGS(&m_uploadBuffers[1])));
 
-    for (int i = 0; i < 2; ++i) {
-        BYTE* pData = nullptr;
-        THROW_IF_FAILED(m_uploadBuffers[i]->Map(0, nullptr, reinterpret_cast<void**>(&pData)));
-        memcpy(pData, particles.data(), sizeof(Particle) * particles.size());
-        m_uploadBuffers[i]->Unmap(0, nullptr);
-
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource = m_particleBuffers[i].Get();
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        commandList->ResourceBarrier(1, &barrier);
-
-        commandList->CopyBufferRegion(
-            m_particleBuffers[i].Get(),
-            0,
-            m_uploadBuffers[i].Get(),
-            0,
-            sizeof(Particle) * particles.size()
-        );
-
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
-        commandList->ResourceBarrier(1, &barrier);
-    }
+	UploadParticlesToGPU(commandList);
 }
 
 
@@ -123,6 +97,7 @@ void ParticleSystem::EmitParticles(const XMFLOAT3& position)
 
 void ParticleSystem::ResetParticles(const XMFLOAT3& position)
 {
+	m_resetFlag = true;
     for (auto& particle : particles)
     {
         particle.position[0] = position.x; 
@@ -147,6 +122,37 @@ void ParticleSystem::ResetParticles(const XMFLOAT3& position)
     }
 }
 
+void ParticleSystem::UploadParticlesToGPU(ID3D12GraphicsCommandList* commandList)
+{
+	for (int i = 0; i < 2; ++i) {
+		BYTE* pData = nullptr;
+		THROW_IF_FAILED(m_uploadBuffers[i]->Map(0, nullptr, reinterpret_cast<void**>(&pData)));
+		memcpy(pData, particles.data(), sizeof(Particle) * particles.size());
+		m_uploadBuffers[i]->Unmap(0, nullptr);
+
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = m_particleBuffers[i].Get();
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_GENERIC_READ;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		commandList->ResourceBarrier(1, &barrier);
+
+		commandList->CopyBufferRegion(
+			m_particleBuffers[i].Get(),
+			0,
+			m_uploadBuffers[i].Get(),
+			0,
+			sizeof(Particle) * particles.size()
+		);
+
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+		commandList->ResourceBarrier(1, &barrier);
+	}
+}
+
 int ParticleSystem::GetActiveParticleCount() const
 {
     int activeCount = 0;
@@ -160,6 +166,11 @@ int ParticleSystem::GetActiveParticleCount() const
 
 void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
 {
+	if (m_resetFlag)
+	{
+		UploadParticlesToGPU(commandList);
+		m_resetFlag = false;
+	}
     int activeParticles = GetActiveParticleCount();
 
     if (activeParticles > 0) {

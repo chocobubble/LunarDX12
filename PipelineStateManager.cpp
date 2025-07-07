@@ -485,8 +485,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
     	particlesPsoDesc.GS.BytecodeLength = m_shaderMap["particlesGS"]->GetBufferSize();
     	particlesPsoDesc.PS.pShaderBytecode = m_shaderMap["particlesPS"]->GetBufferPointer();
     	particlesPsoDesc.PS.BytecodeLength = m_shaderMap["particlesPS"]->GetBufferSize();
-    	m_inputLayout = m_inputLayoutMap["point"];
-    	particlesPsoDesc.InputLayout = { m_inputLayout.data(), static_cast<UINT>(m_inputLayout.size()) };
+    	particlesPsoDesc.InputLayout = {nullptr, 0};
     	particlesPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
     	THROW_IF_FAILED(device->CreateGraphicsPipelineState(&particlesPsoDesc,
 			IID_PPV_ARGS(m_psoMap["particles"].GetAddressOf())))

@@ -10,7 +10,6 @@ struct Particle
 
 struct VertexIn 
 {
-    float3 pos : POSITION;
 };
 
 struct GeometryIn

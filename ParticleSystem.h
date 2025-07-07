@@ -23,15 +23,17 @@ public:
     void EmitParticles(const DirectX::XMFLOAT3& position);
     void DrawParticles(ID3D12GraphicsCommandList* commandList);
     
-    void Update(float deltaTime, ID3D12GraphicsCommandList* commandList);
-    ID3D12Resource* GetCurrentBufferResource() { return m_particleBuffers[m_currentBuffer].Get(); }
+    void            Update(float deltaTime, ID3D12GraphicsCommandList* commandList);
+	ID3D12Resource* GetCurrentBufferResource() { return m_particleBuffers[m_currentBuffer].Get(); }
     
     int GetActiveParticleCount() const;
 private:
     void ResetParticles(const DirectX::XMFLOAT3& position = {0.0f, 0.0f, 0.0f});
+	void UploadParticlesToGPU(ID3D12GraphicsCommandList* commandList);
 
     std::vector<Particle> particles;
     bool m_isFirstFrame = true;
+	bool m_resetFlag = false;
 
     int m_currentBuffer = 0;
 

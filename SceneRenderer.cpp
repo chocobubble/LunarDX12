@@ -521,7 +521,7 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     					entry->GeometryData->DrawNormals(commandList);
     				}
     			}
-    			break;
+    			continue;
     		case RenderLayer::Debug :
     			commandList->OMSetStencilRef(0);
     			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
