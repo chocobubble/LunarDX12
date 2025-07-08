@@ -31,7 +31,6 @@ Material GetMaterial(float2 texCoord)
     mat.metallic = metallic;
     mat.emissive = emissive;
     mat.roughness = roughness;
-    mat.F0 = F0;
     mat.ao = ao;
 
     uint AOEnabledMask = 1 << 6; 
@@ -54,6 +53,8 @@ Material GetMaterial(float2 texCoord)
     {        
         mat.albedo = albedoTexture.Sample(g_sampler, texCoord).rgb;
     }
+
+    mat.F0 = lerp(float3(0.04, 0.04, 0.04), mat.albedo, mat.metallic);
 
     return mat;
 }
@@ -105,8 +106,6 @@ float SmithG(float nDotL, float nDotV, float roughness)
 
 float3 CookTorrance(float3 normal, float3 nLightDir, float3 nToEye, Material material)
 {
-	// fr = kd * diffuse + ks * specular  (kd = diffuse weight, ks = specular weight)
-	float3 diffuse = material.albedo / 3.141592; 
 	float3 nHalfVector = normalize(nLightDir + nToEye); 
 	float nDotH = max(dot(normal, nHalfVector), 0.01f); // Avoid division by zero
 	float nDotL = max(dot(normal, nLightDir), 0.01f);
@@ -116,9 +115,12 @@ float3 CookTorrance(float3 normal, float3 nLightDir, float3 nToEye, Material mat
 	float D = GGX(nDotH, material.roughness);
 	float3 F = SchlickFresnel(material.F0, nDotH);
 	float G = SmithG(nDotL, nDotV, material.roughness);
-	float3 specular = (D * F * G) / (4 * nDotL * nDotV);
+	float3 specular = (D * F * G) / max(4.0 * nDotL * nDotV, 0.001);
     
 	float3 ks = F;
 	float3 kd = (1 - material.metallic) * (1 - F);
+	
+	// fr = kd * diffuse + ks * specular  (kd = diffuse weight, ks = specular weight)
+	float3 diffuse = material.albedo / 3.141592; 
 	return diffuse * kd + specular * ks;
 }

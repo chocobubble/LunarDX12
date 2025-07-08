@@ -45,12 +45,11 @@ float3 BlinnPhong(float3 normal, float3 nToEye, float3 nLightVector, Material ma
 float3 ComputeLight(Light light, float3 pos, float3 normalVector, float3 toEye, Material material)
 {
     float3 lightVector = -light.direction;
-    float distanceFromLight = 0.0f;
     float attenuation = 1.0f;
     if (light.fallOffEnd > 0.0f) // point or spot light
     {
         lightVector = light.position - pos; 
-        distanceFromLight = length(lightVector);
+        float distanceFromLight = length(lightVector);
         if (distanceFromLight > light.fallOffEnd)
             return float3(0.0f, 0.0f, 0.0f);
         attenuation = CalculateAttenuation(distanceFromLight, light);

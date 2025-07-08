@@ -28,7 +28,7 @@ private:
 		}
 	};
     std::unordered_map<std::pair<UINT, UINT>, UINT, PairHash> m_middlePointCache;
-    int                                                       m_subdivisionLevel = 3;
+    int                                                       m_subdivisionLevel = 4;
 	
 };
 } // namespace Luanr
