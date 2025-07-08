@@ -46,7 +46,7 @@ GeometryIn main(VertexIn vIn, uint instanceID : SV_InstanceID)
     float4 posV = mul(posW, view);
     gIn.posH = mul(posV, projection);
     
-    gIn.size = float2(0.2f, 0.2f);
+    gIn.size = float2(0.02f, 0.02f);
     gIn.color = particle.color;
     
     return gIn;
