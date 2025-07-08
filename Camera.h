@@ -16,6 +16,7 @@ public:
     void                       UpdateViewDir();
     void                       UpdateRotationQuatFromMouse(float dx, float dy);
     void UpdatePosition(float dx, float dy, float dz);
+    const DirectX::XMFLOAT3 GetForwardVector() const { return m_viewDir; }
 
 private:
 	DirectX::XMFLOAT3   m_position = {-3.5f, 0.5f, -3.5f};

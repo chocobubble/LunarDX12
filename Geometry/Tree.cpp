@@ -1,4 +1,4 @@
-﻿#include "Tree.h"
+#include "Tree.h"
 
 namespace Lunar
 {

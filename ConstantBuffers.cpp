@@ -1,4 +1,4 @@
-﻿#include "ConstantBuffers.h"
+#include "ConstantBuffers.h"
 
 #include <d3d12.h>
 

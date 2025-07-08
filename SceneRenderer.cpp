@@ -11,6 +11,7 @@
 #include "Utils.h"
 #include "Geometry/Plane.h"
 #include "ShadowViewModel.h"
+#include "ParticleSystem.h"
 #include "LightViewModel.h"
 #include "DebugViewModel.h"
 #include "Geometry/Cube.h"
@@ -33,6 +34,7 @@ SceneRenderer::SceneRenderer()
 	m_shadowManager = make_unique<ShadowManager>();
 	m_textureManager = make_unique<TextureManager>();
 	m_shadowViewModel = make_unique<ShadowViewModel>();
+    m_particleSystem = make_unique<ParticleSystem>();
     m_debugViewModel = make_unique<DebugViewModel>();
 
     // set default debug mode
@@ -59,11 +61,11 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
     m_debugViewModel->Initialize(gui, m_basicConstants);
 	CreateDSVDescriptorHeap(device);
 	CreateDepthStencilView(device);
-	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);
+	CreateSRVDescriptorHeap(LunarConstants::TEXTURE_INFO.size(), device);
 	
 	m_pipelineStateManager = pipelineManager;
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
-    m_lightingSystem->Initialize(device, Lunar::LunarConstants::LIGHT_COUNT);
+    m_lightingSystem->Initialize(device, LunarConstants::LIGHT_COUNT);
     m_sceneViewModel->Initialize(gui, this);
     m_lightViewModel->Initialize(gui, m_lightingSystem.get(), this);
     
@@ -154,7 +156,7 @@ void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* devi
 	LOG_FUNCTION_ENTRY();
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 1;
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 4;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
@@ -167,6 +169,9 @@ void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsComma
 {
 	m_textureManager->Initialize(device, commandList, m_srvHandle);
 	m_shadowManager->CreateSRV(device, m_srvHeap.Get());
+
+	// REFACTORING: Rename or refactor this method
+	m_particleSystem->Initialize(device, commandList);
 }
 
 void SceneRenderer::RenderShadowMap(ID3D12GraphicsCommandList* commandList)
@@ -214,6 +219,11 @@ void SceneRenderer::UpdateScene(float deltaTime)
     m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 
+void SceneRenderer::UpdateParticleSystem(float deltaTime, ID3D12GraphicsCommandList* commandList)
+{
+	m_particleSystem->Update(deltaTime, commandList);
+}
+
 void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
 {
     commandList->SetGraphicsRootConstantBufferView(
@@ -221,6 +231,17 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
         m_basicCB->GetResource()->GetGPUVirtualAddress());
 
     RenderLayers(commandList);
+}
+
+void SceneRenderer::RenderParticles(ID3D12GraphicsCommandList* commandList)
+{
+    commandList->SetPipelineState(m_pipelineStateManager->GetPSO("particles"));
+    m_particleSystem->DrawParticles(commandList);
+}
+
+void SceneRenderer::EmitParticles(const XMFLOAT3& position)
+{
+    m_particleSystem->EmitParticles(position);
 }
 
 void SceneRenderer::CreateLightVisualizationCubes()
@@ -441,7 +462,6 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     				}
     			}
     			continue;
-    			break;
     		case RenderLayer::Debug :
     			commandList->OMSetStencilRef(0);
     			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));

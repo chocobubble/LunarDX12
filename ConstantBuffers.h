@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <d3d12.h>
 #include <DirectXMath.h>
 #include <wrl/client.h>

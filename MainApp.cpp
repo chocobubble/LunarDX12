@@ -12,6 +12,7 @@
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
 #include "LunarGui.h"
+#include "ParticleSystem.h"
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
 #include "PerformanceProfiler.h"
@@ -19,6 +20,7 @@
 #include "Geometry/IcoSphere.h"
 #include "Geometry/Cube.h"
 #include "Geometry/Transform.h"
+#include "Geometry/Plane.h"
 
 using namespace std;
 using namespace DirectX;
@@ -28,7 +30,7 @@ using namespace Microsoft::WRL;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Lunar {
-MainApp *g_mainApp = nullptr;
+	MainApp *g_mainApp = nullptr;
 
 LRESULT WINAPI WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -78,6 +80,22 @@ LRESULT MainApp::MessageProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_KEYDOWN:
 			LOG_DEBUG("Key ", (int)wParam, " down");
+            if (wParam == VK_ESCAPE) 
+            {
+                ::PostQuitMessage(0);
+            }
+            else if (wParam == 'F')
+            {
+                m_mouseMoving = !m_mouseMoving;
+            }
+            else if (wParam == 'G')
+            {
+            	XMFLOAT3 forwardVector = m_camera->GetForwardVector();
+            	XMFLOAT3 cameraPosition = m_camera->GetPosition();
+                XMFLOAT3 pos;
+            	XMStoreFloat3(&pos, XMLoadFloat3(&cameraPosition) + XMLoadFloat3(&forwardVector) * 5.0f); 
+                m_sceneRenderer->EmitParticles(pos);
+            }
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage(0);
@@ -327,10 +345,6 @@ void MainApp::ProcessInput(double dt)
         cameraDeltaRight += dt;
         cameraDirty = true;
     }
-	if (GetAsyncKeyState('F') & 0x8000)
-	{
-		m_mouseMoving = !m_mouseMoving;
-	}
 
     if (cameraDirty)
     {
@@ -351,12 +365,21 @@ void MainApp::Render(double dt)
 		m_commandAllocator->Reset(); // Cautions!
 		m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
-		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 		// Set Constant Buffer Descriptor heap
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
 		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		
+		{ // Compute Shader
+			m_commandList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
+			m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("particlesUpdate"));
+			m_sceneRenderer->UpdateParticleSystem(dt, m_commandList.Get());
+		}
+		
+		// Switch to graphics pipeline
+		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 
-		m_commandList->SetGraphicsRootDescriptorTable(0, m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
+		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart(); 
+		m_commandList->SetGraphicsRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, descriptorHandle);
 		
 		m_sceneRenderer->RenderShadowMap(m_commandList.Get());
 
@@ -418,6 +441,11 @@ void MainApp::Render(double dt)
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Scene Rendering");
 		m_sceneRenderer->RenderScene(m_commandList.Get());
+	}
+	
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Particle Rendering");
+		m_sceneRenderer->RenderParticles(m_commandList.Get());
 	}
 	
 	{
@@ -610,7 +638,7 @@ void MainApp::InitializeGeometry()
 	/*m_sceneRenderer->AddCube("Cube1", {{0, 1, 0}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
 	m_sceneRenderer->AddCube("Cube2", {{2, 1, 2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
 	m_sceneRenderer->AddCube("Cube3", {{-2, 1, -2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);*/
-	// m_sceneRenderer->AddPlane("ShadowMapPlane", {{0, 0, 0}, {0, 0, 0}, {3, 3, 1}}, 3.0f, 3.0f, RenderLayer::World);
+	m_sceneRenderer->AddGeometry<Plane>("ShadowMapPlane", {{0, 0, 0}, {0, 0, 0}, {3, 3, 1}}, RenderLayer::World);
 	transform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	transform.Scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
 	m_sceneRenderer->AddGeometry<IcoSphere>("SkyBox0", transform, RenderLayer::Background);
