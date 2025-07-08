@@ -1,6 +1,8 @@
 #include "Common.hlsl"
 
-Texture2D heightTexture : register(t7);
+SamplerState g_sampler : register(s0);
+
+Texture2D heightTexture : register(t6);
 
 struct VertexIn
 {

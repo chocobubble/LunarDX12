@@ -4,7 +4,6 @@
 Texture2D shadowTexture : register(t10);
 Texture2D wallTexture : register(t0);
 Texture2D normalTexture : register(t4);
-SamplerState g_sampler : register(s0);
 
 struct PixelIn
 {
@@ -81,7 +80,7 @@ float4 main(PixelIn pIn) : SV_TARGET
 {
     Material material = GetMaterial(pIn.texCoord);
 
-	float4 diffuseColor = material.albedo;
+	float3 diffuseColor = material.albedo;
 
 	pIn.normal = normalize(pIn.normal);
     float3 normalWS = pIn.normal;
@@ -115,5 +114,5 @@ float4 main(PixelIn pIn) : SV_TARGET
 
     finalColor *= material.ao;
 
-	return float4(finalColor, diffuseColor.a);
+	return float4(finalColor, 1.0);
 }

@@ -1,7 +1,8 @@
 Texture2D albedoTexture : register(t3);
-Texture2D aoTexture : register(t6);
-Texture2D metallicTexture : register(t8);
-Texture2D roughnessTexture : register(t9);
+Texture2D aoTexture : register(t5);
+Texture2D metallicTexture : register(t7);
+Texture2D roughnessTexture : register(t8);
+SamplerState g_sampler : register(s0);
 
 cbuffer MaterialConstants : register(b2)
 {

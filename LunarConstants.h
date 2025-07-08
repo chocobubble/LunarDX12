@@ -46,12 +46,12 @@ static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
     {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
-	{"tile_color", "Assets\\Textures\\Rock\\Rock-Color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_normal", "Assets\\Textures\\Rock\\Rock-Normal.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_ao", "Assets\\Textures\\Rock\\Rock-AO.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_height", "Assets\\Textures\\Rock\\Rock-Height.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_metallic", "Assets\\Textures\\Rock\\Rock-Metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_roughness", "Assets\\Textures\\Rock\\Rock-Roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_color", "Assets\\Textures\\metal\\metal-color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_normal", "Assets\\Textures\\metal\\metal-normal.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_ao", "Assets\\Textures\\metal\\metal-ao.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
 }};
 

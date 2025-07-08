@@ -78,7 +78,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	*/
 	D3D12_DESCRIPTOR_RANGE srvTable = {};
 	srvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	srvTable.NumDescriptors = 7;
+	srvTable.NumDescriptors = 11;
 	srvTable.BaseShaderRegister = 0;
 	srvTable.RegisterSpace = 0;
 	srvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -148,7 +148,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	sampler.MaxLOD = D3D12_FLOAT32_MAX;
 	sampler.ShaderRegister = 0;
 	sampler.RegisterSpace = 0;
-	sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // TODO: Add More sampler
 	
 	/*
 	typedef struct D3D12_ROOT_SIGNATURE_DESC
