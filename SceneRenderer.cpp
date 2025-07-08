@@ -12,6 +12,9 @@
 #include "Geometry/Plane.h"
 #include "ShadowViewModel.h"
 #include "LightViewModel.h"
+#include "DebugViewModel.h"
+#include "Geometry/Cube.h"
+#include "Geometry/IcoSphere.h"
 
 using namespace DirectX;
 using namespace std;
@@ -30,6 +33,18 @@ SceneRenderer::SceneRenderer()
 	m_shadowManager = make_unique<ShadowManager>();
 	m_textureManager = make_unique<TextureManager>();
 	m_shadowViewModel = make_unique<ShadowViewModel>();
+    m_debugViewModel = make_unique<DebugViewModel>();
+
+    // set default debug mode
+    m_basicConstants.debugFlags = 
+        LunarConstants::DebugFlags::NORMAL_MAP_ENABLED | 
+        LunarConstants::DebugFlags::PBR_ENABLED |
+        LunarConstants::DebugFlags::SHADOWS_ENABLED |
+        LunarConstants::DebugFlags::AO_ENABLED |
+        LunarConstants::DebugFlags::HEIGHT_MAP_ENABLED |
+        LunarConstants::DebugFlags::METALLIC_MAP_ENABLED |
+        LunarConstants::DebugFlags::ROUGHNESS_MAP_ENABLED |
+        LunarConstants::DebugFlags::ALBEDO_MAP_ENABLED;
 }
 
 SceneRenderer::~SceneRenderer() = default;
@@ -41,6 +56,7 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
 	
 	m_shadowManager->Initialize(device);
 	m_shadowViewModel->Initialize(gui, m_shadowManager.get());
+    m_debugViewModel->Initialize(gui, m_basicConstants);
 	CreateDSVDescriptorHeap(device);
 	CreateDepthStencilView(device);
 	CreateSRVDescriptorHeap(Lunar::LunarConstants::TEXTURE_INFO.size(), device);
@@ -195,7 +211,6 @@ void SceneRenderer::UpdateScene(float deltaTime)
     m_lightingSystem->UpdateLightData(m_basicConstants);
 	m_shadowManager->UpdateShadowCB(m_basicConstants);
 	m_basicConstants.shadowTransform = m_shadowManager->GetShadowTransform();
-	// LOG_DEBUG("Normal Map Index : ", m_basicConstants.normalMapIndex);
     m_basicCB->CopyData(&m_basicConstants, sizeof(BasicConstants));
 }
 
@@ -206,82 +221,6 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
         m_basicCB->GetResource()->GetGPUVirtualAddress());
 
     RenderLayers(commandList);
-}
-
-bool SceneRenderer::AddCube(const string& name, const Transform& spawnTransform, RenderLayer layer, const DirectX::XMFLOAT4& color)
-{
-    if (DoesGeometryExist(name))
-    {
-        LOG_ERROR("Geometry with name " + name + " already exists");
-        return false; 
-    }
-    
-    auto cube = GeometryFactory::CreateCube();
-    cube->SetTransform(spawnTransform);
-    cube->SetColor(color); 
-    
-    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(cube), name, layer});
-    
-    m_layeredGeometries[layer].push_back(entry);
-    m_geometriesByName[name] = entry;
-    
-    return true;
-}
-
-bool SceneRenderer::AddSphere(const string& name, const Transform& spawnTransform, RenderLayer layer,  const XMFLOAT4& color)
-{
-    if (DoesGeometryExist(name))
-    {
-        LOG_ERROR("Geometry with name " + name + " already exists");
-        return false; 
-    }
-    
-    auto sphere = GeometryFactory::CreateSphere();
-    sphere->SetTransform(spawnTransform);
-    
-    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(sphere), name, layer});
-    
-    m_layeredGeometries[layer].push_back(entry);
-    m_geometriesByName[name] = entry;
-    
-    return true;
-}
-
-bool SceneRenderer::AddPlane(const string& name, const Transform& spawnTransform, float width, float height, RenderLayer layer)
-{
-    if (DoesGeometryExist(name))
-    {
-        LOG_ERROR("Geometry with name " + name + " already exists");
-        return false; 
-    }
-    
-    auto plane = GeometryFactory::CreatePlane(width, height);
-    plane->SetTransform(spawnTransform);
-    
-    auto entry = make_shared<GeometryEntry>(GeometryEntry{move(plane), name, layer});
-    
-    // TODO: Need a debugging system to check the entry are in both containers
-    m_layeredGeometries[layer].push_back(entry);
-    m_geometriesByName[name] = entry;
-    
-    return true;
-}
-
-bool SceneRenderer::AddTree(const std::string& name, const Transform& spawnTransform, RenderLayer layer)
-{
-	if (DoesGeometryExist(name))
-	{
-		LOG_ERROR("Geometry with name " + name + " already exists");
-		return false;
-	}
-
-	auto tree = GeometryFactory::CreateTree();
-	auto entry = make_shared<GeometryEntry>(GeometryEntry{move(tree), name, layer});
-	
-	m_layeredGeometries[layer].push_back(entry);
-	m_geometriesByName[name] = entry;
-    
-	return true;
 }
 
 void SceneRenderer::CreateLightVisualizationCubes()
@@ -295,7 +234,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
         Transform dirTransform;
         dirTransform.Location = dirLight->Position;
         dirTransform.Scale = {0.3f, 0.3f, 0.3f};
-        AddCube("LightViz_Directional", dirTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_LIGHT);
+        AddGeometry<IcoSphere>("LightViz_Directional", dirTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_LIGHT);
         
         // direction arrow - Orange
         for (int i = 1; i <= 3; ++i) 
@@ -308,7 +247,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
             Transform arrowTransform;
             arrowTransform.Location = arrowPos;
             arrowTransform.Scale = {0.1f, 0.1f, 0.1f};
-            AddCube("LightViz_DirArrow" + std::to_string(i), arrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_ARROW);
+            AddGeometry<Cube>("LightViz_DirArrow" + std::to_string(i), arrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::DIRECTIONAL_ARROW);
         }
     }
     
@@ -319,7 +258,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
         Transform pointTransform;
         pointTransform.Location = pointLight->Position;
         pointTransform.Scale = {0.3f, 0.3f, 0.3f};
-        AddCube("LightViz_Point", pointTransform, RenderLayer::Debug, LunarConstants::LightVizColors::POINT_LIGHT);
+        AddGeometry<Cube>("LightViz_Point", pointTransform, RenderLayer::Debug, LunarConstants::LightVizColors::POINT_LIGHT);
     }
     
     // Spot Light - Blue cube
@@ -328,7 +267,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
         Transform spotTransform;
         spotTransform.Location = spotLight->Position;
         spotTransform.Scale = {0.3f, 0.3f, 0.3f};
-        AddCube("LightViz_Spot", spotTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_LIGHT);
+        AddGeometry<Cube>("LightViz_Spot", spotTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_LIGHT);
         
         // direction arrow - sky-blue
         for (int i = 1; i <= 2; ++i) 
@@ -341,7 +280,7 @@ void SceneRenderer::CreateLightVisualizationCubes()
             Transform spotArrowTransform;
             spotArrowTransform.Location = spotArrowPos;
             spotArrowTransform.Scale = {0.1f, 0.1f, 0.1f};
-            AddCube("LightViz_SpotArrow" + std::to_string(i), spotArrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_ARROW);
+            AddGeometry<Cube>("LightViz_SpotArrow" + std::to_string(i), spotArrowTransform, RenderLayer::Debug, LunarConstants::LightVizColors::SPOT_ARROW);
         }
     }
     
@@ -491,7 +430,7 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
     			break;
     		case RenderLayer::Normal :
-    			if (m_drawNormals)
+    			if (m_basicConstants.debugFlags & LunarConstants::DebugFlags::SHOW_NORMALS)
     			{
     				commandList->OMSetStencilRef(0);
     				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
@@ -501,6 +440,7 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     					entry->GeometryData->DrawNormals(commandList);
     				}
     			}
+    			continue;
     			break;
     		case RenderLayer::Debug :
     			commandList->OMSetStencilRef(0);

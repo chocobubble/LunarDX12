@@ -14,9 +14,9 @@ std::unique_ptr<Geometry> GeometryFactory::CreateCube()
     return std::make_unique<Cube>();
 }
 
-std::unique_ptr<Geometry> GeometryFactory::CreatePlane(float width, float height, int widthSegments, int heightSegments)
+std::unique_ptr<Geometry> GeometryFactory::CreatePlane(int widthSegments, int heightSegments)
 {
-    return std::make_unique<Plane>(width, height, widthSegments, heightSegments);
+    return std::make_unique<Plane>(widthSegments, heightSegments);
 }
 
 std::unique_ptr<Geometry> GeometryFactory::CreateSphere()
@@ -62,7 +62,7 @@ std::unique_ptr<Geometry> GeometryFactory::CloneGeometry(const Geometry* origina
 	}
 	else if (auto plane = dynamic_cast<const Plane*>(original))
 	{
-		return CreatePlane(plane->GetWidth(), plane->GetHeight());
+		return CreatePlane();
 	}
 	return nullptr;
 }

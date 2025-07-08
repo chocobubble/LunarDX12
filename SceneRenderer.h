@@ -7,6 +7,7 @@
 #include <string>
 #include <DirectXMath.h>
 
+#include "Logger.h"
 #include "MaterialManager.h"
 #include "SceneViewModel.h"
 #include "Geometry/Transform.h"
@@ -23,6 +24,7 @@ class PipelineStateManager;
 class LunarGui;
 class LightingSystem;
 class ConstantBuffer;
+class DebugViewModel;
 struct BasicConstants;
 
 enum class RenderLayer
@@ -63,11 +65,6 @@ public:
 	void UpdateScene(float deltaTime);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
     
-    bool AddCube(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
-    bool AddSphere(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::World, const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f});
-    bool AddPlane(const std::string& name, const Transform& spawnTransform = Transform(), float width = 10.0f, float height = 10.0f, RenderLayer layer = RenderLayer::World);
-	bool AddTree(const std::string& name, const Transform& spawnTransform = Transform(), RenderLayer layer = RenderLayer::Billboard);
-    
     bool SetGeometryTransform(const std::string& name, const Transform& newTransform);
     bool SetGeometryLocation(const std::string& name, const DirectX::XMFLOAT3& newLocation);
     bool SetGeometryVisibility(const std::string& name, bool visible);
@@ -94,6 +91,7 @@ private:
 	std::unique_ptr<ShadowViewModel> m_shadowViewModel;
     std::unique_ptr<SceneViewModel> m_sceneViewModel;
     std::unique_ptr<LightViewModel> m_lightViewModel;
+    std::unique_ptr<DebugViewModel> m_debugViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;
 	PipelineStateManager* m_pipelineStateManager = nullptr;
@@ -111,10 +109,35 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 	UINT m_srvDescriptorSize;
 
-	bool m_drawNormals = true;
-
-    // Debug Section
-public:
+// TODO: Move to proper location
+public: // Template Section
+    template<typename T>
+    bool AddGeometry(const std::string& name, 
+        const Transform& spawnTransform = Transform(), 
+        RenderLayer layer = RenderLayer::World, 
+        const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f},
+        const std::string& materialName = "default")
+    {
+        if (DoesGeometryExist(name))
+        {
+            LOG_ERROR("Geometry with name " + name + " already exists");
+            return false; 
+        }
+        
+        auto geometry = std::make_unique<T>();
+        geometry->SetTransform(spawnTransform);
+        geometry->SetColor(color);
+        geometry->SetMaterialName(materialName);
+        
+        auto entry = std::make_shared<GeometryEntry>(GeometryEntry{std::move(geometry), name, layer});
+        
+        m_layeredGeometries[layer].push_back(entry);
+        m_geometriesByName[name] = entry;
+        
+        return true;
+    }
+    
+public:  // Debug Section 
     // Light Visualization
     void CreateLightVisualizationCubes();
     void UpdateLightVisualization();

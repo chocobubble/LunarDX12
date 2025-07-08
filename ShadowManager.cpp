@@ -82,7 +82,7 @@ void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHea
 	srvDesc.Texture2D.ResourceMinLODClamp = 0;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
-	srvHandle.ptr += 6 * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	srvHandle.ptr += 10 * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	device->CreateShaderResourceView(
 		m_shadowTexture.Get(),
 		&srvDesc,

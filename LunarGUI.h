@@ -74,6 +74,7 @@ private:
         int* SelectedValue; // TODO : move to child class
         std::string Label;      // TODO : move to child class
         std::string Format;     // TODO : move to child class 
+        std::string Category = "main";  // Category for organizing UI elements
         
         template<typename T>
         T* GetAs() { return static_cast<T*>(DataPtr); }
@@ -119,7 +120,7 @@ public:
 	void Render(float dt);
 	void EndFrame();
     
-	void BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange = nullptr);
+	void BindCheckbox(const std::string& id, bool* value, std::function<void(bool)> onChange = nullptr, const std::string& category = "main");
 	
 	template <typename T>
 	void BindSlider(const std::string& id, T* value, T min, T max, std::function<void(T*)> onChange = nullptr)
@@ -189,6 +190,8 @@ private:
 	std::unordered_map<std::string, std::function<void()>> m_callbacks;
 	std::unordered_map<std::string, WindowData> m_boundWindows;
 	
+	void RenderCategory(const std::string& windowTitle, const std::string& category, float dt = 0.0f);
+	void RenderElement(const std::string& id, BoundValue& value);
 	void RenderBoundWindow(const std::string& windowId, const WindowData& windowData);
 };
 

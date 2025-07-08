@@ -23,11 +23,9 @@ void MaterialManager::Initialize(ID3D12Device* device)
 
 void MaterialManager::CreateMaterials(ID3D12Device* device)
 {
-    auto createMaterial = [&](string name, XMFLOAT4 diffuse, XMFLOAT3 fresnelR0, float shininess) {
+    auto createMaterial = [&](string name, XMFLOAT3 albedo, float metallic, XMFLOAT3 emissive, float roughness, XMFLOAT3 fresnelR0, float ambientOcclusion) {
         MaterialConstants material = {
-            diffuse,
-            fresnelR0,
-            shininess 
+            albedo, metallic, emissive, roughness, fresnelR0, ambientOcclusion
         };
         m_materialMap[name] = {
             material,
@@ -35,8 +33,10 @@ void MaterialManager::CreateMaterials(ID3D12Device* device)
         };
     	UpdateMaterial("default", material);
     };
-	// createMaterial("default", XMFLOAT4(0.6f, 0.6f, 0.6f, 1.0f), XMFLOAT3(0.01f, 0.01f, 0.01f), 0.125f);
-	createMaterial("default", XMFLOAT4(0.4f, 0.35f, 0.3f, 1.0f), XMFLOAT3(0.04f, 0.04f, 0.04f), 0.8f);
+	for (auto& pbrPreset : LunarConstants::PBR_MATERIAL_PRESETS)
+	{
+		createMaterial(pbrPreset.name, pbrPreset.albedo, pbrPreset.metallic, {0.0f, 0.0, 0.0f}, pbrPreset.roughness, pbrPreset.F0, pbrPreset.ao); 
+	}
 }
 
 void MaterialManager::UpdateMaterial(const std::string& name, const MaterialConstants& material)

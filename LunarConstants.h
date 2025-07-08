@@ -42,14 +42,20 @@ struct TextureInfo
     FileType fileType;
     TextureDimension dimensionType; 
 };
-static constexpr std::array<TextureInfo, 6> TEXTURE_INFO = {{
+static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
     {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
     {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
-	{"tile_color", "Assets\\Textures\\Rock\\Rock-Color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_normal", "Assets\\Textures\\Rock\\Rock-Normal.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_color", "Assets\\Textures\\metal\\metal-color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_normal", "Assets\\Textures\\metal\\metal-normal.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_ao", "Assets\\Textures\\metal\\metal-ao.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
+	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
 }};
+
+/////////////// Shaders ///////////////
 struct ShaderInfo
 {
 	const char* name;
@@ -70,6 +76,28 @@ static constexpr std::array<ShaderInfo, 12> SHADER_INFO = {{
 	{ "normalGS", "Shaders\\NormalGeometryShader.hlsl", "gs_5_0" },
 	{ "normalPS", "Shaders\\NormalPixelShader.hlsl", "ps_5_0" },
 }};
+
+/////////////// Debug Flags ///////////////
+namespace DebugFlags
+{
+    enum : uint32_t
+    {
+        SHOW_NORMALS       = 1 << 0,  // 0x01
+        NORMAL_MAP_ENABLED = 1 << 1,  // 0x02
+        SHOW_UVS           = 1 << 2,  // 0x04
+        PBR_ENABLED        = 1 << 3,  // 0x08
+        SHADOWS_ENABLED    = 1 << 4,  // 0x10
+        WIREFRAME          = 1 << 5,  // 0x20
+        AO_ENABLED         = 1 << 6,  // 0x40
+        IBL_ENABLED        = 1 << 7,  // 0x80
+        HEIGHT_MAP_ENABLED = 1 << 8,  // 0x100
+        METALLIC_MAP_ENABLED = 1 << 9, // 0x200
+        ROUGHNESS_MAP_ENABLED = 1 << 10, // 0x400
+        ALBEDO_MAP_ENABLED = 1 << 11, // 0x800
+    };
+}
+
+/////////////// Lights ///////////////
 enum class LightType
 {
 	Directional,
@@ -103,5 +131,33 @@ namespace LightVizColors
     static constexpr DirectX::XMFLOAT4 SPOT_ARROW = {0.0f, 0.8f, 1.0f, 1.0f};           // sky-blue 
 }
 
+
+/////////////// PBR Materials ///////////////
+struct PBRMaterialPreset
+{
+	const char* name;
+	const DirectX::XMFLOAT3 albedo;
+	const float metallic;
+	const float roughness;
+	const DirectX::XMFLOAT3 F0;
+	const float ao;
+};
+
+static constexpr std::array<PBRMaterialPreset, 9> PBR_MATERIAL_PRESETS = {{
+	// DEFAULT
+	{"default", {0.7f, 0.7f, 0.7f}, 0.0f,	0.5f, {0.04f, 0.04f, 0.04f}, 1.0f},
+
+	// Metals
+	{"gold",      {1.000f, 0.766f, 0.336f}, 1.0f, 0.1f,  {1.000f, 0.710f, 0.290f}, 1.0f},
+	{"silver",    {0.972f, 0.960f, 0.915f}, 1.0f, 0.05f, {0.972f, 0.960f, 0.915f}, 1.0f},
+	{"copper",    {0.955f, 0.637f, 0.538f}, 1.0f, 0.15f, {0.955f, 0.637f, 0.538f}, 1.0f},
+	{"iron",      {0.560f, 0.570f, 0.580f}, 1.0f, 0.3f,  {0.560f, 0.570f, 0.580f}, 1.0f},
+	
+	// Dielectrics
+	{"plastic",   {0.8f, 0.2f, 0.2f}, 0.0f, 0.5f, {0.04f, 0.04f, 0.04f}, 1.0f},
+	{"rubber",    {0.1f, 0.1f, 0.1f}, 0.0f, 0.9f, {0.04f, 0.04f, 0.04f}, 1.0f},
+	{"ceramic",   {0.9f, 0.9f, 0.85f}, 0.0f, 0.1f, {0.05f, 0.05f, 0.05f}, 1.0f},
+	{"wood",      {0.6f, 0.4f, 0.2f}, 0.0f, 0.8f, {0.04f, 0.04f, 0.04f}, 1.0f}
+}};
 }	
 }

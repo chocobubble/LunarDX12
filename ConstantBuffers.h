@@ -15,10 +15,11 @@ struct BasicConstants
 	DirectX::XMFLOAT4X4 view;
 	DirectX::XMFLOAT4X4 projection;
 	DirectX::XMFLOAT3   eyePos;
-	float normalMapIndex;
+    uint32_t debugFlags;  // Debug mode flags
     DirectX::XMFLOAT4   ambientLight;
 	LightData lights[Lunar::LunarConstants::LIGHT_COUNT];
 	DirectX::XMFLOAT4X4 shadowTransform;
+
 };
 
 // Root Parameter CBV 2
@@ -33,9 +34,14 @@ struct ObjectConstants
 // Root Parameter CBV 3
 struct MaterialConstants
 {
-	DirectX::XMFLOAT4 DiffuseAlbedo;
-	DirectX::XMFLOAT3 FresnelR0;
-	float             Shininess;
+    DirectX::XMFLOAT3 albedo;           // Base color / Diffuse albedo
+    float metallic;                     // Metallic factor (0.0 = dielectric, 1.0 = metal)
+    
+    DirectX::XMFLOAT3 emissive;         // Emissive color
+    float roughness;                    // Roughness factor (0.045 ~ 1.0)
+    
+    DirectX::XMFLOAT3 F0;               // Fresnel reflectance at normal incidence
+    float ao;                           // Ambient occlusion
 };
 
 class ConstantBuffer
