@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <array>
 #include <dxgi1_6.h>
 #include <DirectXMath.h>
@@ -21,10 +21,13 @@ static constexpr float CAMERA_MOVE_SPEED = 1.0f;
 
 static constexpr UINT LIGHT_COUNT = 3;
 
-static constexpr UINT BASIC_CONSTANTS_ROOT_PARAMETER_INDEX = 1;
-static constexpr UINT OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX = 2;
-static constexpr UINT MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX = 3;
-	
+static constexpr UINT TEXTURE_SR_ROOT_PARAMETER_INDEX = 3;
+static constexpr UINT BASIC_CONSTANTS_ROOT_PARAMETER_INDEX = 0;
+static constexpr UINT OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX = 1;
+static constexpr UINT MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX = 2;
+static constexpr UINT PARTICLE_SRV_ROOT_PARAMETER_INDEX = 4;
+static constexpr UINT PARTICLE_UAV_ROOT_PARAMETER_INDEX = 5;
+
 /////////////// textures  ///////////////
 enum class FileType : uint8_t {
     DEFAULT = 0,
@@ -62,19 +65,23 @@ struct ShaderInfo
 	const char* path;
 	const char* target;
 };
-static constexpr std::array<ShaderInfo, 12> SHADER_INFO = {{
-	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_0" },
-	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_0" },
-	{ "billboardVS", "Shaders\\BillboardVertexShader.hlsl", "vs_5_0" },
-	{ "billboardGS", "Shaders\\BillboardGeometryShader.hlsl", "gs_5_0" },
-	{ "billboardPS", "Shaders\\BillboardPixelShader.hlsl", "ps_5_0" },
-	{ "skyBoxVS", "Shaders\\SkyBoxVertexShader.hlsl", "vs_5_0" },
-	{ "skyBoxPS", "Shaders\\SkyBoxPixelShader.hlsl", "ps_5_0" },
-	{ "shadowMapVS", "Shaders\\ShadowMapVertexShader.hlsl", "vs_5_0" },
-	{ "shadowMapPS", "Shaders\\ShadowMapPixelShader.hlsl", "ps_5_0" },
-	{ "normalVS", "Shaders\\NormalVertexShader.hlsl", "vs_5_0" },
-	{ "normalGS", "Shaders\\NormalGeometryShader.hlsl", "gs_5_0" },
-	{ "normalPS", "Shaders\\NormalPixelShader.hlsl", "ps_5_0" },
+static constexpr std::array<ShaderInfo, 16> SHADER_INFO = {{
+	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_1" },
+	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_1" },
+	{ "billboardVS", "Shaders\\BillboardVertexShader.hlsl", "vs_5_1" },
+	{ "billboardGS", "Shaders\\BillboardGeometryShader.hlsl", "gs_5_1" },
+	{ "billboardPS", "Shaders\\BillboardPixelShader.hlsl", "ps_5_1" },
+	{ "skyBoxVS", "Shaders\\SkyBoxVertexShader.hlsl", "vs_5_1" },
+	{ "skyBoxPS", "Shaders\\SkyBoxPixelShader.hlsl", "ps_5_1" },
+	{ "shadowMapVS", "Shaders\\ShadowMapVertexShader.hlsl", "vs_5_1" },
+	{ "shadowMapPS", "Shaders\\ShadowMapPixelShader.hlsl", "ps_5_1" },
+	{ "normalVS", "Shaders\\NormalVertexShader.hlsl", "vs_5_1" },
+	{ "normalGS", "Shaders\\NormalGeometryShader.hlsl", "gs_5_1" },
+	{ "normalPS", "Shaders\\NormalPixelShader.hlsl", "ps_5_1" },
+    { "particlesUpdateCS", "Shaders\\ParticlesComputeShader.hlsl", "cs_5_1" },
+    { "particlesVS", "Shaders\\ParticleVertexShader.hlsl", "vs_5_1" },
+    { "particlesPS", "Shaders\\ParticlePixelShader.hlsl", "ps_5_1" },
+    { "particlesGS", "Shaders\\ParticleGeometryShader.hlsl", "gs_5_1" }
 }};
 
 /////////////// Debug Flags ///////////////

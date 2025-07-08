@@ -24,6 +24,7 @@ class PipelineStateManager;
 class LunarGui;
 class LightingSystem;
 class ConstantBuffer;
+class ParticleSystem;
 class DebugViewModel;
 struct BasicConstants;
 
@@ -63,7 +64,11 @@ public:
 
 	void RenderShadowMap(ID3D12GraphicsCommandList* commandList);
 	void UpdateScene(float deltaTime);
+    void UpdateParticleSystem(float deltaTime, ID3D12GraphicsCommandList* commandList);
     void RenderScene(ID3D12GraphicsCommandList* commandList);
+    void RenderParticles(ID3D12GraphicsCommandList* commandList);
+    
+    void EmitParticles(const DirectX::XMFLOAT3& position);
     
     bool SetGeometryTransform(const std::string& name, const Transform& newTransform);
     bool SetGeometryLocation(const std::string& name, const DirectX::XMFLOAT3& newLocation);
@@ -81,6 +86,7 @@ public:
 	BasicConstants& GetBasicConstants() { return m_basicConstants; }
 	ID3D12DescriptorHeap* GetSRVHeap() { return m_srvHeap.Get(); };
 	ID3D12DescriptorHeap* GetDSVHeap() { return m_dsvHeap.Get(); };
+	ParticleSystem* GetParticleSystem() { return m_particleSystem.get(); };
     
 private:
     std::map<RenderLayer, std::vector<std::shared_ptr<GeometryEntry>>> m_layeredGeometries;
@@ -93,6 +99,7 @@ private:
     std::unique_ptr<LightViewModel> m_lightViewModel;
     std::unique_ptr<DebugViewModel> m_debugViewModel;
     std::unique_ptr<LightingSystem> m_lightingSystem;
+    std::unique_ptr<ParticleSystem> m_particleSystem;
     std::unique_ptr<ConstantBuffer> m_basicCB;
 	PipelineStateManager* m_pipelineStateManager = nullptr;
 

@@ -1,4 +1,4 @@
-﻿#include "ShadowManager.h"
+#include "ShadowManager.h"
 
 #include <d3d12.h>
 

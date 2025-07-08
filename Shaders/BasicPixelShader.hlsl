@@ -1,9 +1,9 @@
 #include "Common.hlsl"
 #include "PBR.hlsl"
 
-Texture2D shadowTexture : register(t10);
 Texture2D wallTexture : register(t0);
 Texture2D normalTexture : register(t4);
+Texture2D shadowTexture : register(t0, space1);
 
 struct PixelIn
 {
