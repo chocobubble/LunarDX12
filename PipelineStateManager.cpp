@@ -496,7 +496,7 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC wirePsoDesc = opaquePsoDesc;
 		wirePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&wirePsoDesc,
-			IID_PPV_ARGS(m_psoMap["wireframe"].GetAddressOf())))
+			IID_PPV_ARGS(m_psoMap["opaque_wireframe"].GetAddressOf())))
 	}
 
 	// PSO for Tessellation
@@ -508,7 +508,11 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		tessellationPsoDesc.HS.BytecodeLength = m_shaderMap["basicHS"]->GetBufferSize();
 		tessellationPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&tessellationPsoDesc,
-			IID_PPV_ARGS(m_psoMap["tessllation"].GetAddressOf())))
+			IID_PPV_ARGS(m_psoMap["tessellation"].GetAddressOf())))
+
+		tessellationPsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&tessellationPsoDesc,
+			IID_PPV_ARGS(m_psoMap["tessellation_wireframe"].GetAddressOf())))
 	}
 }
 
