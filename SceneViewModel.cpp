@@ -14,10 +14,20 @@ namespace Lunar
 
 void SceneViewModel::Initialize(LunarGui* gui, SceneRenderer* sceneRenderer)
 {
-    m_geometryNames = sceneRenderer->GetGeometryNames();
-    m_materialNames = sceneRenderer->GetMaterialManager()->GetMaterialNames();
-    m_lights = sceneRenderer->GetLightingSystem()->GetLightIndices();
-	gui->BindCheckbox("Scene Settings Enabled", &m_showSceneWindow);
+	if (!gui || !sceneRenderer)
+	{
+		LOG_ERROR("SceneViewModel: Invalid gui or sceneRenderer pointer");
+		return;
+	}
+	gui->BindCheckbox("Scene Settings Enabled", &m_showSceneWindow, nullptr, "main");
+
+	gui->BindCheckbox("Render Wire Frame", &sceneRenderer->m_wireFrameRender, nullptr, "scene");
+	
+	vector<string> elementIds = {
+		"Render Wire Frame"
+	};
+
+	gui->BindWindow("Scene Settings", "Scene Settings", &m_showSceneWindow, elementIds);
 }
 
 }

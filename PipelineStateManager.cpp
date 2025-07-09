@@ -490,6 +490,14 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
     	THROW_IF_FAILED(device->CreateGraphicsPipelineState(&particlesPsoDesc,
 			IID_PPV_ARGS(m_psoMap["particles"].GetAddressOf())))
     }
+
+	// PSO for Render Wire Frame 
+	{
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC wirePsoDesc = opaquePsoDesc;
+		wirePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&wirePsoDesc,
+			IID_PPV_ARGS(m_psoMap["wireframe"].GetAddressOf())))
+	}
 }
 
 ID3D12PipelineState* PipelineStateManager::GetPSO(const string& psoName) const

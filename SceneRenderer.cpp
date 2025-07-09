@@ -428,46 +428,53 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
 {
     for (auto& it : m_layeredGeometries)
     {
-    	switch (it.first)
+    	if (m_wireFrameRender)
     	{
-    		case RenderLayer::Mirror :
-				commandList->OMSetStencilRef(1);
-				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
-    			break;
-    		case RenderLayer::Reflect :
-				commandList->OMSetStencilRef(1);
-				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
-    			break;
-    		case RenderLayer::Background :
-    			commandList->OMSetStencilRef(1);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("background"));
-    			break;
-    		case RenderLayer::World :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
-    			break;
-    		case RenderLayer::Billboard :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
-    			break;
-    		case RenderLayer::Normal :
-    			if (m_basicConstants.debugFlags & LunarConstants::DebugFlags::SHOW_NORMALS)
-    			{
-    				commandList->OMSetStencilRef(0);
-    				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
-    				// Refactor
-    				for (auto& entry : m_layeredGeometries[RenderLayer::World])
-    				{
-    					entry->GeometryData->DrawNormals(commandList);
-    				}
-    			}
-    			continue;
-    		case RenderLayer::Debug :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
-    			break;
-			default:
-    			LOG_ERROR("Not Handled RenderLayerType");
+    		commandList->SetPipelineState(m_pipelineStateManager->GetPSO("wireframe"));
+    	}
+    	else
+    	{
+			switch (it.first)
+			{
+				case RenderLayer::Mirror :
+					commandList->OMSetStencilRef(1);
+					commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
+					break;
+				case RenderLayer::Reflect :
+					commandList->OMSetStencilRef(1);
+					commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
+					break;
+				case RenderLayer::Background :
+					commandList->OMSetStencilRef(1);
+					commandList->SetPipelineState(m_pipelineStateManager->GetPSO("background"));
+					break;
+				case RenderLayer::World :
+					commandList->OMSetStencilRef(0);
+					commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
+					break;
+				case RenderLayer::Billboard :
+					commandList->OMSetStencilRef(0);
+					commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
+					break;
+				case RenderLayer::Normal :
+					if (m_basicConstants.debugFlags & LunarConstants::DebugFlags::SHOW_NORMALS)
+					{
+						commandList->OMSetStencilRef(0);
+						commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
+						// Refactor
+						for (auto& entry : m_layeredGeometries[RenderLayer::World])
+						{
+							entry->GeometryData->DrawNormals(commandList);
+						}
+					}
+					continue;
+				case RenderLayer::Debug :
+					commandList->OMSetStencilRef(0);
+					commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
+					break;
+				default:
+					LOG_ERROR("Not Handled RenderLayerType");
+			}
 	    }
     	
         for (auto& entry : it.second)
