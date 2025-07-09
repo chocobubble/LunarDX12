@@ -490,6 +490,30 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
     	THROW_IF_FAILED(device->CreateGraphicsPipelineState(&particlesPsoDesc,
 			IID_PPV_ARGS(m_psoMap["particles"].GetAddressOf())))
     }
+
+	// PSO for Render Wire Frame 
+	{
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC wirePsoDesc = opaquePsoDesc;
+		wirePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&wirePsoDesc,
+			IID_PPV_ARGS(m_psoMap["opaque_wireframe"].GetAddressOf())))
+	}
+
+	// PSO for Tessellation
+	{
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC tessellationPsoDesc = opaquePsoDesc;
+		tessellationPsoDesc.DS.pShaderBytecode = m_shaderMap["basicDS"]->GetBufferPointer();
+		tessellationPsoDesc.DS.BytecodeLength = m_shaderMap["basicDS"]->GetBufferSize();
+		tessellationPsoDesc.HS.pShaderBytecode = m_shaderMap["basicHS"]->GetBufferPointer();
+		tessellationPsoDesc.HS.BytecodeLength = m_shaderMap["basicHS"]->GetBufferSize();
+		tessellationPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&tessellationPsoDesc,
+			IID_PPV_ARGS(m_psoMap["tessellation"].GetAddressOf())))
+
+		tessellationPsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&tessellationPsoDesc,
+			IID_PPV_ARGS(m_psoMap["tessellation_wireframe"].GetAddressOf())))
+	}
 }
 
 ID3D12PipelineState* PipelineStateManager::GetPSO(const string& psoName) const

@@ -32,6 +32,7 @@ enum class RenderLayer
 {
     Background,
     World,
+	Tessellation,
 	Mirror,
 	Reflect,
 	Billboard,
@@ -105,6 +106,7 @@ private:
 
 	BasicConstants m_basicConstants;
     void RenderLayers(ID3D12GraphicsCommandList* commandList);
+	void RenderWireframeOnly(ID3D12GraphicsCommandList* commandList);
     bool GetGeometryVisibility(const std::string& name) const;
     GeometryEntry* GetGeometryEntry(const std::string& name);
 
@@ -115,6 +117,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 	UINT m_srvDescriptorSize;
+
+	bool m_wireFrameRender = false;
 
 // TODO: Move to proper location
 public: // Template Section
@@ -135,9 +139,11 @@ public: // Template Section
         geometry->SetTransform(spawnTransform);
         geometry->SetColor(color);
         geometry->SetMaterialName(materialName);
+    	
+    	if (layer == RenderLayer::Tessellation) geometry->SetTopologyType(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
         
         auto entry = std::make_shared<GeometryEntry>(GeometryEntry{std::move(geometry), name, layer});
-        
+    	
         m_layeredGeometries[layer].push_back(entry);
         m_geometriesByName[name] = entry;
         

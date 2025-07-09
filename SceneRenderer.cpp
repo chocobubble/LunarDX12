@@ -230,7 +230,8 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
         Lunar::LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
         m_basicCB->GetResource()->GetGPUVirtualAddress());
 
-    RenderLayers(commandList);
+	if (m_wireFrameRender) RenderWireframeOnly(commandList);
+    else RenderLayers(commandList);
 }
 
 void SceneRenderer::RenderParticles(ID3D12GraphicsCommandList* commandList)
@@ -428,47 +429,51 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
 {
     for (auto& it : m_layeredGeometries)
     {
-    	switch (it.first)
-    	{
-    		case RenderLayer::Mirror :
+		switch (it.first)
+		{
+			case RenderLayer::Mirror :
 				commandList->OMSetStencilRef(1);
 				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
-    			break;
-    		case RenderLayer::Reflect :
+				break;
+			case RenderLayer::Reflect :
 				commandList->OMSetStencilRef(1);
 				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
-    			break;
-    		case RenderLayer::Background :
-    			commandList->OMSetStencilRef(1);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("background"));
-    			break;
-    		case RenderLayer::World :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
-    			break;
-    		case RenderLayer::Billboard :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
-    			break;
-    		case RenderLayer::Normal :
-    			if (m_basicConstants.debugFlags & LunarConstants::DebugFlags::SHOW_NORMALS)
-    			{
-    				commandList->OMSetStencilRef(0);
-    				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
-    				// Refactor
-    				for (auto& entry : m_layeredGeometries[RenderLayer::World])
-    				{
-    					entry->GeometryData->DrawNormals(commandList);
-    				}
-    			}
-    			continue;
-    		case RenderLayer::Debug :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
-    			break;
+				break;
+			case RenderLayer::Background :
+				commandList->OMSetStencilRef(1);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("background"));
+				break;
+			case RenderLayer::World :
+				commandList->OMSetStencilRef(0);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
+				break;
+			case RenderLayer::Tessellation :
+				commandList->OMSetStencilRef(0);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("tessellation"));
+				break;
+			case RenderLayer::Billboard :
+				commandList->OMSetStencilRef(0);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
+				break;
+			case RenderLayer::Normal :
+				if (m_basicConstants.debugFlags & LunarConstants::DebugFlags::SHOW_NORMALS)
+				{
+					commandList->OMSetStencilRef(0);
+					commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
+					// Refactor
+					for (auto& entry : m_layeredGeometries[RenderLayer::World])
+					{
+						entry->GeometryData->DrawNormals(commandList);
+					}
+				}
+				continue;
+			case RenderLayer::Debug :
+				commandList->OMSetStencilRef(0);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
+				break;
 			default:
-    			LOG_ERROR("Not Handled RenderLayerType");
-	    }
+				LOG_ERROR("Not Handled RenderLayerType");
+		}
     	
         for (auto& entry : it.second)
         {
@@ -482,6 +487,31 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     }
 }
 
+void SceneRenderer::RenderWireframeOnly(ID3D12GraphicsCommandList* commandList)
+{
+	commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque_wireframe"));
+	for (auto& geoEntry : m_layeredGeometries[RenderLayer::World])
+	{
+		if (geoEntry->IsVisible)
+		{
+			string materialName = geoEntry->GeometryData->GetMaterialName();
+			m_materialManager->BindConstantBuffer(materialName, commandList);
+			geoEntry->GeometryData->Draw(commandList);
+		}
+	}
+
+	commandList->SetPipelineState(m_pipelineStateManager->GetPSO("tessellation_wireframe"));
+	for (auto& geoEntry : m_layeredGeometries[RenderLayer::Tessellation])
+	{
+		if (geoEntry->IsVisible)
+		{
+			string materialName = geoEntry->GeometryData->GetMaterialName();
+			m_materialManager->BindConstantBuffer(materialName, commandList);
+			geoEntry->GeometryData->Draw(commandList);
+		}
+	}
+}
+	
 GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name)
 {
     auto it = m_geometriesByName.find(name);

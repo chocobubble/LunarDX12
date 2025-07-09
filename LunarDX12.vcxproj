@@ -147,6 +147,16 @@
     <None Include="Shaders\PBR.hlsl">
       <ShaderType>Header</ShaderType>
     </None>
+    <FxCompile Include="Shaders\BasicHullShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.1</ShaderModel>
+      <ShaderType>Hull</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\BasicDomainShader.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.1</ShaderModel>
+      <ShaderType>Domain</ShaderType>
+    </FxCompile>
     <FxCompile Include="Shaders\NormalGeometryShader.hlsl">
       <EntryPointName>main</EntryPointName>
       <ShaderModel>5.1</ShaderModel>
