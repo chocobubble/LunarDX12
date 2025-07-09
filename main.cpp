@@ -1,6 +1,6 @@
-#include "Logger.h"
+#include "Utils/Logger.h"
 #include "MainApp.h"
-#include "Utils.h"
+#include "Utils/Utils.h"
 
 using namespace Lunar;
 

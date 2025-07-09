@@ -1,8 +1,8 @@
 #include "LightViewModel.h"
 #include "LunarGUI.h"
-#include "LightingSystem.h"
-#include "Logger.h"
-#include "SceneRenderer.h"
+#include "../LightingSystem.h"
+#include "../Utils/Logger.h"
+#include "../SceneRenderer.h"
 
 using namespace std;
 using namespace DirectX;

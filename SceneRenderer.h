@@ -7,9 +7,9 @@
 #include <string>
 #include <DirectXMath.h>
 
-#include "Logger.h"
+#include "Utils/Logger.h"
 #include "MaterialManager.h"
-#include "SceneViewModel.h"
+#include "UI/SceneViewModel.h"
 #include "Geometry/Transform.h"
 #include "Geometry/Geometry.h"
 

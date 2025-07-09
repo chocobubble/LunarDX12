@@ -1,9 +1,7 @@
 #include "SceneViewModel.h"
 #include "LunarGUI.h"
-#include "Logger.h"
-#include "SceneRenderer.h"
-#include "MaterialManager.h"
-#include "LightingSystem.h"
+#include "../Utils/Logger.h"
+#include "../SceneRenderer.h"
 #include <DirectXMath.h>
 
 using namespace std;

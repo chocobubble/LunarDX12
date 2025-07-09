@@ -1,7 +1,7 @@
 #include "PerformanceViewModel.h"
 #include "LunarGUI.h"
-#include "PerformanceProfiler.h"
-#include "Logger.h"
+#include "../PerformanceProfiler.h"
+#include "../Utils/Logger.h"
 
 using namespace std;
 

@@ -8,7 +8,7 @@
 #include <DirectXMath.h>
 
 #include "imgui.h"
-#include "Logger.h"
+#include "../Utils/Logger.h"
 
 namespace Lunar 
 {
