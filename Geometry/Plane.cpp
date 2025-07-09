@@ -6,8 +6,8 @@ using namespace DirectX;
 
 namespace Lunar
 {
-Plane::Plane(int widthSegments, int heightSegments)
-    : m_widthSegments(widthSegments), m_heightSegments(heightSegments)
+Plane::Plane(int widthSegments, int depthSegments)
+    : m_widthSegments(widthSegments), m_depthSegments(depthSegments)
 {
 	m_planeEquation = XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 }
@@ -34,17 +34,17 @@ void Plane::CreatePlaneVertices()
     float depth = m_transform.Scale.z;
 
     float halfWidth = width * 0.5f;
-    float halfHeight = height * 0.5f;
+    float halfDepth = depth * 0.5f;
 
     float dx = width / m_widthSegments;
-    float dy = height / m_heightSegments;
+    float dz = depth / m_depthSegments;
 
     float du = 1.0f / m_widthSegments;
-    float dv = 1.0f / m_heightSegments;
+    float dv = 1.0f / m_depthSegments;
 
-    for (int i = 0; i <= m_heightSegments; ++i)
+    for (int i = 0; i <= m_depthSegments; ++i)
     {
-        float z = halfHeight - i * dy;
+        float z = halfDepth - i * dz;
         for (int j = 0; j <= m_widthSegments; ++j)
         {
             float x = -halfWidth + j * dx;
@@ -71,7 +71,7 @@ void Plane::CreatePlaneIndices()
     
     int verticesPerRow = m_widthSegments + 1;
 
-    for (int i = 0; i < m_heightSegments; ++i)
+    for (int i = 0; i < m_depthSegments; ++i)
     {
         for (int j = 0; j < m_widthSegments; ++j)
         {
