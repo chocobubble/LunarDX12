@@ -6,7 +6,7 @@ namespace Lunar
 class Plane : public Geometry
 {
 public:
-    Plane(int widthSegments = 1, int depthSegments = 1);
+    Plane(int widthSegments = 5, int depthSegments = 5);
     ~Plane() = default;
     
     void CreateGeometry() override;

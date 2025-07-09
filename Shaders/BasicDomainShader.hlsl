@@ -25,14 +25,14 @@ struct DomainOut
 };
 
 [domain("tri")]
-DomainOut main(PatchConstOutput patchConst, float2 uv : SV_DomainLocation, const OutputPatch<HullOut, 3> tri)
+DomainOut main(PatchConstOutput patchConst, float3 uv : SV_DomainLocation, const OutputPatch<HullOut, 3> tri)
 {
 	DomainOut domainOut;
 
-	// bicentric coordinate
+	// barycentric coordinate
 	float u = uv.x;
 	float v = uv.y;
-	float w = 1.0 - u - v;
+	float w = uv.z;
 	
 	domainOut.pos    = tri[0].pos    * w + tri[1].pos    * u + tri[2].pos    * v;
 	domainOut.color  = tri[0].color  * w + tri[1].color  * u + tri[2].color  * v;

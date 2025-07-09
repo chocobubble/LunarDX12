@@ -638,8 +638,8 @@ void MainApp::InitializeGeometry()
 	/*m_sceneRenderer->AddCube("Cube1", {{0, 1, 0}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
 	m_sceneRenderer->AddCube("Cube2", {{2, 1, 2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
 	m_sceneRenderer->AddCube("Cube3", {{-2, 1, -2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);*/
-	// m_sceneRenderer->AddGeometry<Plane>("ShadowMapPlane", {{0, 0, 0}, {0, 0, 0}, {3, 3, 1}}, RenderLayer::World);
-	m_sceneRenderer->AddGeometry<Plane>("TessellationPlane", {{0, -0.1f, 0}, {0, 0, 0}, {100.0f, 0.2f, 100.0f}}, RenderLayer::Tessellation);
+	// m_sceneRenderer->AddGeometry<Plane>("ShadowMapPlane", {{0, -0.1f, 3.0f}, {0, 0, 0}, {3, 1, 3}}, RenderLayer::World);
+	m_sceneRenderer->AddGeometry<Plane>("TessellationPlane", {{0, -0.1f, 0}, {0, 0, 0}, {5.0f, 0.2f, 5.0f}}, RenderLayer::Tessellation);
 	transform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	transform.Scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
 	m_sceneRenderer->AddGeometry<IcoSphere>("SkyBox0", transform, RenderLayer::Background);
