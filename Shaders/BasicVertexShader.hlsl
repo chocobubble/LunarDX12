@@ -13,7 +13,7 @@ struct VertexIn
 	float3 tangent : TANGENT;
 };
 
-struct PixelIn
+struct VertexOut
 {
     float4 pos : SV_POSITION;
     float4 color : COLOR;
@@ -23,9 +23,9 @@ struct PixelIn
 	float3 tangent : TANGENT;
 };
 
-PixelIn main(VertexIn vIn)
+VertexOut main(VertexIn vIn)
 {
-    PixelIn pIn;
+    VertexOut pIn;
 	
 	float4 pos = float4(vIn.pos, 1.0f);
 	float4 posW = mul(pos, world);
