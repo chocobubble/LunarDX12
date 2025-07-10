@@ -17,6 +17,7 @@ class Camera;
 class LunarGui;
 class PerformanceProfiler;
 class PerformanceViewModel;
+class PostProcessManager;
 	
 class MainApp {
 public:
@@ -55,6 +56,7 @@ private:
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swapChain;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_lightHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_cbvSrvUavHeap;  // 통합 Heap 추가
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
@@ -86,6 +88,7 @@ private:
     std::unique_ptr<Camera> m_camera;
 
     std::unique_ptr<SceneRenderer> m_sceneRenderer;
+    std::unique_ptr<PostProcessManager> m_postProcessManager;
 	std::unique_ptr<PipelineStateManager> m_pipelineStateManager;
 
 	bool m_mouseMoving = false;

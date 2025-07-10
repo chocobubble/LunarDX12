@@ -44,6 +44,32 @@ struct MaterialConstants
     float ao;                           // Ambient occlusion
 };
 
+// Post-Processing Constants
+struct PostProcessConstants
+{
+    float exposure = 1.0f;
+    float gamma = 2.2f;
+    
+    float bloomThreshold = 1.0f;
+    float bloomIntensity = 0.8f;
+    float bloomRadius = 1.0f;
+    
+    uint32_t colorLevels = 4;
+    float edgeThreshold = 0.1f;
+    
+    float dotSize = 0.3f;
+    float dotSpacing = 20.0f;
+    
+    float bleedRadius = 2.0f;
+    float paperIntensity = 0.5f;
+    uint32_t sampleCount = 8;
+    
+    uint32_t textureWidth = 0;
+    uint32_t textureHeight = 0;
+    float texelSizeX = 0.0f;
+    float texelSizeY = 0.0f;
+};
+
 class ConstantBuffer
 {
 public:

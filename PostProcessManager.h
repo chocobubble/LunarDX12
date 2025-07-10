@@ -7,6 +7,7 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
+#include "ConstantBuffers.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -21,31 +22,6 @@ struct ComputeTexture
     DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
     UINT width = 0;
     UINT height = 0;
-};
-
-struct PostProcessConstants
-{
-    float exposure = 1.0f;
-    float gamma = 2.2f;
-    
-    float bloomThreshold = 1.0f;
-    float bloomIntensity = 0.8f;
-    float bloomRadius = 1.0f;
-    
-    UINT colorLevels = 4;
-    float edgeThreshold = 0.1f;
-    
-    float dotSize = 0.3f;
-    float dotSpacing = 20.0f;
-    
-    float bleedRadius = 2.0f;
-    float paperIntensity = 0.5f;
-    UINT sampleCount = 8;
-    
-    UINT textureWidth = 0;
-    UINT textureHeight = 0;
-    float texelSizeX = 0.0f;
-    float texelSizeY = 0.0f;
 };
 
 enum class PostProcessEffect
@@ -66,14 +42,22 @@ public:
     PostProcessManager() = default;
     ~PostProcessManager() = default;
 
-    bool Initialize(ID3D12Device* device, UINT width, UINT height);
+    bool Initialize(
+        ID3D12Device* device, 
+        UINT width, 
+        UINT height,
+        ID3D12DescriptorHeap* cbvSrvUavHeap,  // 외부 통합 Heap 사용
+        ID3D12DescriptorHeap* rtvHeap,        // 외부 RTV Heap 사용
+        UINT& srvUavStartIndex,               // 시작 인덱스 (참조로 전달)
+        UINT& rtvStartIndex                   // 시작 인덱스 (참조로 전달)
+    );
     void Shutdown();
     
     void BeginScene(ID3D12GraphicsCommandList* cmdList);
     void ApplyPostEffects(ID3D12GraphicsCommandList* cmdList);
     void EndScene(ID3D12GraphicsCommandList* cmdList);
     
-    ID3D12Resource* GetSceneRenderTarget() const { return GetCurrentInput().texture.Get(); }
+    ID3D12Resource* GetSceneRenderTarget() const { return m_sceneTexture.texture.Get(); }
     D3D12_CPU_DESCRIPTOR_HANDLE GetSceneRTV() const;
     D3D12_CPU_DESCRIPTOR_HANDLE GetSceneDSV() const;
     
@@ -95,15 +79,22 @@ private:
     UINT m_width = 0;
     UINT m_height = 0;
     
-    ComPtr<ID3D12DescriptorHeap> m_srvUavHeap;
-    ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-    ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
+    // 외부 Heap 참조 (소유하지 않음)
+    ID3D12DescriptorHeap* m_externalSrvUavHeap = nullptr;
+    ID3D12DescriptorHeap* m_externalRtvHeap = nullptr;
+    
+    // 할당된 인덱스 범위
+    UINT m_srvUavStartIndex = 0;
+    UINT m_rtvStartIndex = 0;
+    UINT m_allocatedSrvUavCount = 0;
+    UINT m_allocatedRtvCount = 0;
+    
     UINT m_srvUavDescriptorSize = 0;
     UINT m_rtvDescriptorSize = 0;
-    UINT m_dsvDescriptorSize = 0;
     
     ComputeTexture m_hdrBuffer[2];
     ComputeTexture m_ldrBuffer;
+    ComputeTexture m_sceneTexture;  // Scene Render Target 추가
     int m_currentBufferIndex = 0;
     
     ComPtr<ID3D12Resource> m_depthBuffer;
@@ -119,11 +110,6 @@ private:
     
     PostProcessEffect m_activeEffect = PostProcessEffect::None;
     
-    UINT m_currentSrvUavIndex = 0;
-    UINT m_currentRtvIndex = 0;
-    UINT m_currentDsvIndex = 0;
-    
-    bool CreateDescriptorHeaps();
     bool CreateTextures();
     bool CreateDepthBuffer();
     bool CreateConstantBuffer();
@@ -133,7 +119,6 @@ private:
     bool CreateComputeTexture(DXGI_FORMAT format, ComputeTexture& texture);
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateSrvUavDescriptor();
     D3D12_CPU_DESCRIPTOR_HANDLE AllocateRtvDescriptor();
-    D3D12_CPU_DESCRIPTOR_HANDLE AllocateDsvDescriptor();
     
     void TransitionResource(
         ID3D12GraphicsCommandList* cmdList,
@@ -148,6 +133,8 @@ private:
     void ApplyInPlace(ID3D12GraphicsCommandList* cmdList, const std::string& shaderName);
     void SetBlurDirection(float x, float y);
     void UAVBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resource);
+    void CopySceneToHDR(ID3D12GraphicsCommandList* cmdList);
+    void CopyToBackBuffer(ID3D12GraphicsCommandList* cmdList);
 };
 
 } // namespace Lunar

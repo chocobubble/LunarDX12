@@ -87,6 +87,13 @@ bool PostProcessManager::CreateDescriptorHeaps()
 
 bool PostProcessManager::CreateTextures()
 {
+    // Scene Render Target 생성 (HDR 포맷)
+    if (!CreateComputeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, m_sceneTexture))
+    {
+        LOG_ERROR("Failed to create Scene render target");
+        return false;
+    }
+    
     if (!CreateComputeTexture(DXGI_FORMAT_R16G16B16A16_FLOAT, m_hdrBuffer[0]))
     {
         LOG_ERROR("Failed to create HDR buffer A");
@@ -105,7 +112,7 @@ bool PostProcessManager::CreateTextures()
         return false;
     }
     
-    LOG_INFO("Created optimized texture set: 2 HDR (16MB each) + 1 LDR (8MB) = 40MB total");
+    LOG_INFO("Created texture set: Scene RT + 2 HDR + 1 LDR = 56MB total");
     return true;
 }
 
@@ -300,15 +307,16 @@ D3D12_CPU_DESCRIPTOR_HANDLE PostProcessManager::AllocateDsvDescriptor()
 
 D3D12_CPU_DESCRIPTOR_HANDLE PostProcessManager::GetSceneRTV() const
 {
-    // Create RTV for scene texture if needed
+    // Scene texture의 RTV는 CreateComputeTexture에서 이미 생성되지 않으므로 여기서 생성
     static bool rtvCreated = false;
     static D3D12_CPU_DESCRIPTOR_HANDLE sceneRTV = {};
     
     if (!rtvCreated)
     {
-        sceneRTV = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
-        sceneRTV.ptr += m_currentRtvIndex * m_rtvDescriptorSize;
+        // RTV 할당
+        sceneRTV = const_cast<PostProcessManager*>(this)->AllocateRtvDescriptor();
         
+        // RTV 생성
         D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
         rtvDesc.Format = m_sceneTexture.format;
         rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -316,6 +324,8 @@ D3D12_CPU_DESCRIPTOR_HANDLE PostProcessManager::GetSceneRTV() const
         
         m_device->CreateRenderTargetView(m_sceneTexture.texture.Get(), &rtvDesc, sceneRTV);
         rtvCreated = true;
+        
+        LOG_INFO("Created Scene RTV");
     }
     
     return sceneRTV;
@@ -351,6 +361,134 @@ void PostProcessManager::TransitionResource(
     barrier.Transition.StateBefore = before;
     barrier.Transition.StateAfter = after;
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    
+    cmdList->ResourceBarrier(1, &barrier);
+}
+
+void PostProcessManager::BeginScene(ID3D12GraphicsCommandList* cmdList)
+{
+    LOG_FUNCTION_ENTRY();
+    
+    // Scene texture를 Render Target으로 전환
+    TransitionResource(cmdList, m_sceneTexture.texture.Get(), 
+                      D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 
+                      D3D12_RESOURCE_STATE_RENDER_TARGET);
+    
+    // Depth buffer를 Depth Write로 전환
+    TransitionResource(cmdList, m_depthBuffer.Get(),
+                      D3D12_RESOURCE_STATE_DEPTH_READ,
+                      D3D12_RESOURCE_STATE_DEPTH_WRITE);
+    
+    // Render Target 설정
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = GetSceneRTV();
+    D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = GetSceneDSV();
+    
+    cmdList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+    
+    // Clear render target and depth buffer
+    float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+    cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+    
+    LOG_INFO("Scene rendering started");
+}
+
+void PostProcessManager::EndScene(ID3D12GraphicsCommandList* cmdList)
+{
+    LOG_FUNCTION_ENTRY();
+    
+    // Scene texture를 SRV로 전환 (Post-processing에서 읽기 위해)
+    TransitionResource(cmdList, m_sceneTexture.texture.Get(), 
+                      D3D12_RESOURCE_STATE_RENDER_TARGET, 
+                      D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    
+    // Depth buffer를 SRV로 전환 (필요시 Post-processing에서 읽기 위해)
+    TransitionResource(cmdList, m_depthBuffer.Get(),
+                      D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                      D3D12_RESOURCE_STATE_DEPTH_READ);
+    
+    LOG_INFO("Scene rendering ended, ready for post-processing");
+}
+
+void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* cmdList)
+{
+    LOG_FUNCTION_ENTRY();
+    
+    if (m_activeEffect == PostProcessEffect::None) {
+        // No post-processing, just copy scene to back buffer
+        // TODO: Implement direct copy
+        LOG_INFO("No post-processing effects active");
+        return;
+    }
+    
+    // Update constant buffer
+    UpdateConstantBuffer();
+    
+    // Set descriptor heap
+    ID3D12DescriptorHeap* heaps[] = { m_srvUavHeap.Get() };
+    cmdList->SetDescriptorHeaps(1, heaps);
+    
+    // Copy scene texture to HDR buffer 1 first
+    CopySceneToHDR(cmdList);
+    
+    // Apply selected effect
+    switch (m_activeEffect) {
+        case PostProcessEffect::ToneMapping:
+            ApplyPass(cmdList, "ToneMapping");
+            break;
+        case PostProcessEffect::Bloom:
+            ApplyPass(cmdList, "BloomBrightPass");
+            ApplyPass(cmdList, "GaussianBlur");
+            break;
+        // Add other effects...
+        default:
+            break;
+    }
+    
+    // Final copy to back buffer
+    CopyToBackBuffer(cmdList);
+    
+    LOG_INFO("Post-processing effects applied");
+}
+
+void PostProcessManager::CopySceneToHDR(ID3D12GraphicsCommandList* cmdList)
+{
+    // Scene texture (SRV) -> HDR Buffer 1 (UAV)
+    TransitionResource(cmdList, m_hdrBuffer[0].texture.Get(),
+                      D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                      D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    
+    // Set compute root signature and PSO
+    cmdList->SetComputeRootSignature(m_computeRootSignature.Get());
+    // TODO: Create copy compute shader PSO
+    
+    // Bind scene texture as SRV (t0)
+    cmdList->SetComputeRootDescriptorTable(1, /* Scene SRV GPU handle */);
+    
+    // Bind HDR buffer as UAV (u0)  
+    cmdList->SetComputeRootDescriptorTable(2, /* HDR UAV GPU handle */);
+    
+    // Dispatch
+    UINT dispatchX = GetDispatchSize(m_width, 8);
+    UINT dispatchY = GetDispatchSize(m_height, 8);
+    cmdList->Dispatch(dispatchX, dispatchY, 1);
+    
+    // UAV barrier
+    UAVBarrier(cmdList, m_hdrBuffer[0].texture.Get());
+}
+
+void PostProcessManager::CopyToBackBuffer(ID3D12GraphicsCommandList* cmdList)
+{
+    // TODO: Implement copy from LDR buffer to back buffer
+    // This would typically be done with a fullscreen quad or compute shader
+}
+
+void PostProcessManager::UAVBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resource)
+{
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.UAV.pResource = resource;
     
     cmdList->ResourceBarrier(1, &barrier);
 }

@@ -15,6 +15,7 @@
 #include "ParticleSystem.h"
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
+#include "PostProcessManager.h"
 #include "PerformanceProfiler.h"
 #include "PerformanceViewModel.h"
 #include "Geometry/IcoSphere.h"
@@ -42,6 +43,7 @@ MainApp::MainApp()
 	g_mainApp = this;
 	m_sceneRenderer = make_unique<SceneRenderer>();
 	m_pipelineStateManager = make_unique<PipelineStateManager>();
+	m_postProcessManager = make_unique<PostProcessManager>();
 	m_performanceProfiler = make_unique<PerformanceProfiler>();
 	m_performanceViewModel = make_unique<PerformanceViewModel>();
 }
@@ -438,6 +440,12 @@ void MainApp::Render(double dt)
 		m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
+	// Scene Rendering to Scene RT
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Scene Setup");
+		m_postProcessManager->BeginScene(m_commandList.Get());
+	}
+	
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Scene Rendering");
 		m_sceneRenderer->RenderScene(m_commandList.Get());
@@ -446,6 +454,26 @@ void MainApp::Render(double dt)
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Particle Rendering");
 		m_sceneRenderer->RenderParticles(m_commandList.Get());
+	}
+	
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Scene Finalize");
+		m_postProcessManager->EndScene(m_commandList.Get());
+	}
+	
+	// Post-Processing
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Post Processing");
+		m_postProcessManager->ApplyPostEffects(m_commandList.Get());
+	}
+	
+	// Back to back buffer for UI
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Back Buffer Setup");
+		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
+		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
+		m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
 	}
 	
 	{
@@ -513,6 +541,13 @@ void MainApp::Initialize()
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
 	InitializeTextures(); // for now, should come after InitializeGeometry method
+	
+	// Initialize PostProcessManager
+	if (!m_postProcessManager->Initialize(m_device.Get(), m_width, m_height)) {
+		LOG_ERROR("Failed to initialize PostProcessManager");
+		return -1;
+	}
+	
 	m_performanceProfiler->Initialize();
 	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
 
