@@ -15,7 +15,7 @@ struct ComputeTexture
 class PostProcessManager
 {
 public:
-    PostProcessManager() = default;
+    PostProcessManager();
     ~PostProcessManager() = default;
 
     void Initialize(ID3D12Device* device, D3D12_GPU_DESCRIPTOR_HANDLE handle, UINT offset);

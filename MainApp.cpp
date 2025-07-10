@@ -45,6 +45,7 @@ MainApp::MainApp()
 	m_pipelineStateManager = make_unique<PipelineStateManager>();
 	m_performanceProfiler = make_unique<PerformanceProfiler>();
 	m_performanceViewModel = make_unique<PerformanceViewModel>();
+	m_postProcessManager = make_unique<PostProcessManager>();
 }
 
 MainApp::~MainApp()
@@ -227,6 +228,49 @@ void MainApp::CreateSwapChain()
 	
 }
 
+void MainApp::CreateSceneRenderTarget()
+{
+	D3D12_HEAP_PROPERTIES heapProperties = {};
+	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	heapProperties.CreationNodeMask = 1;
+	heapProperties.VisibleNodeMask = 1;
+	
+	D3D12_RESOURCE_DESC sceneRenderTargetDesc = {};
+	sceneRenderTargetDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	sceneRenderTargetDesc.Alignment = 0;
+	sceneRenderTargetDesc.Width = Utils::GetDisplayWidth();
+	sceneRenderTargetDesc.Height = Utils::GetDisplayHeight();
+	sceneRenderTargetDesc.DepthOrArraySize = 1;
+	sceneRenderTargetDesc.MipLevels = 1;
+	sceneRenderTargetDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	sceneRenderTargetDesc.SampleDesc.Count = LunarConstants::SAMPLE_COUNT;
+	sceneRenderTargetDesc.SampleDesc.Quality = 0;
+	sceneRenderTargetDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	sceneRenderTargetDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+	THROW_IF_FAILED(m_device->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&sceneRenderTargetDesc,
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		nullptr,
+		IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf())
+		));
+}
+
+void MainApp::CreateSRVDescriptorHeap()
+{
+	LOG_FUNCTION_ENTRY();
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(LunarConstants::TEXTURE_INFO.size()) + 8;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	srvHeapDesc.NodeMask = 0;
+	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
+}
+	
 void MainApp::CreateRTVDescriptorHeap()
 {
 	LOG_FUNCTION_ENTRY();
@@ -241,7 +285,7 @@ void MainApp::CreateRTVDescriptorHeap()
 	*/
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.NumDescriptors = Lunar::LunarConstants::BUFFER_COUNT;
+	rtvHeapDesc.NumDescriptors = Lunar::LunarConstants::BUFFER_COUNT + 1; // + 1 for sceneRenderTarget
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 1;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(m_rtvHeap.GetAddressOf())))
@@ -254,6 +298,10 @@ void MainApp::CreateRenderTargetView()
 	LOG_FUNCTION_ENTRY();
 	
 	m_rtvHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	m_device->CreateRenderTargetView(m_sceneRenderTarget.Get(), nullptr, m_rtvHandle);
+	m_rtvHandle.ptr += m_renderTargetViewDescriptorSize;
+	
 	for (uint32_t i = 0; i < Lunar::LunarConstants::BUFFER_COUNT; ++i)
 	{
 		ComPtr<ID3D12Resource> backBuffer;
@@ -367,7 +415,7 @@ void MainApp::Render(double dt)
 		m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
 		// Set Constant Buffer Descriptor heap
-		ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
+		ID3D12DescriptorHeap* descriptorHeaps[] = { m_srvHeap.Get() };
 		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
 		{ // Compute Shader
@@ -379,7 +427,7 @@ void MainApp::Render(double dt)
 		// Switch to graphics pipeline
 		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 
-		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart(); 
+		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_srvHeap->GetGPUDescriptorHandleForHeapStart(); 
 		m_commandList->SetGraphicsRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, descriptorHandle);
 		
 		m_sceneRenderer->RenderShadowMap(m_commandList.Get());
@@ -429,6 +477,7 @@ void MainApp::Render(double dt)
 
 		// Set Render Target
 		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		renderTargetViewHandle.ptr += m_renderTargetViewDescriptorSize; // SceneRenderTarget
 		renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
 		m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
@@ -509,13 +558,18 @@ void MainApp::Initialize()
 	CreateFence();
 	CreateCamera();
 	CreateSwapChain();
+	CreateSRVDescriptorHeap();
+	CreateSceneRenderTarget();
 	CreateRTVDescriptorHeap();
+	// REFACTOR: mainapp controls srvheap & offset or with new struct
+	m_postProcessManager->Initialize(m_device.Get(), m_srvHeap->GetGPUDescriptorHandleForHeapStart(), 14);
 	CreateRenderTargetView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
 	InitializeTextures(); // for now, should come after InitializeGeometry method
 	m_performanceProfiler->Initialize();
 	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
+	
 
     LOG_FUNCTION_EXIT();
 }
@@ -656,7 +710,7 @@ void MainApp::CreateCamera()
 
 void MainApp::InitializeTextures()
 {
-	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get());
+	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get(), m_srvHeap.Get());
 }
 
 } // namespace Lunar

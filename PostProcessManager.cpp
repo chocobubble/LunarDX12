@@ -1,13 +1,22 @@
 #include "PostProcessManager.h"
 
 #include "LunarConstants.h"
+#include "Utils/Logger.h"
 #include "Utils/Utils.h"
 
 namespace Lunar
 {
 
+PostProcessManager::PostProcessManager()
+{
+	m_width = Utils::GetDisplayWidth();
+	m_height = Utils::GetDisplayHeight();
+}
+
 void PostProcessManager::Initialize(ID3D12Device* device, D3D12_GPU_DESCRIPTOR_HANDLE handle, UINT offset)
 {
+	LOG_FUNCTION_ENTRY();
+	
     D3D12_HEAP_PROPERTIES heapProperties = {};
     heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
     heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -24,7 +33,7 @@ void PostProcessManager::Initialize(ID3D12Device* device, D3D12_GPU_DESCRIPTOR_H
     textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     textureDesc.SampleDesc.Count = 1;
     textureDesc.SampleDesc.Quality = 0;
-    textureDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     textureDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
     THROW_IF_FAILED(device->CreateCommittedResource(
