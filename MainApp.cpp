@@ -244,18 +244,25 @@ void MainApp::CreateSceneRenderTarget()
 	sceneRenderTargetDesc.Height = Utils::GetDisplayHeight();
 	sceneRenderTargetDesc.DepthOrArraySize = 1;
 	sceneRenderTargetDesc.MipLevels = 1;
-	sceneRenderTargetDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	sceneRenderTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	sceneRenderTargetDesc.SampleDesc.Count = LunarConstants::SAMPLE_COUNT;
 	sceneRenderTargetDesc.SampleDesc.Quality = 0;
 	sceneRenderTargetDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	sceneRenderTargetDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
+	D3D12_CLEAR_VALUE clearValue = {};
+	clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	clearValue.Color[0] = 0.0f;
+	clearValue.Color[1] = 0.0f;
+	clearValue.Color[2] = 0.0f;
+	clearValue.Color[3] = 1.0f;
+	
 	THROW_IF_FAILED(m_device->CreateCommittedResource(
 		&heapProperties,
 		D3D12_HEAP_FLAG_NONE,
 		&sceneRenderTargetDesc,
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		nullptr,
+		&clearValue,
 		IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf())
 		));
 }
@@ -265,7 +272,7 @@ void MainApp::CreateSRVDescriptorHeap()
 	LOG_FUNCTION_ENTRY();
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(LunarConstants::TEXTURE_INFO.size()) + 8;
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(LunarConstants::TEXTURE_INFO.size()) + 10;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.NodeMask = 0;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
@@ -452,39 +459,14 @@ void MainApp::Render(double dt)
 
     {
         PROFILE_SCOPE(m_performanceProfiler.get(), "Resource Barriers & Clear");
-        // barrier
-        /*
-        typedef struct D3D12_RESOURCE_BARRIER
-        {
-            D3D12_RESOURCE_BARRIER_TYPE Type;
-            D3D12_RESOURCE_BARRIER_FLAGS Flags;
-            union 
-            {
-                D3D12_RESOURCE_TRANSITION_BARRIER Transition;
-                D3D12_RESOURCE_ALIASING_BARRIER Aliasing;
-                D3D12_RESOURCE_UAV_BARRIER UAV;
-            } 	;
-        } 	D3D12_RESOURCE_BARRIER;
-        */
-		D3D12_RESOURCE_BARRIER barrier = {};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		m_commandList->ResourceBarrier(1, &barrier);
-
-		// Set Render Target
-		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
-		renderTargetViewHandle.ptr += m_renderTargetViewDescriptorSize; // SceneRenderTarget
-		renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
+		
+		D3D12_CPU_DESCRIPTOR_HANDLE sceneRenderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
-		m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
+		m_commandList->OMSetRenderTargets(1, &sceneRenderTargetViewHandle, FALSE, &depthStencilViewHandle);
 
 		// clear
 		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
+		m_commandList->ClearRenderTargetView(sceneRenderTargetViewHandle, clearColor, 0, nullptr);
 		m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
@@ -496,6 +478,21 @@ void MainApp::Render(double dt)
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Particle Rendering");
 		m_sceneRenderer->RenderParticles(m_commandList.Get());
+	}
+
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Post Process Rendering");
+		
+		m_postProcessManager->ApplyPostEffects(m_commandList.Get(), m_sceneRenderTarget.Get(), m_pipelineStateManager->GetRootSignature());
+
+		
+		// Set Render Target
+		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		renderTargetViewHandle.ptr += m_renderTargetViewDescriptorSize; // SceneRenderTarget
+		renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
+		m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, nullptr);
+		
+		CopyPPTextureToBackBuffer();
 	}
 	
 	{
@@ -711,6 +708,49 @@ void MainApp::CreateCamera()
 void MainApp::InitializeTextures()
 {
 	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get(), m_srvHeap.Get());
+}
+
+void MainApp::CopyPPTextureToBackBuffer()
+{
+	ComputeTexture outputPPTexture = m_postProcessManager->GetCurrentOutput();
+
+	/*
+	typedef struct D3D12_RESOURCE_BARRIER
+	{
+		D3D12_RESOURCE_BARRIER_TYPE Type;
+		D3D12_RESOURCE_BARRIER_FLAGS Flags;
+		union 
+		{
+			D3D12_RESOURCE_TRANSITION_BARRIER Transition;
+			D3D12_RESOURCE_ALIASING_BARRIER Aliasing;
+			D3D12_RESOURCE_UAV_BARRIER UAV;
+		} 	;
+	} 	D3D12_RESOURCE_BARRIER;
+	*/
+	D3D12_RESOURCE_BARRIER barriers[2] = {};
+	barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barriers[0].Transition.pResource = outputPPTexture.texture.Get();
+	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+	barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+	barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barriers[1].Transition.pResource = m_renderTargets[m_frameIndex].Get();
+	// barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+	barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	m_commandList->ResourceBarrier(2, barriers);
+	
+	m_commandList->CopyResource(m_renderTargets[m_frameIndex].Get(), outputPPTexture.texture.Get());
+
+	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	m_commandList->ResourceBarrier(2, barriers);
 }
 
 } // namespace Lunar

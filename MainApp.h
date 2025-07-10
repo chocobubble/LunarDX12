@@ -45,6 +45,7 @@ private:
 	void InitializeGeometry();
 	void CreateCamera();
 	void InitializeTextures();
+	void CopyPPTextureToBackBuffer();
 	
 	HWND m_mainWindow;
 	
