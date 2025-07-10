@@ -274,6 +274,7 @@ void LunarGui::RenderBoundWindow(const string& windowId, const WindowData& windo
                     case UIElementType::Graph:
                     {
                         GraphData* graphData = static_cast<GraphData*>(value.DataPtr);
+                    	if (graphData->updateCallback) graphData->updateCallback();
                         if (!graphData->values.empty())
                         {
                             ImGui::PlotLines(graphData->label.c_str(),
@@ -289,8 +290,12 @@ void LunarGui::RenderBoundWindow(const string& windowId, const WindowData& windo
                     case UIElementType::Table:
                     {
                         TableData* tableData = static_cast<TableData*>(value.DataPtr);
-                        if (!tableData->headers.empty() && !tableData->rows.empty())
+                        if (!tableData->headers.empty())
                         {
+                        	if (tableData->updateCallback)
+                        	{
+                        		tableData->updateCallback();
+                        	}
                             if (ImGui::BeginTable(elementId.c_str(), 
                                                 static_cast<int>(tableData->headers.size()), 
                                                 tableData->flags))
