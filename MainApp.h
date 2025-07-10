@@ -11,6 +11,7 @@
 namespace Lunar
 {
 	
+class PostProcessManager;
 class PipelineStateManager;
 class SceneRenderer;
 class Camera;
@@ -60,6 +61,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::LunarConstants::BUFFER_COUNT];
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_textureUploadBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_sceneRenderTarget;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
@@ -87,6 +89,7 @@ private:
 
     std::unique_ptr<SceneRenderer> m_sceneRenderer;
 	std::unique_ptr<PipelineStateManager> m_pipelineStateManager;
+	std::unique_ptr<PostProcessManager> m_postProcessManager;
 
 	bool m_mouseMoving = false;
 };

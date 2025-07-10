@@ -16,6 +16,7 @@
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
 #include "PerformanceProfiler.h"
+#include "PostProcessManager.h"
 #include "UI/PerformanceViewModel.h"
 #include "Geometry/IcoSphere.h"
 #include "Geometry/Cube.h"

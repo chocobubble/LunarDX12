@@ -93,6 +93,7 @@
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="PerformanceProfiler.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
+    <ClCompile Include="PostProcessManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
     <ClCompile Include="ShadowManager.cpp" />
     <ClCompile Include="TextureManager.cpp" />
@@ -124,6 +125,7 @@
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="PerformanceProfiler.h" />
     <ClInclude Include="PipelineStateManager.h" />
+    <ClInclude Include="PostProcessManager.h" />
     <ClInclude Include="SceneRenderer.h" />
     <ClInclude Include="ShadowManager.h" />
     <ClInclude Include="TextureManager.h" />
