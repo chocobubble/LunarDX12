@@ -482,7 +482,8 @@ void MainApp::Render(double dt)
 
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Post Process Rendering");
-		
+		m_commandList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
+        m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("gaussianBlur"));
 		m_postProcessManager->ApplyPostEffects(m_commandList.Get(), m_sceneRenderTarget.Get(), m_pipelineStateManager->GetRootSignature());
 
 		

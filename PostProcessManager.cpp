@@ -99,12 +99,10 @@ void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList
 	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 	commandList->ResourceBarrier(2, barriers);
 
-	commandList->SetComputeRootSignature(rootSignature);
-
 	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX, inputTexture.srvHandle);
 	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX, outputTexture.uavHandle);
 
-	// commandList->Dispatch((m_width + 15) / 16, (m_height + 15) / 16, 1);
+	commandList->Dispatch(8, 1, 1);
 
 	// reuse barriers 
 	barriers[0].Transition.pResource = inputTexture.texture.Get();

@@ -67,7 +67,7 @@ struct ShaderInfo
 	const char* path;
 	const char* target;
 };
-static constexpr std::array<ShaderInfo, 18> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 19> SHADER_INFO = {{
 	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_1" },
 	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_1" },
 	{ "basicHS", "Shaders\\BasicHullShader.hlsl", "hs_5_1" },
@@ -85,7 +85,8 @@ static constexpr std::array<ShaderInfo, 18> SHADER_INFO = {{
     { "particlesUpdateCS", "Shaders\\ParticlesComputeShader.hlsl", "cs_5_1" },
     { "particlesVS", "Shaders\\ParticleVertexShader.hlsl", "vs_5_1" },
     { "particlesPS", "Shaders\\ParticlePixelShader.hlsl", "ps_5_1" },
-    { "particlesGS", "Shaders\\ParticleGeometryShader.hlsl", "gs_5_1" }
+    { "particlesGS", "Shaders\\ParticleGeometryShader.hlsl", "gs_5_1" },
+    { "gaussianBlurCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1" }
 }};
 
 /////////////// Debug Flags ///////////////

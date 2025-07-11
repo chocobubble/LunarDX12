@@ -538,6 +538,18 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&tessellationPsoDesc,
 			IID_PPV_ARGS(m_psoMap["tessellation_wireframe"].GetAddressOf())))
 	}
+
+    // PSO for Blur
+    {		
+        D3D12_COMPUTE_PIPELINE_STATE_DESC gaussianBlurPsoDesc = {};
+    	gaussianBlurPsoDesc.pRootSignature = m_rootSignature.Get();
+    	gaussianBlurPsoDesc.NodeMask = 0;
+        gaussianBlurPsoDesc.CS.pShaderBytecode = m_shaderMap["gaussianBlurCS"]->GetBufferPointer();
+        gaussianBlurPsoDesc.CS.BytecodeLength = m_shaderMap["gaussianBlurCS"]->GetBufferSize();
+    	gaussianBlurPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        THROW_IF_FAILED(device->CreateComputePipelineState(&gaussianBlurPsoDesc, 
+            IID_PPV_ARGS(m_psoMap["gaussianBlur"].GetAddressOf())))
+    }
 }
 
 ID3D12PipelineState* PipelineStateManager::GetPSO(const string& psoName) const
