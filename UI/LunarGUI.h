@@ -8,7 +8,7 @@
 #include <DirectXMath.h>
 
 #include "imgui.h"
-#include "Logger.h"
+#include "../Utils/Logger.h"
 
 namespace Lunar 
 {
@@ -21,6 +21,7 @@ struct GraphData
     float maxValue = 100.0f;
     std::string label;
     ImVec2 size = ImVec2(0, 80);
+	std::function<void()> updateCallback = nullptr;
 };
 
 struct TableData 
@@ -28,6 +29,7 @@ struct TableData
     std::vector<std::string> headers;
     std::vector<std::vector<std::string>> rows;
     int flags = 0; // ImGuiTableFlags
+	std::function<void()> updateCallback = nullptr;
 };
 
 struct WindowData

@@ -7,17 +7,20 @@
 
 #include "MainApp.h"
 #include "Camera.h"
-#include "Logger.h"
-#include "Utils.h"
+#include "Utils/Logger.h"
+#include "Utils/Utils.h"
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
-#include "LunarGui.h"
+#include "UI/LunarGui.h"
 #include "ParticleSystem.h"
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
 #include "PostProcessManager.h"
 #include "PerformanceProfiler.h"
-#include "PerformanceViewModel.h"
+#include "PostProcessManager.h"
+#include "IBLSystem.h"
+#include "Utils/HDRTestGenerator.h"
+#include "UI/PerformanceViewModel.h"
 #include "Geometry/IcoSphere.h"
 #include "Geometry/Cube.h"
 #include "Geometry/Transform.h"
@@ -46,6 +49,8 @@ MainApp::MainApp()
 	m_postProcessManager = make_unique<PostProcessManager>();
 	m_performanceProfiler = make_unique<PerformanceProfiler>();
 	m_performanceViewModel = make_unique<PerformanceViewModel>();
+	m_postProcessManager = make_unique<PostProcessManager>();
+	m_iblSystem = make_unique<IBLSystem>();
 }
 
 MainApp::~MainApp()
@@ -228,6 +233,49 @@ void MainApp::CreateSwapChain()
 	
 }
 
+void MainApp::CreateSceneRenderTarget()
+{
+	D3D12_HEAP_PROPERTIES heapProperties = {};
+	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	heapProperties.CreationNodeMask = 1;
+	heapProperties.VisibleNodeMask = 1;
+	
+	D3D12_RESOURCE_DESC sceneRenderTargetDesc = {};
+	sceneRenderTargetDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	sceneRenderTargetDesc.Alignment = 0;
+	sceneRenderTargetDesc.Width = Utils::GetDisplayWidth();
+	sceneRenderTargetDesc.Height = Utils::GetDisplayHeight();
+	sceneRenderTargetDesc.DepthOrArraySize = 1;
+	sceneRenderTargetDesc.MipLevels = 1;
+	sceneRenderTargetDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	sceneRenderTargetDesc.SampleDesc.Count = LunarConstants::SAMPLE_COUNT;
+	sceneRenderTargetDesc.SampleDesc.Quality = 0;
+	sceneRenderTargetDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	sceneRenderTargetDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+	THROW_IF_FAILED(m_device->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&sceneRenderTargetDesc,
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		nullptr,
+		IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf())
+		));
+}
+
+void MainApp::CreateSRVDescriptorHeap()
+{
+	LOG_FUNCTION_ENTRY();
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.NumDescriptors = static_cast<UINT>(LunarConstants::TEXTURE_INFO.size()) + 10;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	srvHeapDesc.NodeMask = 0;
+	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
+}
+	
 void MainApp::CreateRTVDescriptorHeap()
 {
 	LOG_FUNCTION_ENTRY();
@@ -242,7 +290,7 @@ void MainApp::CreateRTVDescriptorHeap()
 	*/
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.NumDescriptors = Lunar::LunarConstants::BUFFER_COUNT;
+	rtvHeapDesc.NumDescriptors = Lunar::LunarConstants::BUFFER_COUNT + 1; // + 1 for sceneRenderTarget
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 1;
 	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(m_rtvHeap.GetAddressOf())))
@@ -255,6 +303,10 @@ void MainApp::CreateRenderTargetView()
 	LOG_FUNCTION_ENTRY();
 	
 	m_rtvHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	m_device->CreateRenderTargetView(m_sceneRenderTarget.Get(), nullptr, m_rtvHandle);
+	m_rtvHandle.ptr += m_renderTargetViewDescriptorSize;
+	
 	for (uint32_t i = 0; i < Lunar::LunarConstants::BUFFER_COUNT; ++i)
 	{
 		ComPtr<ID3D12Resource> backBuffer;
@@ -368,7 +420,7 @@ void MainApp::Render(double dt)
 		m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 
 		// Set Constant Buffer Descriptor heap
-		ID3D12DescriptorHeap* descriptorHeaps[] = { m_sceneRenderer->GetSRVHeap() };
+		ID3D12DescriptorHeap* descriptorHeaps[] = { m_srvHeap.Get() };
 		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
 		{ // Compute Shader
@@ -380,7 +432,7 @@ void MainApp::Render(double dt)
 		// Switch to graphics pipeline
 		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 
-		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_sceneRenderer->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart(); 
+		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_srvHeap->GetGPUDescriptorHandleForHeapStart(); 
 		m_commandList->SetGraphicsRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, descriptorHandle);
 		
 		m_sceneRenderer->RenderShadowMap(m_commandList.Get());
@@ -405,38 +457,20 @@ void MainApp::Render(double dt)
 
     {
         PROFILE_SCOPE(m_performanceProfiler.get(), "Resource Barriers & Clear");
-        // barrier
-        /*
-        typedef struct D3D12_RESOURCE_BARRIER
-        {
-            D3D12_RESOURCE_BARRIER_TYPE Type;
-            D3D12_RESOURCE_BARRIER_FLAGS Flags;
-            union 
-            {
-                D3D12_RESOURCE_TRANSITION_BARRIER Transition;
-                D3D12_RESOURCE_ALIASING_BARRIER Aliasing;
-                D3D12_RESOURCE_UAV_BARRIER UAV;
-            } 	;
-        } 	D3D12_RESOURCE_BARRIER;
-        */
-		D3D12_RESOURCE_BARRIER barrier = {};
-		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource = m_renderTargets[m_frameIndex].Get();
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		m_commandList->ResourceBarrier(1, &barrier);
 
 		// Set Render Target
 		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		renderTargetViewHandle.ptr += m_renderTargetViewDescriptorSize; // SceneRenderTarget
 		renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
-		m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
+		// m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE sceneRenderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		m_commandList->OMSetRenderTargets(1, &sceneRenderTargetViewHandle, FALSE, &depthStencilViewHandle);
 
 		// clear
 		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		m_commandList->ClearRenderTargetView(renderTargetViewHandle, clearColor, 0, nullptr);
+		m_commandList->ClearRenderTargetView(sceneRenderTargetViewHandle, clearColor, 0, nullptr);
 		m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
@@ -474,6 +508,13 @@ void MainApp::Render(double dt)
 		renderTargetViewHandle.ptr += m_frameIndex * m_renderTargetViewDescriptorSize;
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
 		m_commandList->OMSetRenderTargets(1, &renderTargetViewHandle, FALSE, &depthStencilViewHandle);
+	}
+
+	{
+		PROFILE_SCOPE(m_performanceProfiler.get(), "Post Process Rendering");
+		m_postProcessManager->ApplyPostEffects(m_commandList.Get(), m_sceneRenderTarget.Get(), m_pipelineStateManager->GetRootSignature());
+		
+		CopyPPTextureToBackBuffer();
 	}
 	
 	{
@@ -536,7 +577,11 @@ void MainApp::Initialize()
 	CreateFence();
 	CreateCamera();
 	CreateSwapChain();
+	CreateSRVDescriptorHeap();
+	CreateSceneRenderTarget();
 	CreateRTVDescriptorHeap();
+	// REFACTOR: mainapp controls srvheap & offset or with new struct
+	m_postProcessManager->Initialize(m_device.Get(), m_srvHeap->GetGPUDescriptorHandleForHeapStart(), 14);
 	CreateRenderTargetView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
@@ -548,8 +593,24 @@ void MainApp::Initialize()
 		return -1;
 	}
 	
+	
+	// Initialize IBL System
+	m_iblSystem->Initialize(m_device.Get(), m_commandList.Get());
+	
+	// Generate test HDR environment
+	auto testHDR = HDRTestGenerator::GenerateTestEnvironment(512, 256);
+	
+	// Load test environment into IBL system
+	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
+	srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 20; // Offset for IBL textures
+	
+	// For now, we'll create a simple test environment
+	// In practice, you would load from file: m_iblSystem->LoadEnvironmentMap("Assets/HDR/environment.hdr", ...)
+	Logger::Log("IBL System initialized with test environment");
+	
 	m_performanceProfiler->Initialize();
 	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
+	
 
     LOG_FUNCTION_EXIT();
 }
@@ -673,7 +734,8 @@ void MainApp::InitializeGeometry()
 	/*m_sceneRenderer->AddCube("Cube1", {{0, 1, 0}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
 	m_sceneRenderer->AddCube("Cube2", {{2, 1, 2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);
 	m_sceneRenderer->AddCube("Cube3", {{-2, 1, -2}, {0, 0, 0}, {1, 1, 1}}, RenderLayer::World);*/
-	m_sceneRenderer->AddGeometry<Plane>("ShadowMapPlane", {{0, 0, 0}, {0, 0, 0}, {3, 3, 1}}, RenderLayer::World);
+	// m_sceneRenderer->AddGeometry<Plane>("ShadowMapPlane", {{0, -0.1f, 3.0f}, {0, 0, 0}, {3, 1, 3}}, RenderLayer::World);
+	m_sceneRenderer->AddGeometry<Plane>("TessellationPlane", {{0, -0.1f, 0}, {0, 0, 0}, {5.0f, 0.2f, 5.0f}}, RenderLayer::Tessellation);
 	transform.Location = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	transform.Scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
 	m_sceneRenderer->AddGeometry<IcoSphere>("SkyBox0", transform, RenderLayer::Background);
@@ -689,7 +751,50 @@ void MainApp::CreateCamera()
 
 void MainApp::InitializeTextures()
 {
-	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get());
+	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get(), m_srvHeap.Get());
+}
+
+void MainApp::CopyPPTextureToBackBuffer()
+{
+	ComputeTexture outputPPTexture = m_postProcessManager->GetCurrentOutput();
+
+	/*
+	typedef struct D3D12_RESOURCE_BARRIER
+	{
+		D3D12_RESOURCE_BARRIER_TYPE Type;
+		D3D12_RESOURCE_BARRIER_FLAGS Flags;
+		union 
+		{
+			D3D12_RESOURCE_TRANSITION_BARRIER Transition;
+			D3D12_RESOURCE_ALIASING_BARRIER Aliasing;
+			D3D12_RESOURCE_UAV_BARRIER UAV;
+		} 	;
+	} 	D3D12_RESOURCE_BARRIER;
+	*/
+	D3D12_RESOURCE_BARRIER barriers[2] = {};
+	barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barriers[0].Transition.pResource = outputPPTexture.texture.Get();
+	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+	barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+	barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barriers[1].Transition.pResource = m_renderTargets[m_frameIndex].Get();
+	// barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+	barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	m_commandList->ResourceBarrier(2, barriers);
+	
+	m_commandList->CopyResource(m_renderTargets[m_frameIndex].Get(), outputPPTexture.texture.Get());
+
+	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	m_commandList->ResourceBarrier(2, barriers);
 }
 
 } // namespace Lunar

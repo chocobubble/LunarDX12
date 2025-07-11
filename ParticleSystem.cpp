@@ -2,9 +2,9 @@
 
 #include <d3d12.h>
 
-#include "Logger.h"
+#include "Utils/Logger.h"
 #include "LunarConstants.h"
-#include "Utils.h"
+#include "Utils/Utils.h"
 
 using namespace DirectX;
 

@@ -62,7 +62,7 @@ public:
     void Initialize(LunarGui* gui, LightingSystem* lightingSystem, SceneRenderer* sceneRenderer);
 
 private:
-    bool m_showLightWindow = true;
+    bool m_showLightWindow = false;
     
     // Ambient Light Controls
     DirectX::XMFLOAT4 m_ambientLight;

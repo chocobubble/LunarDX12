@@ -2,8 +2,8 @@
 #include <DirectXMath.h>
 #include <algorithm>
 
-#include "Logger.h"
-#include "MathUtils.h"
+#include "Utils/Logger.h"
+#include "Utils/MathUtils.h"
 
 using namespace DirectX;
 

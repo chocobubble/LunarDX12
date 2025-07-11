@@ -1,6 +1,6 @@
 #include "ShadowViewModel.h"
 #include "LunarGUI.h"
-#include "ShadowManager.h"
+#include "../ShadowManager.h"
 
 namespace Lunar
 {

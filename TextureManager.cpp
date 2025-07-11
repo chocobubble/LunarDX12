@@ -4,8 +4,8 @@
 #include <filesystem>
 #include <stb_image.h>
 
-#include "Logger.h"
-#include "Utils.h"
+#include "Utils/Logger.h"
+#include "Utils/Utils.h"
 
 using namespace std;
 using namespace Microsoft::WRL;

@@ -6,7 +6,7 @@ namespace Lunar
 class Plane : public Geometry
 {
 public:
-    Plane(int widthSegments = 1, int heightSegments = 1);
+    Plane(int widthSegments = 5, int depthSegments = 5);
     ~Plane() = default;
     
     void CreateGeometry() override;
@@ -15,7 +15,7 @@ public:
     
 private:
     int m_widthSegments;
-    int m_heightSegments;
+    int m_depthSegments;
 	DirectX::XMFLOAT4 m_planeEquation;
     
     void CreatePlaneVertices();

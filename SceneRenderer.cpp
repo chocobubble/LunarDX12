@@ -3,17 +3,17 @@
 #include "MaterialManager.h"
 #include "LightingSystem.h"
 #include "ConstantBuffers.h"
-#include "LunarGUI.h"
-#include "MathUtils.h"
+#include "UI/LunarGUI.h"
+#include "Utils/MathUtils.h"
 #include "PipelineStateManager.h"
 #include "ShadowManager.h"
 #include "TextureManager.h"
-#include "Utils.h"
+#include "Utils/Utils.h"
 #include "Geometry/Plane.h"
-#include "ShadowViewModel.h"
+#include "UI/ShadowViewModel.h"
 #include "ParticleSystem.h"
-#include "LightViewModel.h"
-#include "DebugViewModel.h"
+#include "UI/LightViewModel.h"
+#include "UI/DebugViewModel.h"
 #include "Geometry/Cube.h"
 #include "Geometry/IcoSphere.h"
 
@@ -53,6 +53,8 @@ SceneRenderer::~SceneRenderer() = default;
 
 void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager)
 {
+	LOG_FUNCTION_ENTRY();
+	
 	m_dsvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	m_srvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	
@@ -61,7 +63,6 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
     m_debugViewModel->Initialize(gui, m_basicConstants);
 	CreateDSVDescriptorHeap(device);
 	CreateDepthStencilView(device);
-	CreateSRVDescriptorHeap(LunarConstants::TEXTURE_INFO.size(), device);
 	
 	m_pipelineStateManager = pipelineManager;
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
@@ -151,24 +152,11 @@ void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
 	m_shadowManager->CreateDSV(device, m_dsvHeap.Get());
 }
 
-void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device)
+void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, ID3D12DescriptorHeap* srvHeap)
 {
-	LOG_FUNCTION_ENTRY();
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 4;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NodeMask = 0;
-	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
-	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
-
-	// m_shadowManager->CreateSRV(device, m_srvHeap.Get());
-}
-
-void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
-{
+	m_srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
 	m_textureManager->Initialize(device, commandList, m_srvHandle);
-	m_shadowManager->CreateSRV(device, m_srvHeap.Get());
+	m_shadowManager->CreateSRV(device, srvHeap);
 
 	// REFACTORING: Rename or refactor this method
 	m_particleSystem->Initialize(device, commandList);
@@ -230,7 +218,8 @@ void SceneRenderer::RenderScene(ID3D12GraphicsCommandList* commandList)
         Lunar::LunarConstants::BASIC_CONSTANTS_ROOT_PARAMETER_INDEX, 
         m_basicCB->GetResource()->GetGPUVirtualAddress());
 
-    RenderLayers(commandList);
+	if (m_wireFrameRender) RenderWireframeOnly(commandList);
+    else RenderLayers(commandList);
 }
 
 void SceneRenderer::RenderParticles(ID3D12GraphicsCommandList* commandList)
@@ -428,47 +417,51 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
 {
     for (auto& it : m_layeredGeometries)
     {
-    	switch (it.first)
-    	{
-    		case RenderLayer::Mirror :
+		switch (it.first)
+		{
+			case RenderLayer::Mirror :
 				commandList->OMSetStencilRef(1);
 				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("mirror"));
-    			break;
-    		case RenderLayer::Reflect :
+				break;
+			case RenderLayer::Reflect :
 				commandList->OMSetStencilRef(1);
 				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("reflect"));
-    			break;
-    		case RenderLayer::Background :
-    			commandList->OMSetStencilRef(1);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("background"));
-    			break;
-    		case RenderLayer::World :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
-    			break;
-    		case RenderLayer::Billboard :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
-    			break;
-    		case RenderLayer::Normal :
-    			if (m_basicConstants.debugFlags & LunarConstants::DebugFlags::SHOW_NORMALS)
-    			{
-    				commandList->OMSetStencilRef(0);
-    				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
-    				// Refactor
-    				for (auto& entry : m_layeredGeometries[RenderLayer::World])
-    				{
-    					entry->GeometryData->DrawNormals(commandList);
-    				}
-    			}
-    			continue;
-    		case RenderLayer::Debug :
-    			commandList->OMSetStencilRef(0);
-    			commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
-    			break;
+				break;
+			case RenderLayer::Background :
+				commandList->OMSetStencilRef(1);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("background"));
+				break;
+			case RenderLayer::World :
+				commandList->OMSetStencilRef(0);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));	
+				break;
+			case RenderLayer::Tessellation :
+				commandList->OMSetStencilRef(0);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("tessellation"));
+				break;
+			case RenderLayer::Billboard :
+				commandList->OMSetStencilRef(0);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("billboard"));
+				break;
+			case RenderLayer::Normal :
+				if (m_basicConstants.debugFlags & LunarConstants::DebugFlags::SHOW_NORMALS)
+				{
+					commandList->OMSetStencilRef(0);
+					commandList->SetPipelineState(m_pipelineStateManager->GetPSO("normal"));
+					// Refactor
+					for (auto& entry : m_layeredGeometries[RenderLayer::World])
+					{
+						entry->GeometryData->DrawNormals(commandList);
+					}
+				}
+				continue;
+			case RenderLayer::Debug :
+				commandList->OMSetStencilRef(0);
+				commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque"));
+				break;
 			default:
-    			LOG_ERROR("Not Handled RenderLayerType");
-	    }
+				LOG_ERROR("Not Handled RenderLayerType");
+		}
     	
         for (auto& entry : it.second)
         {
@@ -482,6 +475,31 @@ void SceneRenderer::RenderLayers(ID3D12GraphicsCommandList* commandList)
     }
 }
 
+void SceneRenderer::RenderWireframeOnly(ID3D12GraphicsCommandList* commandList)
+{
+	commandList->SetPipelineState(m_pipelineStateManager->GetPSO("opaque_wireframe"));
+	for (auto& geoEntry : m_layeredGeometries[RenderLayer::World])
+	{
+		if (geoEntry->IsVisible)
+		{
+			string materialName = geoEntry->GeometryData->GetMaterialName();
+			m_materialManager->BindConstantBuffer(materialName, commandList);
+			geoEntry->GeometryData->Draw(commandList);
+		}
+	}
+
+	commandList->SetPipelineState(m_pipelineStateManager->GetPSO("tessellation_wireframe"));
+	for (auto& geoEntry : m_layeredGeometries[RenderLayer::Tessellation])
+	{
+		if (geoEntry->IsVisible)
+		{
+			string materialName = geoEntry->GeometryData->GetMaterialName();
+			m_materialManager->BindConstantBuffer(materialName, commandList);
+			geoEntry->GeometryData->Draw(commandList);
+		}
+	}
+}
+	
 GeometryEntry* SceneRenderer::GetGeometryEntry(const string& name)
 {
     auto it = m_geometriesByName.find(name);

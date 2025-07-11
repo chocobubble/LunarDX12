@@ -34,6 +34,7 @@ public:
     void SetColor(const DirectX::XMFLOAT4& color);  // TODO: delete
 	void SetTextureIndex(int index);
     void SetMaterialName(const std::string& materialName);
+	void SetTopologyType(D3D_PRIMITIVE_TOPOLOGY topologyType) { m_topologyType = topologyType; }
     
     DirectX::XMFLOAT4X4 GetWorldMatrix() { return m_objectConstants.World; }
     const Transform& GetTransform() const { return m_transform; }
@@ -63,6 +64,7 @@ protected:
     bool m_needsConstantBufferUpdate = true;
 
     std::string m_materialName = "default";
+	D3D_PRIMITIVE_TOPOLOGY m_topologyType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     
     void UpdateWorldMatrix();
     void CreateBuffers(ID3D12Device* device);
