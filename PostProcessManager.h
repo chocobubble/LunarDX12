@@ -1,4 +1,5 @@
 #pragma once 
+
 #include <d3d12.h>
 #include <wrl/client.h>
 
@@ -14,6 +15,7 @@ struct ComputeTexture
 
 class PostProcessManager
 {
+    friend class PostProcessViewModel;
 public:
     PostProcessManager();
     ~PostProcessManager() = default;
@@ -28,5 +30,7 @@ private:
     UINT m_width = 1280;
     UINT m_height = 720;
     UINT m_currentOutputIndex = 0;
+
+    bool m_blurXEnabled = true;
 };
 } // namespace Lunar

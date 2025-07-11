@@ -22,6 +22,7 @@
 #include "Geometry/Cube.h"
 #include "Geometry/Transform.h"
 #include "Geometry/Plane.h"
+#include "UI/PostProcessViewModel.h"
 
 using namespace std;
 using namespace DirectX;
@@ -46,6 +47,7 @@ MainApp::MainApp()
 	m_performanceProfiler = make_unique<PerformanceProfiler>();
 	m_performanceViewModel = make_unique<PerformanceViewModel>();
 	m_postProcessManager = make_unique<PostProcessManager>();
+	m_postProcessViewModel = make_unique<PostProcessViewModel>();
 }
 
 MainApp::~MainApp()
@@ -561,6 +563,7 @@ void MainApp::Initialize()
 	CreateRTVDescriptorHeap();
 	// REFACTOR: mainapp controls srvheap & offset or with new struct
 	m_postProcessManager->Initialize(m_device.Get(), m_srvHeap->GetGPUDescriptorHandleForHeapStart(), 14);
+	m_postProcessViewModel->Initialize(m_gui.get(), m_postProcessManager.get());
 	CreateRenderTargetView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());

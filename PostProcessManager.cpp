@@ -69,6 +69,8 @@ void PostProcessManager::Initialize(ID3D12Device* device, D3D12_GPU_DESCRIPTOR_H
 
 void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, ID3D12RootSignature* rootSignature)
 {
+    if (!m_blurXEnabled) return;
+
 	m_currentOutputIndex = 1 - m_currentOutputIndex; // toggle between ping and pong
 	
 	ComputeTexture& inputTexture = m_currentOutputIndex == 0 ? m_postProcessPong : m_postProcessPing;

@@ -101,6 +101,7 @@
     <ClCompile Include="UI\LightViewModel.cpp" />
     <ClCompile Include="UI\LunarGUI.cpp" />
     <ClCompile Include="UI\PerformanceViewModel.cpp" />
+    <ClCompile Include="UI\PostProcessViewModel.cpp" />
     <ClCompile Include="UI\SceneViewModel.cpp" />
     <ClCompile Include="UI\ShadowViewModel.cpp" />
     <ClCompile Include="Utils\Logger.cpp" />
@@ -133,6 +134,7 @@
     <ClInclude Include="UI\LightViewModel.h" />
     <ClInclude Include="UI\LunarGUI.h" />
     <ClInclude Include="UI\PerformanceViewModel.h" />
+    <ClCompile Include="UI\PostProcessViewModel.h" />
     <ClInclude Include="UI\SceneViewModel.h" />
     <ClInclude Include="UI\ShadowViewModel.h" />
     <ClInclude Include="Utils\Logger.h" />
