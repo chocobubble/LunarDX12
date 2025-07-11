@@ -18,6 +18,7 @@ class Camera;
 class LunarGui;
 class PerformanceProfiler;
 class PerformanceViewModel;
+class IBLSystem;
 	
 class MainApp {
 public:
@@ -93,6 +94,7 @@ private:
     std::unique_ptr<SceneRenderer> m_sceneRenderer;
 	std::unique_ptr<PipelineStateManager> m_pipelineStateManager;
 	std::unique_ptr<PostProcessManager> m_postProcessManager;
+	std::unique_ptr<IBLSystem> m_iblSystem;
 
 	bool m_mouseMoving = false;
 };

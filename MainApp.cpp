@@ -17,6 +17,8 @@
 #include "PipelineStateManager.h"
 #include "PerformanceProfiler.h"
 #include "PostProcessManager.h"
+#include "IBLSystem.h"
+#include "Utils/HDRTestGenerator.h"
 #include "UI/PerformanceViewModel.h"
 #include "Geometry/IcoSphere.h"
 #include "Geometry/Cube.h"
@@ -46,6 +48,7 @@ MainApp::MainApp()
 	m_performanceProfiler = make_unique<PerformanceProfiler>();
 	m_performanceViewModel = make_unique<PerformanceViewModel>();
 	m_postProcessManager = make_unique<PostProcessManager>();
+	m_iblSystem = make_unique<IBLSystem>();
 }
 
 MainApp::~MainApp()
@@ -555,6 +558,21 @@ void MainApp::Initialize()
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
 	InitializeTextures(); // for now, should come after InitializeGeometry method
+	
+	// Initialize IBL System
+	m_iblSystem->Initialize(m_device.Get(), m_commandList.Get());
+	
+	// Generate test HDR environment
+	auto testHDR = HDRTestGenerator::GenerateTestEnvironment(512, 256);
+	
+	// Load test environment into IBL system
+	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
+	srvHandle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 20; // Offset for IBL textures
+	
+	// For now, we'll create a simple test environment
+	// In practice, you would load from file: m_iblSystem->LoadEnvironmentMap("Assets/HDR/environment.hdr", ...)
+	Logger::Log("IBL System initialized with test environment");
+	
 	m_performanceProfiler->Initialize();
 	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
 	

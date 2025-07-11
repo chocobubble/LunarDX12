@@ -30,7 +30,7 @@ void PostProcessManager::Initialize(ID3D12Device* device, D3D12_GPU_DESCRIPTOR_H
     textureDesc.Height = m_height;
     textureDesc.DepthOrArraySize = 1;
     textureDesc.MipLevels = 1;
-    textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
     textureDesc.SampleDesc.Count = 1;
     textureDesc.SampleDesc.Quality = 0;
     textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -69,6 +69,17 @@ void PostProcessManager::Initialize(ID3D12Device* device, D3D12_GPU_DESCRIPTOR_H
 
 void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, ID3D12RootSignature* rootSignature)
 {
+    /*
+    PING-PONG BUFFER VISUALIZATION:
+
+    Frame N:     [Scene RT] → [Ping] → [Pong] → [Present]
+    Frame N+1:   [Scene RT] → [Pong] → [Ping] → [Present]
+
+    Current State: m_currentOutputIndex toggles between 0 and 1
+    - When 0: Input=Pong, Output=Ping
+    - When 1: Input=Ping, Output=Pong
+    */
+
 	m_currentOutputIndex = 1 - m_currentOutputIndex; // toggle between ping and pong
 	
 	ComputeTexture& inputTexture = m_currentOutputIndex == 0 ? m_postProcessPong : m_postProcessPing;
@@ -83,7 +94,6 @@ void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList
 	barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
 	barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION; 
-	// barriers[1].Transition.pResource = m_postProcessPing.texture.Get();
 	barriers[1].Transition.pResource = inputTexture.texture.Get();
 	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
@@ -106,7 +116,6 @@ void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList
 
 	// commandList->Dispatch((m_width + 15) / 16, (m_height + 15) / 16, 1);
 
-	// reuse barriers 
 	barriers[0].Transition.pResource = inputTexture.texture.Get();
 	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
@@ -115,7 +124,6 @@ void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList
 	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 	commandList->ResourceBarrier(_countof(barriers), barriers);
-
 }
 
 } // namespace Lunar
