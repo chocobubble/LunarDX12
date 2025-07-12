@@ -145,14 +145,14 @@ void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList
         SwapBuffers(commandList);
         commandList->SetComputeRootSignature(pipelineStateManager->GetRootSignature());
         commandList->SetPipelineState(pipelineStateManager->GetPSO("gaussianBlurX"));
-        commandList->Dispatch(8, 1, 1);
+        commandList->Dispatch((m_width + 7) / 8, m_height, 1);
     }
     if (m_blurYEnabled)
     {
         SwapBuffers(commandList);
         commandList->SetComputeRootSignature(pipelineStateManager->GetRootSignature());
         commandList->SetPipelineState(pipelineStateManager->GetPSO("gaussianBlurY"));
-        commandList->Dispatch(8, 1, 1);
+        commandList->Dispatch(m_width, (m_height + 7) / 8, 1);
     }
 }
 

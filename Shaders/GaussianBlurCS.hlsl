@@ -1,13 +1,11 @@
 Texture2D<float4> inputTexture : register(t0, space3);
 RWTexture2D<float4> outputTexture : register(u0, space1);
 
-static const float weights[11] = {
-    0.0947416f, 0.118318f, 0.147761f, 0.118318f, 0.0947416f,
-    0.118318f,  0.147761f, 0.118318f, 0.0947416f, 0.118318f,
-    0.147761f
+static const float weights[7] = {
+    0.006f, 0.061f, 0.242f, 0.383f, 0.242f, 0.061f, 0.006f
 };
 
-static const int blurRadius = 5;
+static const int blurRadius = 3;
 
 groupshared float4 sharedColors[64 + 2 * blurRadius];
 
