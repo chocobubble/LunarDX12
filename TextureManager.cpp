@@ -123,50 +123,50 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
     textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
     UINT64 rowSizeInBytes;
-    
-    if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
-    {
-        textureDesc.DepthOrArraySize = 6;
-        
-        std::vector<std::string> faceFiles = {
-            filename + "_right.jpg",   // +X
-            filename + "_left.jpg",    // -X  
-            filename + "_top.jpg",     // +Y
-            filename + "_bottom.jpg",  // -Y
-            filename + "_front.jpg",   // +Z
-            filename + "_back.jpg"     // -Z
-        };
-        
-        std::vector<uint8_t*> faceData(6);
-        int width, height, channels;
-        
-        for (int face = 0; face < 6; ++face) {
-            faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
-            if (!faceData[face]) {
-                LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
-                for (int i = 0; i < face; ++i) {
-                    stbi_image_free(faceData[i]);
-                }
-                throw std::runtime_error("Failed to load cubemap face: " + faceFiles[face]);
-            }
-        }
-        
-        LOG_DEBUG("Cubemap loaded: ", filename, " (", width, "x", height, ")");
-        textureDesc.Width = static_cast<UINT>(width);
-        textureDesc.Height = static_cast<UINT>(height);
-        rowSizeInBytes = UINT64(width) * 4; // RGBA
-        
-        ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceData, rowSizeInBytes, uploadBuffer);
-        
-        for (int i = 0; i < 6; ++i) {
-            stbi_image_free(faceData[i]);
-        }
-        
-        return texture;
-    }
-    
+	
     if (textureInfo.fileType == LunarConstants::FileType::DEFAULT) 
     {
+    	if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
+    	{
+    		textureDesc.DepthOrArraySize = 6;
+        
+    		std::vector<std::string> faceFiles = {
+    			filename + "_right.jpg",   // +X
+				filename + "_left.jpg",    // -X  
+				filename + "_top.jpg",     // +Y
+				filename + "_bottom.jpg",  // -Y
+				filename + "_front.jpg",   // +Z
+				filename + "_back.jpg"     // -Z
+			};
+        
+    		std::vector<uint8_t*> faceData(6);
+    		int width, height, channels;
+        
+    		for (int face = 0; face < 6; ++face) {
+    			faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
+    			if (!faceData[face]) {
+    				LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
+    				for (int i = 0; i < face; ++i) {
+    					stbi_image_free(faceData[i]);
+    				}
+    				throw std::runtime_error("Failed to load cubemap face: " + faceFiles[face]);
+    			}
+    		}
+        
+    		LOG_DEBUG("Cubemap loaded: ", filename, " (", width, "x", height, ")");
+    		textureDesc.Width = static_cast<UINT>(width);
+    		textureDesc.Height = static_cast<UINT>(height);
+    		rowSizeInBytes = UINT64(width) * 4; // RGBA
+        
+    		ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceData, rowSizeInBytes, uploadBuffer);
+        
+    		for (int i = 0; i < 6; ++i) {
+    			stbi_image_free(faceData[i]);
+    		}
+        
+    		return texture;
+    	}
+    
         uint8_t* data = nullptr;
         int width, height, channels;
         data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
@@ -225,14 +225,16 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
             throw std::runtime_error("Failed to load HDR texture: " + filename);
         }
         LOG_DEBUG("HDR texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
-        textureDesc.Width = static_cast<UINT>(width);
-        textureDesc.Height = static_cast<UINT>(height);
+    	UINT cubemapSize = 512;
+        textureDesc.Width = cubemapSize;
+        textureDesc.Height = cubemapSize;
+    	textureDesc.DepthOrArraySize = 6;
         textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT; // HDR typically uses 3 channels of float
         if (channels < 3)
         {
             LOG_WARNING("HDR texture has less than 3 channels: ", channels);
         }
-        rowSizeInBytes = UINT64(width) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
+        rowSizeInBytes = UINT64(cubemapSize) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
 
         if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
         {
