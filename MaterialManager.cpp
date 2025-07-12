@@ -4,7 +4,7 @@
 #include "MaterialManager.h"
 #include "ConstantBuffers.h"
 #include "LunarConstants.h"
-#include "Logger.h"
+#include "Utils/Logger.h"
 
 using namespace std;
 using namespace DirectX;

@@ -2,8 +2,8 @@
 
 #include <d3d12.h>
 
-#include "Utils.h"
-#include "MathUtils.h"
+#include "Utils/Utils.h"
+#include "Utils/MathUtils.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;

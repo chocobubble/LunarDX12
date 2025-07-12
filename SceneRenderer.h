@@ -7,9 +7,9 @@
 #include <string>
 #include <DirectXMath.h>
 
-#include "Logger.h"
+#include "Utils/Logger.h"
 #include "MaterialManager.h"
-#include "SceneViewModel.h"
+#include "UI/SceneViewModel.h"
 #include "Geometry/Transform.h"
 #include "Geometry/Geometry.h"
 
@@ -60,8 +60,7 @@ public:
     void InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager);
 	void CreateDSVDescriptorHeap(ID3D12Device* device);
 	void CreateDepthStencilView(ID3D12Device* device);
-	void CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device);
-	void InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
+	void InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, ID3D12DescriptorHeap* srvHeap);
 
 	void RenderShadowMap(ID3D12GraphicsCommandList* commandList);
 	void UpdateScene(float deltaTime);
@@ -85,7 +84,6 @@ public:
     const LightingSystem* GetLightingSystem() const { return m_lightingSystem.get(); }
     LightingSystem* GetLightingSystem() { return m_lightingSystem.get(); }
 	BasicConstants& GetBasicConstants() { return m_basicConstants; }
-	ID3D12DescriptorHeap* GetSRVHeap() { return m_srvHeap.Get(); };
 	ID3D12DescriptorHeap* GetDSVHeap() { return m_dsvHeap.Get(); };
 	ParticleSystem* GetParticleSystem() { return m_particleSystem.get(); };
     
@@ -114,7 +112,6 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
 	UINT m_dsvDescriptorSize;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencilBuffer;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srvHandle;
 	UINT m_srvDescriptorSize;
 
@@ -129,6 +126,8 @@ public: // Template Section
         const DirectX::XMFLOAT4& color = {1.0f, 1.0f, 1.0f, 1.0f},
         const std::string& materialName = "default")
     {
+    	LOG_FUNCTION_ENTRY();
+    	
         if (DoesGeometryExist(name))
         {
             LOG_ERROR("Geometry with name " + name + " already exists");

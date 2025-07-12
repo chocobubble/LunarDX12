@@ -78,7 +78,6 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ConstantBuffers.cpp" />
-    <ClCompile Include="DebugViewModel.cpp" />
     <ClCompile Include="Geometry\Geometry.cpp" />
     <ClCompile Include="Geometry\Cube.cpp" />
     <ClCompile Include="Geometry\IcoSphere.cpp" />
@@ -87,29 +86,31 @@
     <ClCompile Include="Geometry\Transform.cpp" />
     <ClCompile Include="Geometry\Tree.cpp" />
     <ClCompile Include="LightingSystem.cpp" />
-    <ClCompile Include="LightViewModel.cpp" />
     <ClCompile Include="LunarConstants.cpp" />
-    <ClCompile Include="Logger.cpp" />
-    <ClCompile Include="LunarGUI.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainApp.cpp" />
     <ClCompile Include="MaterialManager.cpp" />
-    <ClCompile Include="MathUtils.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="PerformanceProfiler.cpp" />
-    <ClCompile Include="PerformanceViewModel.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
+    <ClCompile Include="PostProcessManager.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
-    <ClCompile Include="SceneViewModel.cpp" />
     <ClCompile Include="ShadowManager.cpp" />
-    <ClCompile Include="ShadowViewModel.cpp" />
     <ClCompile Include="TextureManager.cpp" />
-    <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="UI\DebugViewModel.cpp" />
+    <ClCompile Include="UI\LightViewModel.cpp" />
+    <ClCompile Include="UI\LunarGUI.cpp" />
+    <ClCompile Include="UI\PerformanceViewModel.cpp" />
+    <ClCompile Include="UI\PostProcessViewModel.cpp" />
+    <ClCompile Include="UI\SceneViewModel.cpp" />
+    <ClCompile Include="UI\ShadowViewModel.cpp" />
+    <ClCompile Include="Utils\Logger.cpp" />
+    <ClCompile Include="Utils\MathUtils.cpp" />
+    <ClCompile Include="Utils\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ConstantBuffers.h" />
-    <ClInclude Include="DebugViewModel.h" />
     <ClInclude Include="Geometry\Geometry.h" />
     <ClInclude Include="Geometry\IcoSphere.h" />
     <ClInclude Include="Geometry\Transform.h" />
@@ -119,23 +120,26 @@
     <ClInclude Include="Geometry\Plane.h" />
     <ClInclude Include="Geometry\GeometryFactory.h" />
     <ClInclude Include="LightingSystem.h" />
-    <ClInclude Include="LightViewModel.h" />
     <ClInclude Include="LunarConstants.h" />
-    <ClInclude Include="Logger.h" />
-    <ClInclude Include="LunarGUI.h" />
     <ClInclude Include="MainApp.h" />
     <ClInclude Include="MaterialManager.h" />
-    <ClInclude Include="MathUtils.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="PerformanceProfiler.h" />
-    <ClInclude Include="PerformanceViewModel.h" />
     <ClInclude Include="PipelineStateManager.h" />
+    <ClInclude Include="PostProcessManager.h" />
     <ClInclude Include="SceneRenderer.h" />
-    <ClInclude Include="SceneViewModel.h" />
     <ClInclude Include="ShadowManager.h" />
-    <ClInclude Include="ShadowViewModel.h" />
     <ClInclude Include="TextureManager.h" />
-    <ClInclude Include="Utils.h" />
+    <ClInclude Include="UI\DebugViewModel.h" />
+    <ClInclude Include="UI\LightViewModel.h" />
+    <ClInclude Include="UI\LunarGUI.h" />
+    <ClInclude Include="UI\PerformanceViewModel.h" />
+    <ClCompile Include="UI\PostProcessViewModel.h" />
+    <ClInclude Include="UI\SceneViewModel.h" />
+    <ClInclude Include="UI\ShadowViewModel.h" />
+    <ClInclude Include="Utils\Logger.h" />
+    <ClInclude Include="Utils\MathUtils.h" />
+    <ClInclude Include="Utils\Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
@@ -261,6 +265,11 @@
     </FxCompile>
     <FxCompile Include="Shaders\ParticlesComputeShader.hlsl">
       <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.1</ShaderModel>
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\GaussianBlurCS.hlsl">
+      <EntryPointName>BlurX</EntryPointName>
       <ShaderModel>5.1</ShaderModel>
       <ShaderType>Compute</ShaderType>
     </FxCompile>

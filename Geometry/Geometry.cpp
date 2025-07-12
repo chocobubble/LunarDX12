@@ -1,6 +1,6 @@
 #include "Geometry.h"
-#include "../Utils.h" 
-#include "../Logger.h"
+#include "../Utils/Utils.h" 
+#include "../Utils/Logger.h"
 
 using namespace DirectX;
 using namespace std;

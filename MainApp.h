@@ -17,6 +17,8 @@ class Camera;
 class LunarGui;
 class PerformanceProfiler;
 class PerformanceViewModel;
+class PostProcessManager;
+class PostProcessViewModel;
 	
 class MainApp {
 public:
@@ -30,6 +32,8 @@ private:
 	void InitGui();
 	void InitializeCommandList();
 	void CreateSwapChain();
+	void CreateSceneRenderTarget();
+	void CreateSRVDescriptorHeap();
 	void CreateRTVDescriptorHeap();
 	void CreateRenderTargetView();
 	void CreateFence();
@@ -42,6 +46,7 @@ private:
 	void InitializeGeometry();
 	void CreateCamera();
 	void InitializeTextures();
+	void CopyPPTextureToBackBuffer();
 	
 	HWND m_mainWindow;
 	
@@ -53,13 +58,14 @@ private:
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter;
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swapChain;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_lightHeap;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
 	Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[Lunar::LunarConstants::BUFFER_COUNT];
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_textureUploadBuffer;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_sceneRenderTarget;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
@@ -87,6 +93,8 @@ private:
 
     std::unique_ptr<SceneRenderer> m_sceneRenderer;
 	std::unique_ptr<PipelineStateManager> m_pipelineStateManager;
+	std::unique_ptr<PostProcessManager> m_postProcessManager;
+	std::unique_ptr<PostProcessViewModel> m_postProcessViewModel;
 
 	bool m_mouseMoving = false;
 };

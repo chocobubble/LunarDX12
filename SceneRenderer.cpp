@@ -3,17 +3,17 @@
 #include "MaterialManager.h"
 #include "LightingSystem.h"
 #include "ConstantBuffers.h"
-#include "LunarGUI.h"
-#include "MathUtils.h"
+#include "UI/LunarGUI.h"
+#include "Utils/MathUtils.h"
 #include "PipelineStateManager.h"
 #include "ShadowManager.h"
 #include "TextureManager.h"
-#include "Utils.h"
+#include "Utils/Utils.h"
 #include "Geometry/Plane.h"
-#include "ShadowViewModel.h"
+#include "UI/ShadowViewModel.h"
 #include "ParticleSystem.h"
-#include "LightViewModel.h"
-#include "DebugViewModel.h"
+#include "UI/LightViewModel.h"
+#include "UI/DebugViewModel.h"
 #include "Geometry/Cube.h"
 #include "Geometry/IcoSphere.h"
 
@@ -53,6 +53,8 @@ SceneRenderer::~SceneRenderer() = default;
 
 void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager)
 {
+	LOG_FUNCTION_ENTRY();
+	
 	m_dsvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	m_srvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	
@@ -61,7 +63,6 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
     m_debugViewModel->Initialize(gui, m_basicConstants);
 	CreateDSVDescriptorHeap(device);
 	CreateDepthStencilView(device);
-	CreateSRVDescriptorHeap(LunarConstants::TEXTURE_INFO.size(), device);
 	
 	m_pipelineStateManager = pipelineManager;
     m_basicCB = make_unique<ConstantBuffer>(device, sizeof(BasicConstants));
@@ -151,24 +152,11 @@ void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
 	m_shadowManager->CreateDSV(device, m_dsvHeap.Get());
 }
 
-void SceneRenderer::CreateSRVDescriptorHeap(UINT textureNums, ID3D12Device* device)
+void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, ID3D12DescriptorHeap* srvHeap)
 {
-	LOG_FUNCTION_ENTRY();
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(textureNums) + 4;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NodeMask = 0;
-	THROW_IF_FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
-	m_srvHandle = m_srvHeap->GetCPUDescriptorHandleForHeapStart();
-
-	// m_shadowManager->CreateSRV(device, m_srvHeap.Get());
-}
-
-void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
-{
+	m_srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
 	m_textureManager->Initialize(device, commandList, m_srvHandle);
-	m_shadowManager->CreateSRV(device, m_srvHeap.Get());
+	m_shadowManager->CreateSRV(device, srvHeap);
 
 	// REFACTORING: Rename or refactor this method
 	m_particleSystem->Initialize(device, commandList);

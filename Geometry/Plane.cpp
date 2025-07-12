@@ -1,6 +1,6 @@
 #include "Plane.h"
 
-#include "../MathUtils.h"
+#include "../Utils/MathUtils.h"
 
 using namespace DirectX;
 

@@ -1,9 +1,9 @@
 #include "DebugViewModel.h"
 
-#include "ConstantBuffers.h"
+#include "../ConstantBuffers.h"
 #include "LunarGUI.h"
-#include "LunarConstants.h"
-#include "Logger.h"
+#include "../LunarConstants.h"
+#include "../Utils/Logger.h"
 
 using namespace std;
 using namespace Lunar::LunarConstants;

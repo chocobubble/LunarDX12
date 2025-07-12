@@ -2,9 +2,8 @@
 
 #include <d3dcompiler.h>
 
-#include "Logger.h"
-#include "LunarConstants.h"
-#include "Utils.h"
+#include "Utils/Logger.h"
+#include "Utils/Utils.h"
 
 using namespace Microsoft::WRL;
 using namespace std;
@@ -36,30 +35,33 @@ void PipelineStateManager::Initialize(ID3D12Device* device)
 {
 	LOG_FUNCTION_ENTRY();
 
-	for (auto& shaderInfo : LunarConstants::SHADER_INFO)
+	for (LunarConstants::ShaderInfo shaderInfo : LunarConstants::SHADER_INFO)
 	{
-		m_shaderMap[shaderInfo.name] = CompileShader(shaderInfo.path, shaderInfo.target);
+		m_shaderMap[shaderInfo.name] = CompileShader(shaderInfo);
+		LOG_DEBUG("Shader ", shaderInfo.name, " compiled");
 	}
 	
 	BuildPSOs(device);
 }
 
-ComPtr<ID3DBlob> PipelineStateManager::CompileShader(const std::string& shaderPath, const std::string& target) const
+ComPtr<ID3DBlob> PipelineStateManager::CompileShader(const LunarConstants::ShaderInfo& shaderInfo) const
 {
 	ComPtr<ID3DBlob> byteCode = nullptr;
 	ComPtr<ID3DBlob> errors = nullptr;
-	
+
+	string shaderPath = shaderInfo.path;
 	THROW_IF_FAILED(D3DCompileFromFile(
 		wstring(shaderPath.begin(), shaderPath.end()).c_str(),
 		nullptr,
 		D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"main",
-		target.c_str(),
+        shaderInfo.entryPoint,
+		shaderInfo.target,
 		m_compileFlags,
 		0,
 		byteCode.GetAddressOf(),
 		&errors
 		))
+	
 	return byteCode;
 }
 
@@ -90,6 +92,19 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	shadowMapSrvRange.RegisterSpace = 1;
 	shadowMapSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	D3D12_DESCRIPTOR_RANGE postProcessSrvRange = {};
+	postProcessSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	postProcessSrvRange.NumDescriptors = 2;
+	postProcessSrvRange.BaseShaderRegister = 0;
+	postProcessSrvRange.RegisterSpace = 3;
+	postProcessSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	
+	D3D12_DESCRIPTOR_RANGE postProcessUavRange = {};
+	postProcessUavRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+	postProcessUavRange.NumDescriptors = 2;
+	postProcessUavRange.BaseShaderRegister = 0;
+	postProcessUavRange.RegisterSpace = 1;
+	postProcessUavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	/*
 	typedef struct D3D12_ROOT_PARAMETER
 	{
@@ -103,7 +118,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 		D3D12_SHADER_VISIBILITY ShaderVisibility;
 	} 	D3D12_ROOT_PARAMETER;
 	*/
-	D3D12_ROOT_PARAMETER rootParameters[6];
+	D3D12_ROOT_PARAMETER rootParameters[8];
     D3D12_DESCRIPTOR_RANGE srvRanges[2] = { textureSrvRange, shadowMapSrvRange };
     size_t index = LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX;
 	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -141,6 +156,17 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	rootParameters[index].Descriptor.ShaderRegister = 0;
     rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
+	index = LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX;
+	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[index].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[index].DescriptorTable.pDescriptorRanges = &postProcessSrvRange;
+	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	
+	index = LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX;
+	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[index].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[index].DescriptorTable.pDescriptorRanges = &postProcessUavRange;
+	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	/*
 	typedef struct D3D12_STATIC_SAMPLER_DESC
 	{
@@ -513,6 +539,23 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		tessellationPsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 		THROW_IF_FAILED(device->CreateGraphicsPipelineState(&tessellationPsoDesc,
 			IID_PPV_ARGS(m_psoMap["tessellation_wireframe"].GetAddressOf())))
+	}
+
+    // PSO for Blur
+    {		
+        D3D12_COMPUTE_PIPELINE_STATE_DESC gaussianBlurPsoDesc = {};
+    	gaussianBlurPsoDesc.pRootSignature = m_rootSignature.Get();
+    	gaussianBlurPsoDesc.NodeMask = 0;
+        gaussianBlurPsoDesc.CS.pShaderBytecode = m_shaderMap["gaussianBlurXCS"]->GetBufferPointer();
+        gaussianBlurPsoDesc.CS.BytecodeLength = m_shaderMap["gaussianBlurXCS"]->GetBufferSize();
+    	gaussianBlurPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        THROW_IF_FAILED(device->CreateComputePipelineState(&gaussianBlurPsoDesc, 
+            IID_PPV_ARGS(m_psoMap["gaussianBlurX"].GetAddressOf())))
+    	
+		gaussianBlurPsoDesc.CS.pShaderBytecode = m_shaderMap["gaussianBlurYCS"]->GetBufferPointer();
+		gaussianBlurPsoDesc.CS.BytecodeLength = m_shaderMap["gaussianBlurYCS"]->GetBufferSize();
+		THROW_IF_FAILED(device->CreateComputePipelineState(&gaussianBlurPsoDesc, 
+			IID_PPV_ARGS(m_psoMap["gaussianBlurY"].GetAddressOf())))
 	}
 }
 

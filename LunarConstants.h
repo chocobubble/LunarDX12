@@ -21,12 +21,14 @@ static constexpr float CAMERA_MOVE_SPEED = 1.0f;
 
 static constexpr UINT LIGHT_COUNT = 3;
 
-static constexpr UINT TEXTURE_SR_ROOT_PARAMETER_INDEX = 3;
 static constexpr UINT BASIC_CONSTANTS_ROOT_PARAMETER_INDEX = 0;
 static constexpr UINT OBJECT_CONSTANTS_ROOT_PARAMETER_INDEX = 1;
 static constexpr UINT MATERIAL_CONSTANTS_ROOT_PARAMETER_INDEX = 2;
+static constexpr UINT TEXTURE_SR_ROOT_PARAMETER_INDEX = 3;
 static constexpr UINT PARTICLE_SRV_ROOT_PARAMETER_INDEX = 4;
 static constexpr UINT PARTICLE_UAV_ROOT_PARAMETER_INDEX = 5;
+static constexpr UINT POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX = 6;
+static constexpr UINT POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX = 7;
 
 /////////////// textures  ///////////////
 enum class FileType : uint8_t {
@@ -64,13 +66,14 @@ struct ShaderInfo
 	const char* name;
 	const char* path;
 	const char* target;
+    const char* entryPoint = "main"; // Default entry point
 };
-static constexpr std::array<ShaderInfo, 18> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 20> SHADER_INFO = {{
 	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_1" },
 	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_1" },
-{ "basicHS", "Shaders\\BasicHullShader.hlsl", "hs_5_1" },
-{ "basicDS", "Shaders\\BasicDomainShader.hlsl", "ds_5_1" },
-{ "billboardVS", "Shaders\\BillboardVertexShader.hlsl", "vs_5_1" },
+	{ "basicHS", "Shaders\\BasicHullShader.hlsl", "hs_5_1" },
+	{ "basicDS", "Shaders\\BasicDomainShader.hlsl", "ds_5_1" },
+	{ "billboardVS", "Shaders\\BillboardVertexShader.hlsl", "vs_5_1" },
 	{ "billboardGS", "Shaders\\BillboardGeometryShader.hlsl", "gs_5_1" },
 	{ "billboardPS", "Shaders\\BillboardPixelShader.hlsl", "ps_5_1" },
 	{ "skyBoxVS", "Shaders\\SkyBoxVertexShader.hlsl", "vs_5_1" },
@@ -83,7 +86,9 @@ static constexpr std::array<ShaderInfo, 18> SHADER_INFO = {{
     { "particlesUpdateCS", "Shaders\\ParticlesComputeShader.hlsl", "cs_5_1" },
     { "particlesVS", "Shaders\\ParticleVertexShader.hlsl", "vs_5_1" },
     { "particlesPS", "Shaders\\ParticlePixelShader.hlsl", "ps_5_1" },
-    { "particlesGS", "Shaders\\ParticleGeometryShader.hlsl", "gs_5_1" }
+    { "particlesGS", "Shaders\\ParticleGeometryShader.hlsl", "gs_5_1" },
+    { "gaussianBlurXCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1", "BlurX" },
+    { "gaussianBlurYCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1", "BlurY" },
 }};
 
 /////////////// Debug Flags ///////////////
