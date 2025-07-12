@@ -108,6 +108,20 @@ void DebugViewModel::Initialize(LunarGui* gui, BasicConstants& constants)
         else
             constants->debugFlags &= ~DebugFlags::ALBEDO_MAP_ENABLED;
     }, "debug");
+
+    gui->BindCheckbox("Enable IBL Diffuse", &m_iblDiffuseEnabled, [constants = m_constants](bool value) {
+        if (value)
+            constants->debugFlags |= DebugFlags::IBL_DIFFUSE_ENABLED;
+        else
+            constants->debugFlags &= ~DebugFlags::IBL_DIFFUSE_ENABLED;
+    }, "debug");
+
+    gui->BindCheckbox("Enable IBL Specular", &m_iblSpecularEnabled, [constants = m_constants](bool value) {
+        if (value)
+            constants->debugFlags |= DebugFlags::IBL_SPECULAR_ENABLED;
+        else
+            constants->debugFlags &= ~DebugFlags::IBL_SPECULAR_ENABLED;
+    }, "debug");
     
     // Debug window with elements in order
     vector<string> debugElementIds = {
@@ -122,7 +136,9 @@ void DebugViewModel::Initialize(LunarGui* gui, BasicConstants& constants)
         "Enable Height Map",
         "Enable Metallic Map",
         "Enable Roughness Map",
-        "Enable Albedo Map"
+        "Enable Albedo Map",
+        "Enable IBL Diffuse",
+        "Enable IBL Specular"
     };
     
     gui->BindWindow("Debug Window", "Debug Controls", &m_showDebugWindow, debugElementIds);
@@ -149,7 +165,8 @@ void DebugViewModel::SyncFromConstants()
     m_metallicMapEnabled = m_constants->debugFlags & DebugFlags::METALLIC_MAP_ENABLED;
     m_roughnessMapEnabled = m_constants->debugFlags & DebugFlags::ROUGHNESS_MAP_ENABLED;
     m_albedoMapEnabled = m_constants->debugFlags & DebugFlags::ALBEDO_MAP_ENABLED;
-
+    m_iblDiffuseEnabled = m_constants->debugFlags & DebugFlags::IBL_DIFFUSE_ENABLED;
+    m_iblSpecularEnabled = m_constants->debugFlags & DebugFlags::IBL_SPECULAR_ENABLED;
 }
 
 } // namespace Lunar

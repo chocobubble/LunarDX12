@@ -108,7 +108,9 @@ namespace DebugFlags
         HEIGHT_MAP_ENABLED = 1 << 8,  // 0x100
         METALLIC_MAP_ENABLED = 1 << 9, // 0x200
         ROUGHNESS_MAP_ENABLED = 1 << 10, // 0x400
-        ALBEDO_MAP_ENABLED = 1 << 11, // 0x800
+        ALBEDO_MAP_ENABLED = 1 << 11, // 0x800,
+        IBL_DIFFUSE_ENABLED = 1 << 12, // 0x1000
+        IBL_SPECULAR_ENABLED = 1 << 13, // 0x2000
     };
 }
 

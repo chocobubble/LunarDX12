@@ -106,7 +106,7 @@ void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo&
 	srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
-ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
+ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, ComPtr<ID3D12Resource>& uploadBuffer)
 {
     // REFACTOR: load dds, hdr, cubemap, simple texture 
     
@@ -165,9 +165,9 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         return texture;
     }
     
-    uint8_t* data = nullptr;
     if (textureInfo.fileType == LunarConstants::FileType::DEFAULT) 
     {
+        uint8_t* data = nullptr;
         int width, height, channels;
         data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
         if (!data)
@@ -186,6 +186,7 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
     }
     else if (textureInfo.fileType == LunarConstants::FileType::DDS)
     {
+        uint8_t* data = nullptr;
         DirectX::ScratchImage image;
         std::wstring wfilename(filename.begin(), filename.end());
         HRESULT hr = DirectX::LoadFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
@@ -209,6 +210,7 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
     }
     else if (textureInfo.fileType == LunarConstants::FileType::HDR)
     {
+        float* data = nullptr;
         if (stbi_is_hdr(filename.c_str()) == 0)
         {
             LOG_ERROR("File is not a valid HDR texture: ", filename);
@@ -232,7 +234,20 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         }
         rowSizeInBytes = UINT64(width) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
 
-        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
+        if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
+        {
+            // Convert HDR equirectangular to cubemap
+            vector<vector<float>> faceData = EquirectangularToCubemap(data, width, height);
+            vector<uint8_t*> faceDataBytes(6);
+            for (int face = 0; face < 6; ++face) {
+                faceDataBytes[face] = reinterpret_cast<uint8_t*>(faceData[face].data());
+            }
+            ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceDataBytes, rowSizeInBytes, uploadBuffer);
+            stbi_image_free(data);
+            return texture;
+        }
+
+        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, reinterpret_cast<uint8_t*>(data), rowSizeInBytes, uploadBuffer);
         stbi_image_free(data);
         return texture;
     }
@@ -243,7 +258,7 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
     }
 }
 
-ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_DESC& textureDesc, uint8_t* srcData, UINT64 rowSizeInBytes, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
+ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_DESC& textureDesc, const uint8_t* srcData, UINT64 rowSizeInBytes, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
 {
     D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
     defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -492,4 +507,88 @@ ComPtr<ID3D12Resource> TextureManager::CreateCubemapResource(
     return texture;
 }
 
+vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData, UINT width, UINT height)
+{
+    UINT cubemapSize = 512;
+
+    vector<vector<float>> faceData(6);
+
+    for (int face = 0; face < 6; ++face) {
+        faceData[face].resize(cubemapSize * cubemapSize * 3); // 3 channels RGB
+
+        for (int y = 0; y < cubemapSize; ++y) {
+            for (int x = 0; x < cubemapSize; ++x) {
+                // Convert cubemap coordinates to direction 
+                float u = ((x + 0.5f) * 2.0f) / cubemapSize - 1.0f; // [-1, 1]
+                float v = ((y + 0.5f) * 2.0f) / cubemapSize - 1.0f; 
+
+                float direction[3];
+                switch (face) {
+                	case 0: // +X
+                		direction[0] = 1.0f;
+						direction[1] = -v;
+						direction[2] = -u;
+						break;
+                	case 1: // -X
+                		direction[0] = -1.0f;
+						direction[1] = -v;
+						direction[2] = u;
+						break;
+                	case 2: // +Y
+                		direction[0] = u;
+						direction[1] = 1.0f;
+						direction[2] = v;
+						break;
+                	case 3: // -Y
+                		direction[0] = u;
+						direction[1] = -1.0f;
+						direction[2] = -v;
+						break;
+                	case 4: // +Z
+                		direction[0] = u;
+						direction[1] = -v;
+						direction[2] = 1.0f;
+						break;
+                	case 5: // -Z
+                		direction[0] = -u;
+						direction[1] = -v;
+						direction[2] = -1.0f;
+						break;
+                    default:
+                        LOG_ERROR("Invalid cubemap face index: ", face);
+                }
+                // Normalize direction vector
+                float length = sqrtf(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+                if (length == 0.0f) {
+                    LOG_ERROR("Zero length direction vector for cubemap face: ", face);
+                    continue;
+                }
+                direction[0] /= length;
+                direction[1] /= length;
+                direction[2] /= length;
+
+                float M_PI = 3.14159;
+                float theta = atan2(direction[2], direction[0]); // azimuth
+                float phi = asin(direction[1]); // elevation
+                float equiU = (theta + M_PI) / (2.0f * M_PI); 
+                float equiV = (phi + M_PI / 2.0f) / M_PI; 
+
+                int equiX = static_cast<int>(equiU * width);
+                int equiY = static_cast<int>(equiV * height);
+                equiX = std::clamp(equiX, 0, static_cast<int>(width - 1));
+                equiY = std::clamp(equiY, 0, static_cast<int>(height - 1));
+
+                // data sampling
+                int srcIndex = (equiY * width + equiX) * 3; // 3 : channels RGB
+                int dstIndex = (y * cubemapSize + x) * 3; // 3 : channels RGB
+
+                faceData[face][dstIndex] = imageData[srcIndex];     // R
+                faceData[face][dstIndex + 1] = imageData[srcIndex + 1]; // G
+                faceData[face][dstIndex + 2] = imageData[srcIndex + 2]; // B
+            }
+        }
+    }
+    
+    return faceData;
+}
 } //namespace Lunar

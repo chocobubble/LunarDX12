@@ -134,7 +134,7 @@
     <ClInclude Include="UI\LightViewModel.h" />
     <ClInclude Include="UI\LunarGUI.h" />
     <ClInclude Include="UI\PerformanceViewModel.h" />
-    <ClCompile Include="UI\PostProcessViewModel.h" />
+    <ClInclude Include="UI\PostProcessViewModel.h" />
     <ClInclude Include="UI\SceneViewModel.h" />
     <ClInclude Include="UI\ShadowViewModel.h" />
     <ClInclude Include="Utils\Logger.h" />
