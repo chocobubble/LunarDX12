@@ -570,10 +570,11 @@ vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData,
                 direction[2] /= length;
 
                 float M_PI = 3.14159;
-                float theta = atan2(direction[2], direction[0]); // azimuth
-                float phi = asin(direction[1]); // elevation
+                float theta = atan2f(direction[2], direction[0]); // azimuth
+                float phi = asinf(direction[1]); // elevation
                 float equiU = (theta + M_PI) / (2.0f * M_PI); 
-                float equiV = (phi + M_PI / 2.0f) / M_PI; 
+                // float equiV = (phi + M_PI / 2.0f) / M_PI;
+            	float equiV = 0.5 - phi / M_PI; 
 
                 int equiX = static_cast<int>(equiU * width);
                 int equiY = static_cast<int>(equiV * height);
