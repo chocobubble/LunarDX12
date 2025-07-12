@@ -13,7 +13,7 @@ PostProcessManager::PostProcessManager()
 	m_height = Utils::GetDisplayHeight();
 }
 
-void PostProcessManager::Initialize(ID3D12Device* device, D3D12_GPU_DESCRIPTOR_HANDLE handle, UINT offset)
+void PostProcessManager::Initialize(ID3D12Device* device, ID3D12DescriptorHeap* heap, UINT offset)
 {
 	LOG_FUNCTION_ENTRY();
 	
@@ -52,19 +52,62 @@ void PostProcessManager::Initialize(ID3D12Device* device, D3D12_GPU_DESCRIPTOR_H
         nullptr,
         IID_PPV_ARGS(&m_postProcessPong.texture)));
 
-    m_postProcessPing.srvHandle = handle;
-    m_postProcessPing.srvHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = heap->GetCPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = heap->GetGPUDescriptorHandleForHeapStart();
+    m_postProcessPing.cpuSrvHandle = cpuHandle;
+    m_postProcessPing.cpuSrvHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_postProcessPing.gpuSrvHandle = gpuHandle;
+    m_postProcessPing.gpuSrvHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Texture2D.MipLevels = 1;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    device->CreateShaderResourceView(m_postProcessPing.texture.Get(), &srvDesc, m_postProcessPing.cpuSrvHandle);
+
     ++offset;
-    m_postProcessPing.uavHandle = handle;
-    m_postProcessPing.uavHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    ++offset;
-    m_postProcessPong.srvHandle = handle;
-    m_postProcessPong.srvHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    ++offset;
-    m_postProcessPong.uavHandle = handle;
-    m_postProcessPong.uavHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_postProcessPing.cpuUavHandle = cpuHandle;
+    m_postProcessPing.cpuUavHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_postProcessPing.gpuUavHandle = gpuHandle;
+    m_postProcessPing.gpuUavHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    /*
+    typedef struct D3D12_UNORDERED_ACCESS_VIEW_DESC {
+        DXGI_FORMAT         Format;
+        D3D12_UAV_DIMENSION ViewDimension;
+        union {
+            D3D12_BUFFER_UAV        Buffer;
+            D3D12_TEX1D_UAV         Texture1D;
+            D3D12_TEX1D_ARRAY_UAV   Texture1DArray;
+            D3D12_TEX2D_UAV         Texture2D;
+            D3D12_TEX2D_ARRAY_UAV   Texture2DArray;
+            D3D12_TEX2DMS_UAV       Texture2DMS;
+            D3D12_TEX2DMS_ARRAY_UAV Texture2DMSArray;
+            D3D12_TEX3D_UAV         Texture3D;
+        };
+    } D3D12_UNORDERED_ACCESS_VIEW_DESC;
+    */
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    device->CreateUnorderedAccessView(m_postProcessPing.texture.Get(), nullptr, &uavDesc, m_postProcessPing.cpuUavHandle);  
     ++offset;
 
+    m_postProcessPong.cpuSrvHandle = cpuHandle;
+    m_postProcessPong.cpuSrvHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_postProcessPong.gpuSrvHandle = gpuHandle;
+    m_postProcessPong.gpuSrvHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    device->CreateShaderResourceView(m_postProcessPong.texture.Get(), &srvDesc, m_postProcessPong.cpuSrvHandle);
+    ++offset;
+
+    m_postProcessPong.cpuUavHandle = cpuHandle;
+    m_postProcessPong.cpuUavHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);   
+    m_postProcessPong.gpuUavHandle = gpuHandle;
+    m_postProcessPong.gpuUavHandle.ptr += offset * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    device->CreateUnorderedAccessView(m_postProcessPong.texture.Get(), nullptr, &uavDesc, m_postProcessPong.cpuUavHandle);
+    ++offset;
 }
 
 void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, ID3D12RootSignature* rootSignature)
