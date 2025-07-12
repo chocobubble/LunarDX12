@@ -108,6 +108,8 @@ void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo&
 
 ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
 {
+    // REFACTOR: load dds, hdr, cubemap, simple texture 
+    
 	LOG_FUNCTION_ENTRY();
 
     D3D12_RESOURCE_DESC textureDesc = {};
@@ -177,6 +179,10 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         textureDesc.Width = static_cast<UINT>(width);
         textureDesc.Height = static_cast<UINT>(height);
         rowSizeInBytes = UINT64(width) * 4; // RGBA
+
+        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
+        stbi_image_free(data);
+        return texture;
     }
     else if (textureInfo.fileType == LunarConstants::FileType::DDS)
     {
@@ -201,13 +207,43 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
         return texture;
     }
+    else if (textureInfo.fileType == LunarConstants::FileType::HDR)
+    {
+        if (stbi_is_hdr(filename.c_str()) == 0)
+        {
+            LOG_ERROR("File is not a valid HDR texture: ", filename);
+            throw std::runtime_error("File is not a valid HDR texture: " + filename);
+        }
 
-	ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
-	if (textureInfo.fileType == LunarConstants::FileType::DEFAULT) stbi_image_free(data);
-    return texture;
+        int width, height, channels;
+        data = stbi_loadf(filename.c_str(), &width, &height, &channels, 3); // loadf : float
+        if (!data) 
+        {
+            LOG_ERROR("Failed to load HDR texture: ", filename);
+            throw std::runtime_error("Failed to load HDR texture: " + filename);
+        }
+        LOG_DEBUG("HDR texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
+        textureDesc.Width = static_cast<UINT>(width);
+        textureDesc.Height = static_cast<UINT>(height);
+        textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT; // HDR typically uses 3 channels of float
+        if (channels < 3)
+        {
+            LOG_WARNING("HDR texture has less than 3 channels: ", channels);
+        }
+        rowSizeInBytes = UINT64(width) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
+
+        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
+        stbi_image_free(data);
+        return texture;
+    }
+    else 
+    {
+        LOG_ERROR("Unsupported texture file type: ", static_cast<int>(textureInfo.fileType));
+        throw std::runtime_error("Unsupported texture file type: " + std::to_string(static_cast<int>(textureInfo.fileType)));
+    }
 }
 
-ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_DESC& textureDesc, const uint8_t* srcData, UINT64 rowSizeInBytes, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
+ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const D3D12_RESOURCE_DESC& textureDesc, uint8_t* srcData, UINT64 rowSizeInBytes, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer)
 {
     D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
     defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;

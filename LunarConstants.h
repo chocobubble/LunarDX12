@@ -33,7 +33,8 @@ static constexpr UINT POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX = 7;
 /////////////// textures  ///////////////
 enum class FileType : uint8_t {
     DEFAULT = 0,
-    DDS = 1
+    DDS = 1,
+    HDR = 2,
 };
 
 enum class TextureDimension : uint8_t {
