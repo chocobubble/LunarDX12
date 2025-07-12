@@ -12,7 +12,7 @@ static const int blurRadius = 5;
 groupshared float4 sharedColors[64 + 2 * blurRadius];
 
 [numthreads(64, 1, 1)]
-void main(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID)
+void BlurX(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID)
 {
 	uint width, height;
 	inputTexture.GetDimensions(width, height);
@@ -43,5 +43,38 @@ void main(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_Di
         color += weights[i + blurRadius] * sharedColors[index];
     }
     outputTexture[int2(dispatchThreadID.x, dispatchThreadID.y)] = color;
+}
 
+[numthreads(1, 64, 1)]
+void BlurY(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    uint width, height;
+    inputTexture.GetDimensions(width, height);
+
+    // Caching
+    if (groupThreadID.y < blurRadius)
+    {
+        int y = max(0, dispatchThreadID.y - blurRadius);
+        sharedColors[groupThreadID.y] = inputTexture[int2(dispatchThreadID.x, y)];
+    }
+
+    if (groupThreadID.y >= 64 - blurRadius)
+    {
+        int y = min(height - 1, dispatchThreadID.y + blurRadius);
+        sharedColors[groupThreadID.y + blurRadius * 2] = inputTexture[int2(dispatchThreadID.x, y)];
+    }
+
+    int sampleY = min(dispatchThreadID.y, height - 1);
+    sharedColors[groupThreadID.y + blurRadius] = inputTexture[int2(dispatchThreadID.x, sampleY)];
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // Blur Y Direction
+    float4 color = float4(0.0, 0.0, 0.0, 0.0);
+    for (int i = -blurRadius; i <= blurRadius; ++i)
+    {
+        int index = groupThreadID.y + blurRadius + i;
+        color += weights[i + blurRadius] * sharedColors[index];
+    }
+    outputTexture[int2(dispatchThreadID.x, dispatchThreadID.y)] = color;
 }

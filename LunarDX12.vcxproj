@@ -269,7 +269,7 @@
       <ShaderType>Compute</ShaderType>
     </FxCompile>
     <FxCompile Include="Shaders\GaussianBlurCS.hlsl">
-      <EntryPointName>main</EntryPointName>
+      <EntryPointName>BlurX</EntryPointName>
       <ShaderModel>5.1</ShaderModel>
       <ShaderType>Compute</ShaderType>
     </FxCompile>

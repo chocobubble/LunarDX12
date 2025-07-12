@@ -3,6 +3,7 @@
 #include "LunarConstants.h"
 #include "Utils/Logger.h"
 #include "Utils/Utils.h"
+#include "PipelineStateManager.h"
 
 namespace Lunar
 {
@@ -110,16 +111,12 @@ void PostProcessManager::Initialize(ID3D12Device* device, ID3D12DescriptorHeap* 
     ++offset;
 }
 
-void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, ID3D12RootSignature* rootSignature)
+void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, PipelineStateManager* pipelineStateManager)
 {
-    if (!m_blurXEnabled) return;
-
-	m_currentOutputIndex = 1 - m_currentOutputIndex; // toggle between ping and pong
-	
+    // First, copy the scene render target to output texture
 	ComputeTexture& inputTexture = m_currentOutputIndex == 0 ? m_postProcessPong : m_postProcessPing;
 	ComputeTexture& outputTexture = m_currentOutputIndex == 0 ? m_postProcessPing : m_postProcessPong;
 	
-	// copy the scene render target to the ping texture
 	D3D12_RESOURCE_BARRIER barriers[2] = {};
 	barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION; 
 	barriers[0].Transition.pResource = sceneRenderTarget;
@@ -128,37 +125,60 @@ void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList
 	barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
 	barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION; 
-	// barriers[1].Transition.pResource = m_postProcessPing.texture.Get();
-	barriers[1].Transition.pResource = inputTexture.texture.Get();
+	barriers[1].Transition.pResource = outputTexture.texture.Get();
 	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 	barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
 	commandList->ResourceBarrier(_countof(barriers), barriers);
-	commandList->CopyResource(inputTexture.texture.Get(), sceneRenderTarget);
+	commandList->CopyResource(outputTexture.texture.Get(), sceneRenderTarget);
 
 	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
 	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	
 	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 	commandList->ResourceBarrier(2, barriers);
 
-	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX, inputTexture.srvHandle);
-	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX, outputTexture.uavHandle);
+    if (m_blurXEnabled)
+    {
+        SwapBuffers(commandList);
+        commandList->SetComputeRootSignature(pipelineStateManager->GetRootSignature());
+        commandList->SetPipelineState(pipelineStateManager->GetPSO("gaussianBlurX"));
+        commandList->Dispatch(8, 1, 1);
+    }
+    if (m_blurYEnabled)
+    {
+        SwapBuffers(commandList);
+        commandList->SetComputeRootSignature(pipelineStateManager->GetRootSignature());
+        commandList->SetPipelineState(pipelineStateManager->GetPSO("gaussianBlurY"));
+        commandList->Dispatch(8, 1, 1);
+    }
+}
 
-	commandList->Dispatch(8, 1, 1);
+void PostProcessManager::SwapBuffers(ID3D12GraphicsCommandList* commandList)
+{
+	m_currentOutputIndex = 1 - m_currentOutputIndex; // toggle between ping and pong
+	ComputeTexture& inputTexture = m_currentOutputIndex == 0 ? m_postProcessPong : m_postProcessPing;
+	ComputeTexture& outputTexture = m_currentOutputIndex == 0 ? m_postProcessPing : m_postProcessPong;
 
-	// reuse barriers 
+	D3D12_RESOURCE_BARRIER barriers[2] = {};
+	barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION; 
 	barriers[0].Transition.pResource = inputTexture.texture.Get();
-	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
+	barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION; 
 	barriers[1].Transition.pResource = outputTexture.texture.Get();
-	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
 	commandList->ResourceBarrier(_countof(barriers), barriers);
 
+	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX, inputTexture.gpuSrvHandle);
+	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX, outputTexture.gpuUavHandle);
 }
 
 } // namespace Lunar

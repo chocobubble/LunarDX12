@@ -3,7 +3,6 @@
 #include <d3dcompiler.h>
 
 #include "Utils/Logger.h"
-#include "LunarConstants.h"
 #include "Utils/Utils.h"
 
 using namespace Microsoft::WRL;
@@ -36,30 +35,33 @@ void PipelineStateManager::Initialize(ID3D12Device* device)
 {
 	LOG_FUNCTION_ENTRY();
 
-	for (auto& shaderInfo : LunarConstants::SHADER_INFO)
+	for (LunarConstants::ShaderInfo shaderInfo : LunarConstants::SHADER_INFO)
 	{
-		m_shaderMap[shaderInfo.name] = CompileShader(shaderInfo.path, shaderInfo.target);
+		m_shaderMap[shaderInfo.name] = CompileShader(shaderInfo);
+		LOG_DEBUG("Shader ", shaderInfo.name, " compiled");
 	}
 	
 	BuildPSOs(device);
 }
 
-ComPtr<ID3DBlob> PipelineStateManager::CompileShader(const std::string& shaderPath, const std::string& target) const
+ComPtr<ID3DBlob> PipelineStateManager::CompileShader(const LunarConstants::ShaderInfo& shaderInfo) const
 {
 	ComPtr<ID3DBlob> byteCode = nullptr;
 	ComPtr<ID3DBlob> errors = nullptr;
-	
+
+	string shaderPath = shaderInfo.path;
 	THROW_IF_FAILED(D3DCompileFromFile(
 		wstring(shaderPath.begin(), shaderPath.end()).c_str(),
 		nullptr,
 		D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		"main",
-		target.c_str(),
+        shaderInfo.entryPoint,
+		shaderInfo.target,
 		m_compileFlags,
 		0,
 		byteCode.GetAddressOf(),
 		&errors
 		))
+	
 	return byteCode;
 }
 
@@ -544,12 +546,17 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
         D3D12_COMPUTE_PIPELINE_STATE_DESC gaussianBlurPsoDesc = {};
     	gaussianBlurPsoDesc.pRootSignature = m_rootSignature.Get();
     	gaussianBlurPsoDesc.NodeMask = 0;
-        gaussianBlurPsoDesc.CS.pShaderBytecode = m_shaderMap["gaussianBlurCS"]->GetBufferPointer();
-        gaussianBlurPsoDesc.CS.BytecodeLength = m_shaderMap["gaussianBlurCS"]->GetBufferSize();
+        gaussianBlurPsoDesc.CS.pShaderBytecode = m_shaderMap["gaussianBlurXCS"]->GetBufferPointer();
+        gaussianBlurPsoDesc.CS.BytecodeLength = m_shaderMap["gaussianBlurXCS"]->GetBufferSize();
     	gaussianBlurPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
         THROW_IF_FAILED(device->CreateComputePipelineState(&gaussianBlurPsoDesc, 
-            IID_PPV_ARGS(m_psoMap["gaussianBlur"].GetAddressOf())))
-    }
+            IID_PPV_ARGS(m_psoMap["gaussianBlurX"].GetAddressOf())))
+    	
+		gaussianBlurPsoDesc.CS.pShaderBytecode = m_shaderMap["gaussianBlurYCS"]->GetBufferPointer();
+		gaussianBlurPsoDesc.CS.BytecodeLength = m_shaderMap["gaussianBlurYCS"]->GetBufferSize();
+		THROW_IF_FAILED(device->CreateComputePipelineState(&gaussianBlurPsoDesc, 
+			IID_PPV_ARGS(m_psoMap["gaussianBlurY"].GetAddressOf())))
+	}
 }
 
 ID3D12PipelineState* PipelineStateManager::GetPSO(const string& psoName) const

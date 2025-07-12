@@ -5,6 +5,7 @@
 
 namespace Lunar 
 {
+    class PipelineStateManager;
 
 struct ComputeTexture 
 {
@@ -23,10 +24,11 @@ public:
     ~PostProcessManager() = default;
 
     void Initialize(ID3D12Device* device, ID3D12DescriptorHeap* heap, UINT offset);
-    void ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, ID3D12RootSignature* rootSignature);
+    void ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, PipelineStateManager* pipelineStateManager);
     ComputeTexture& GetCurrentOutput() { return m_currentOutputIndex == 0 ? m_postProcessPing : m_postProcessPong; }
 
 private:
+    void SwapBuffers(ID3D12GraphicsCommandList* commandList); 
 	ComputeTexture m_postProcessPing;
 	ComputeTexture m_postProcessPong;
     UINT m_width = 1280;
@@ -34,5 +36,6 @@ private:
     UINT m_currentOutputIndex = 0;
 
     bool m_blurXEnabled = true;
+    bool m_blurYEnabled = true;
 };
 } // namespace Lunar

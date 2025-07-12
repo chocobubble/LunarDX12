@@ -483,10 +483,7 @@ void MainApp::Render(double dt)
 
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Post Process Rendering");
-		m_commandList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
-        m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("gaussianBlur"));
-		m_postProcessManager->ApplyPostEffects(m_commandList.Get(), m_sceneRenderTarget.Get(), m_pipelineStateManager->GetRootSignature());
-
+		m_postProcessManager->ApplyPostEffects(m_commandList.Get(), m_sceneRenderTarget.Get(), m_pipelineStateManager.get());
 		
 		// Set Render Target
 		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -733,7 +730,7 @@ void MainApp::CopyPPTextureToBackBuffer()
 	barriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barriers[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	barriers[0].Transition.pResource = outputPPTexture.texture.Get();
-	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 	barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 	barriers[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
