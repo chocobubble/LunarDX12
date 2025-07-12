@@ -226,45 +226,26 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         }
         LOG_DEBUG("HDR texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
         
-        // Set texture dimensions based on type
-        if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
-        {
-            UINT cubemapSize = 1024; // 512 → 1024로 증가 (Moiré pattern 감소)
-            textureDesc.Width = cubemapSize;
-            textureDesc.Height = cubemapSize;
-            textureDesc.DepthOrArraySize = 6;
-            textureDesc.MipLevels = 1; // Cubemap은 1레벨만
-            rowSizeInBytes = UINT64(cubemapSize) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
-        }
-        else // TEXTURE2D
-        {
-            textureDesc.Width = width;
-            textureDesc.Height = height;
-            textureDesc.DepthOrArraySize = 1;
-            textureDesc.MipLevels = 1; // Mipmap 비활성화 (memcpy 예외 방지)
-            rowSizeInBytes = UINT64(width) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
+        // Convert RGB to RGBA for DirectX compatibility
+        vector<float> rgbaData(width * height * 4);
+        for (int i = 0; i < width * height; ++i) {
+            rgbaData[i * 4 + 0] = data[i * 3 + 0]; // R
+            rgbaData[i * 4 + 1] = data[i * 3 + 1]; // G
+            rgbaData[i * 4 + 2] = data[i * 3 + 2]; // B
+            rgbaData[i * 4 + 3] = 1.0f;             // A
         }
         
-        textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT; // HDR with 3 channels (RGB) using 32-bit float
-        if (channels < 3)
-        {
-            LOG_WARNING("HDR texture has less than 3 channels: ", channels);
-        }
+        // Use equirectangular directly (no cubemap conversion)
+        textureDesc.Width = width;
+        textureDesc.Height = height;
+        textureDesc.DepthOrArraySize = 1;
+        textureDesc.MipLevels = 1;
+        textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT; // 4 channels RGBA
+        
+        rowSizeInBytes = UINT64(width) * 4 /*channels*/ * sizeof(float) /*size per channel*/;
 
-        if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
-        {
-            // Convert HDR equirectangular to cubemap
-            vector<vector<float>> faceData = EquirectangularToCubemap(data, width, height);
-            vector<uint8_t*> faceDataBytes(6);
-            for (int face = 0; face < 6; ++face) {
-                faceDataBytes[face] = reinterpret_cast<uint8_t*>(faceData[face].data());
-            }
-            ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceDataBytes, rowSizeInBytes, uploadBuffer);
-            stbi_image_free(data);
-            return texture;
-        }
-
-        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, reinterpret_cast<uint8_t*>(data), rowSizeInBytes, uploadBuffer);
+        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, 
+            reinterpret_cast<uint8_t*>(rgbaData.data()), rowSizeInBytes, uploadBuffer);
         stbi_image_free(data);
         return texture;
     }
@@ -526,7 +507,7 @@ ComPtr<ID3D12Resource> TextureManager::CreateCubemapResource(
 
 vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData, UINT width, UINT height)
 {
-    UINT cubemapSize = 1024; // 512 → 1024로 증가 (Moiré pattern 감소)
+    UINT cubemapSize = 2048; // 1024 → 2048로 증가 (줄무늬 아티팩트 감소)
 
     vector<vector<float>> faceData(6);
 
@@ -595,23 +576,23 @@ vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData,
                 float equiV = 0.5f - phi / M_PI; 
 
                 // Bilinear interpolation for better quality
-                float fX = equiU * (width - 1);
-                float fY = equiV * (height - 1);
+                float fX = equiU * width;
+                float fY = equiV * height;
+                
+                // Ensure we stay within bounds
+                fX = fmax(0.0f, fmin(fX, width - 1.0f));
+                fY = fmax(0.0f, fmin(fY, height - 1.0f));
                 
                 int x0 = static_cast<int>(floor(fX));
                 int y0 = static_cast<int>(floor(fY));
                 int x1 = x0 + 1;
                 int y1 = y0 + 1;
                 
-                // Handle wrapping for U coordinate (horizontal)
-                x0 = x0 % width;
-                x1 = x1 % width;
-                if (x0 < 0) x0 += width;
-                if (x1 < 0) x1 += width;
+                // Handle wrapping for U coordinate (horizontal) - equirectangular wraps horizontally
+                if (x1 >= width) x1 = 0;
                 
-                // Clamp Y coordinate (vertical)
-                y0 = std::clamp(y0, 0, static_cast<int>(height - 1));
-                y1 = std::clamp(y1, 0, static_cast<int>(height - 1));
+                // Clamp Y coordinate (vertical) - equirectangular doesn't wrap vertically
+                y1 = min(y1, static_cast<int>(height - 1));
                 
                 float fracX = fX - floor(fX);
                 float fracY = fY - floor(fY);
