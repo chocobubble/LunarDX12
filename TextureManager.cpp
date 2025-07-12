@@ -89,7 +89,7 @@ void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo&
 		srvDesc.TextureCube.MostDetailedMip = 0;
 		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 	} else {
-		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.MipLevels = 1; // Single mip level
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.PlaneSlice = 0;
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
@@ -225,16 +225,31 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
             throw std::runtime_error("Failed to load HDR texture: " + filename);
         }
         LOG_DEBUG("HDR texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
-    	UINT cubemapSize = 512;
-        textureDesc.Width = cubemapSize;
-        textureDesc.Height = cubemapSize;
-    	textureDesc.DepthOrArraySize = 6;
-        textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT; // HDR typically uses 3 channels of float
+        
+        // Set texture dimensions based on type
+        if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
+        {
+            UINT cubemapSize = 1024; // 512 → 1024로 증가 (Moiré pattern 감소)
+            textureDesc.Width = cubemapSize;
+            textureDesc.Height = cubemapSize;
+            textureDesc.DepthOrArraySize = 6;
+            textureDesc.MipLevels = 1; // Cubemap은 1레벨만
+            rowSizeInBytes = UINT64(cubemapSize) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
+        }
+        else // TEXTURE2D
+        {
+            textureDesc.Width = width;
+            textureDesc.Height = height;
+            textureDesc.DepthOrArraySize = 1;
+            textureDesc.MipLevels = 1; // Mipmap 비활성화 (memcpy 예외 방지)
+            rowSizeInBytes = UINT64(width) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
+        }
+        
+        textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT; // HDR with 3 channels (RGB) using 32-bit float
         if (channels < 3)
         {
             LOG_WARNING("HDR texture has less than 3 channels: ", channels);
         }
-        rowSizeInBytes = UINT64(cubemapSize) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
 
         if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
         {
@@ -511,7 +526,7 @@ ComPtr<ID3D12Resource> TextureManager::CreateCubemapResource(
 
 vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData, UINT width, UINT height)
 {
-    UINT cubemapSize = 512;
+    UINT cubemapSize = 1024; // 512 → 1024로 증가 (Moiré pattern 감소)
 
     vector<vector<float>> faceData(6);
 
@@ -569,25 +584,59 @@ vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData,
                 direction[1] /= length;
                 direction[2] /= length;
 
-                float M_PI = 3.14159;
+                float M_PI = 3.14159265359f;
                 float theta = atan2f(direction[2], direction[0]); // azimuth
                 float phi = asinf(direction[1]); // elevation
-                float equiU = (theta + M_PI) / (2.0f * M_PI); 
-                // float equiV = (phi + M_PI / 2.0f) / M_PI;
-            	float equiV = 0.5 - phi / M_PI; 
+                
+                // Normalize theta to [0, 2π]
+                if (theta < 0) theta += 2.0f * M_PI;
+                
+                float equiU = theta / (2.0f * M_PI); 
+                float equiV = 0.5f - phi / M_PI; 
 
-                int equiX = static_cast<int>(equiU * width);
-                int equiY = static_cast<int>(equiV * height);
-                equiX = std::clamp(equiX, 0, static_cast<int>(width - 1));
-                equiY = std::clamp(equiY, 0, static_cast<int>(height - 1));
-
-                // data sampling
-                int srcIndex = (equiY * width + equiX) * 3; // 3 : channels RGB
-                int dstIndex = (y * cubemapSize + x) * 3; // 3 : channels RGB
-
-                faceData[face][dstIndex] = imageData[srcIndex];     // R
-                faceData[face][dstIndex + 1] = imageData[srcIndex + 1]; // G
-                faceData[face][dstIndex + 2] = imageData[srcIndex + 2]; // B
+                // Bilinear interpolation for better quality
+                float fX = equiU * (width - 1);
+                float fY = equiV * (height - 1);
+                
+                int x0 = static_cast<int>(floor(fX));
+                int y0 = static_cast<int>(floor(fY));
+                int x1 = x0 + 1;
+                int y1 = y0 + 1;
+                
+                // Handle wrapping for U coordinate (horizontal)
+                x0 = x0 % width;
+                x1 = x1 % width;
+                if (x0 < 0) x0 += width;
+                if (x1 < 0) x1 += width;
+                
+                // Clamp Y coordinate (vertical)
+                y0 = std::clamp(y0, 0, static_cast<int>(height - 1));
+                y1 = std::clamp(y1, 0, static_cast<int>(height - 1));
+                
+                float fracX = fX - floor(fX);
+                float fracY = fY - floor(fY);
+                
+                // Sample four neighboring pixels
+                int idx00 = (y0 * width + x0) * 3;
+                int idx01 = (y0 * width + x1) * 3;
+                int idx10 = (y1 * width + x0) * 3;
+                int idx11 = (y1 * width + x1) * 3;
+                
+                int dstIndex = (y * cubemapSize + x) * 3;
+                
+                // Bilinear interpolation for each channel
+                for (int c = 0; c < 3; ++c) {
+                    float c00 = imageData[idx00 + c];
+                    float c01 = imageData[idx01 + c];
+                    float c10 = imageData[idx10 + c];
+                    float c11 = imageData[idx11 + c];
+                    
+                    float c0 = c00 * (1.0f - fracX) + c01 * fracX;
+                    float c1 = c10 * (1.0f - fracX) + c11 * fracX;
+                    float result = c0 * (1.0f - fracY) + c1 * fracY;
+                    
+                    faceData[face][dstIndex + c] = result;
+                }
             }
         }
     }
