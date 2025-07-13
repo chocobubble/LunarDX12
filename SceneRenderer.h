@@ -26,6 +26,7 @@ class LightingSystem;
 class ConstantBuffer;
 class ParticleSystem;
 class DebugViewModel;
+class DescriptorAllocator;
 struct BasicConstants;
 
 enum class RenderLayer
@@ -60,7 +61,7 @@ public:
     void InitializeScene(ID3D12Device* device, LunarGui* gui, PipelineStateManager* pipelineManager);
 	void CreateDSVDescriptorHeap(ID3D12Device* device);
 	void CreateDepthStencilView(ID3D12Device* device);
-	void InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, ID3D12DescriptorHeap* srvHeap);
+	void InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator);
 
 	void RenderShadowMap(ID3D12GraphicsCommandList* commandList);
 	void UpdateScene(float deltaTime);

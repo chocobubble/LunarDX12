@@ -78,6 +78,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ConstantBuffers.cpp" />
+    <ClCompile Include="DescriptorAllocator.cpp" />
     <ClCompile Include="Geometry\Geometry.cpp" />
     <ClCompile Include="Geometry\Cube.cpp" />
     <ClCompile Include="Geometry\IcoSphere.cpp" />
@@ -111,6 +112,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ConstantBuffers.h" />
+    <ClInclude Include="DescriptorAllocator.h" />
     <ClInclude Include="Geometry\Geometry.h" />
     <ClInclude Include="Geometry\IcoSphere.h" />
     <ClInclude Include="Geometry\Transform.h" />

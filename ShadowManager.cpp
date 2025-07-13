@@ -2,6 +2,7 @@
 
 #include <d3d12.h>
 
+#include "DescriptorAllocator.h"
 #include "Utils/Utils.h"
 #include "Utils/MathUtils.h"
 
@@ -71,7 +72,7 @@ void ShadowManager::CreateDSV(ID3D12Device* device, ID3D12DescriptorHeap* dsvHea
 		m_dsvHandle);
 }
 
-void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHeap)
+void ShadowManager::CreateSRV(ID3D12Device* device, DescriptorAllocator* descriptorAllocator)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -81,12 +82,9 @@ void ShadowManager::CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHea
 	srvDesc.Texture2D.PlaneSlice = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
-	srvHandle.ptr += 10 * device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	device->CreateShaderResourceView(
-		m_shadowTexture.Get(),
-		&srvDesc,
-		srvHandle);
+
+	descriptorAllocator->AllocateDescriptor("ShadowMap");
+	descriptorAllocator->CreateSRV(m_shadowTexture.Get(), &srvDesc, "ShadowMap");
 }
 
 void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)

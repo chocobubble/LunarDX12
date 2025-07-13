@@ -11,8 +11,8 @@
 #include "Utils/Utils.h"
 #include "LunarConstants.h"
 #include "ConstantBuffers.h"
+#include "DescriptorAllocator.h"
 #include "UI/LunarGui.h"
-#include "ParticleSystem.h"
 #include "SceneRenderer.h"
 #include "PipelineStateManager.h"
 #include "PerformanceProfiler.h"
@@ -48,6 +48,7 @@ MainApp::MainApp()
 	m_performanceViewModel = make_unique<PerformanceViewModel>();
 	m_postProcessManager = make_unique<PostProcessManager>();
 	m_postProcessViewModel = make_unique<PostProcessViewModel>();
+	m_descriptorAllocator = make_unique<DescriptorAllocator>();
 }
 
 MainApp::~MainApp()
@@ -269,17 +270,6 @@ void MainApp::CreateSceneRenderTarget()
 		));
 }
 
-void MainApp::CreateSRVDescriptorHeap()
-{
-	LOG_FUNCTION_ENTRY();
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.NumDescriptors = static_cast<UINT>(LunarConstants::TEXTURE_INFO.size()) + 10;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	srvHeapDesc.NodeMask = 0;
-	THROW_IF_FAILED(m_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_srvHeap.GetAddressOf())))
-}
-	
 void MainApp::CreateRTVDescriptorHeap()
 {
 	LOG_FUNCTION_ENTRY();
@@ -422,10 +412,6 @@ void MainApp::Render(double dt)
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Command List Setup");
 		m_commandAllocator->Reset(); // Cautions!
 		m_commandList->Reset(m_commandAllocator.Get(), nullptr);
-
-		// Set Constant Buffer Descriptor heap
-		ID3D12DescriptorHeap* descriptorHeaps[] = { m_srvHeap.Get() };
-		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
 		{ // Compute Shader
 			m_commandList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
@@ -435,8 +421,12 @@ void MainApp::Render(double dt)
 		
 		// Switch to graphics pipeline
 		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
+		
+		// Set Constant Buffer Descriptor heap
+		ID3D12DescriptorHeap* descriptorHeaps[] = { m_descriptorAllocator->GetHeap() };
+		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_srvHeap->GetGPUDescriptorHandleForHeapStart(); 
+		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_descriptorAllocator->GetHeap()->GetGPUDescriptorHandleForHeapStart(); 
 		m_commandList->SetGraphicsRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, descriptorHandle);
 		
 		m_sceneRenderer->RenderShadowMap(m_commandList.Get());
@@ -484,7 +474,7 @@ void MainApp::Render(double dt)
 
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Post Process Rendering");
-		m_postProcessManager->ApplyPostEffects(m_commandList.Get(), m_sceneRenderTarget.Get(), m_pipelineStateManager.get());
+		m_postProcessManager->ApplyPostEffects(m_commandList.Get(), m_sceneRenderTarget.Get(), m_pipelineStateManager.get(), m_descriptorAllocator.get());
 		
 		// Set Render Target
 		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -555,16 +545,16 @@ void MainApp::Initialize()
 	CreateFence();
 	CreateCamera();
 	CreateSwapChain();
-	CreateSRVDescriptorHeap();
+	m_descriptorAllocator->Initialize(m_device.Get());
 	CreateSceneRenderTarget();
 	CreateRTVDescriptorHeap();
-	// REFACTOR: mainapp controls srvheap & offset or with new struct
-	m_postProcessManager->Initialize(m_device.Get(), m_srvHeap.Get(), 14);
-	m_postProcessViewModel->Initialize(m_gui.get(), m_postProcessManager.get());
 	CreateRenderTargetView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
 	InitializeTextures(); // for now, should come after InitializeGeometry method
+	// REFACTOR: mainapp controls srvheap & offset or with new struct
+	m_postProcessManager->Initialize(m_device.Get(), m_descriptorAllocator.get());
+	m_postProcessViewModel->Initialize(m_gui.get(), m_postProcessManager.get());
 	m_performanceProfiler->Initialize();
 	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
 	
@@ -708,7 +698,7 @@ void MainApp::CreateCamera()
 
 void MainApp::InitializeTextures()
 {
-	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get(), m_srvHeap.Get());
+	m_sceneRenderer->InitializeTextures(m_device.Get(), m_commandList.Get(), m_descriptorAllocator.get());
 }
 
 void MainApp::CopyPPTextureToBackBuffer()

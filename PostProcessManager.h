@@ -1,19 +1,21 @@
 #pragma once 
 
 #include <d3d12.h>
+#include <string>
 #include <wrl/client.h>
 
 namespace Lunar 
 {
-    class PipelineStateManager;
+class DescriptorAllocator;
+class PipelineStateManager;
 
 struct ComputeTexture 
 {
     Microsoft::WRL::ComPtr<ID3D12Resource> texture;
-    D3D12_CPU_DESCRIPTOR_HANDLE cpuSrvHandle;
-    D3D12_CPU_DESCRIPTOR_HANDLE cpuUavHandle;
-    D3D12_GPU_DESCRIPTOR_HANDLE gpuSrvHandle;
-    D3D12_GPU_DESCRIPTOR_HANDLE gpuUavHandle;    
+	std::string srvOffsetKey;
+	std::string uavOffsetKey;
+	UINT srvOffset;
+	UINT uavOffset;
 };
 
 class PostProcessManager
@@ -23,12 +25,12 @@ public:
     PostProcessManager();
     ~PostProcessManager() = default;
 
-    void Initialize(ID3D12Device* device, ID3D12DescriptorHeap* heap, UINT offset);
-    void ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, PipelineStateManager* pipelineStateManager);
+    void Initialize(ID3D12Device* device, DescriptorAllocator* descriptorAllocator);
+    void ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, PipelineStateManager* pipelineStateManager, DescriptorAllocator* descriptorAllocator);
     ComputeTexture& GetCurrentOutput() { return m_currentOutputIndex == 0 ? m_postProcessPing : m_postProcessPong; }
 
 private:
-    void SwapBuffers(ID3D12GraphicsCommandList* commandList); 
+    void SwapBuffers(ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator); 
 	ComputeTexture m_postProcessPing;
 	ComputeTexture m_postProcessPong;
     UINT m_width = 1280;

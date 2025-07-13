@@ -3,7 +3,10 @@
 #include <DirectXTex.h>
 #include <filesystem>
 #include <stb_image.h>
+#include <random>
+#include <cmath>
 
+#include "DescriptorAllocator.h"
 #include "Utils/Logger.h"
 #include "Utils/Utils.h"
 
@@ -14,7 +17,7 @@ using namespace DirectX;
 namespace Lunar
 {
 	
-void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, D3D12_CPU_DESCRIPTOR_HANDLE& srvHandle)
+void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator)
 {
 	LOG_FUNCTION_ENTRY();
 
@@ -23,11 +26,11 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
         Texture texture = {};
         texture.Resource = LoadTexture(textureInfo, device, commandList, textureInfo.path, texture.UploadBuffer);
         m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
-	    CreateShaderResourceView(textureInfo, device, srvHandle);
+	    CreateShaderResourceView(textureInfo, device, descriptorAllocator);
     }
 }
 
-void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE& srvHandle)
+void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator)
 {
 	LOG_FUNCTION_ENTRY();
 
@@ -101,9 +104,8 @@ void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo&
 		return;
 	}
 	srvDesc.Format = texture->Resource->GetDesc().Format;
-	device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, srvHandle);
-	LOG_DEBUG("Created SRV for texture: ", textureInfo.name, " at handle: ", srvHandle.ptr);
-	srvHandle.ptr += device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	descriptorAllocator->AllocateDescriptor(textureInfo.name);
+	descriptorAllocator->CreateSRV(texture->Resource.Get(), &srvDesc, textureInfo.name);
 }
 
 ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, ComPtr<ID3D12Resource>& uploadBuffer)
@@ -594,4 +596,42 @@ vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData,
     
     return faceData;
 }
+
+ComPtr<ID3D12Resource> TextureManager::CreateEmptyCubemapResource( ID3D12Device* device, UINT cubemapSize, D3D12_RESOURCE_FLAGS flags, UINT mipLevels)
+{
+    LOG_FUNCTION_ENTRY();
+    
+    D3D12_RESOURCE_DESC resourceDesc = {};
+    resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    resourceDesc.Alignment = 0;
+    resourceDesc.Width = cubemapSize;
+    resourceDesc.Height = cubemapSize;
+    resourceDesc.DepthOrArraySize = 6; 
+    resourceDesc.MipLevels = mipLevels;
+    resourceDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    resourceDesc.SampleDesc.Count = 1;
+    resourceDesc.SampleDesc.Quality = 0;
+    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    resourceDesc.Flags = flags;
+
+    D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
+    defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+    defaultHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    defaultHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    defaultHeapProperties.CreationNodeMask = 1;
+    defaultHeapProperties.VisibleNodeMask = 1;
+
+    ComPtr<ID3D12Resource> cubemap;
+    
+    THROW_IF_FAILED(device->CreateCommittedResource(
+        &defaultHeapProperties, 
+        D3D12_HEAP_FLAG_NONE, 
+        &resourceDesc, 
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
+        nullptr, IID_PPV_ARGS(&cubemap)));
+    
+    LOG_DEBUG("Empty cube map created: ", cubemapSize, "x", cubemapSize, " with ", mipLevels, " mip levels");
+    return cubemap;
+}
+
 } //namespace Lunar

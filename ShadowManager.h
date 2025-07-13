@@ -8,7 +8,8 @@
 
 namespace Lunar
 {
-
+class DescriptorAllocator;
+	
 class ShadowManager
 {
 friend class ShadowViewModel;
@@ -16,7 +17,7 @@ public:
 	void Initialize(ID3D12Device* device);
 	void CreateShadowMapTexture(ID3D12Device* device);
 	void CreateDSV(ID3D12Device* device, ID3D12DescriptorHeap* dsvHeap);
-	void CreateSRV(ID3D12Device* device, ID3D12DescriptorHeap* srvHeap);
+	void CreateSRV(ID3D12Device* device, DescriptorAllocator* descriptorAllocator);
 	void UpdateShadowCB(const BasicConstants& basicConstants);
 	ID3D12Resource* GetShadowTexture() const { return m_shadowTexture.Get(); }
 	const D3D12_VIEWPORT& GetViewport() const { return m_viewport; };

@@ -3,6 +3,7 @@
 #include "MaterialManager.h"
 #include "LightingSystem.h"
 #include "ConstantBuffers.h"
+#include "DescriptorAllocator.h"
 #include "UI/LunarGUI.h"
 #include "Utils/MathUtils.h"
 #include "PipelineStateManager.h"
@@ -152,11 +153,10 @@ void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
 	m_shadowManager->CreateDSV(device, m_dsvHeap.Get());
 }
 
-void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, ID3D12DescriptorHeap* srvHeap)
+void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator)
 {
-	m_srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
-	m_textureManager->Initialize(device, commandList, m_srvHandle);
-	m_shadowManager->CreateSRV(device, srvHeap);
+	m_textureManager->Initialize(device, commandList, descriptorAllocator);
+	m_shadowManager->CreateSRV(device, descriptorAllocator);
 
 	// REFACTORING: Rename or refactor this method
 	m_particleSystem->Initialize(device, commandList);
