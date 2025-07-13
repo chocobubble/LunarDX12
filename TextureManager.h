@@ -1,6 +1,5 @@
 #pragma once
 #include <d3d12.h>
-#include <DirectXMath.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -13,6 +12,7 @@ namespace Lunar
 {
 
 class DescriptorAllocator;
+class PipelineStateManager;
 	
 struct Texture
 {
@@ -23,7 +23,7 @@ struct Texture
 class TextureManager
 {
 public:
-	void Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator);
+	void Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, PipelineStateManager* pipelineStateManager);
 
 private:
 	std::unordered_map<std::string, std::unique_ptr<Texture>> m_textureMap;
@@ -48,7 +48,9 @@ private:
 	
 	std::vector<std::vector<float>> EquirectangularToCubemap(float* imageData, UINT width, UINT height);
 
-    Microsoft::WRL::ComPtr<ID3D12Resource> CreateEmptyCubemapResource(ID3D12Device* device, UINT cubemapSize, D3D12_RESOURCE_FLAGS flags, UINT mipLevels = 1);
+    Microsoft::WRL::ComPtr<ID3D12Resource> CreateEmptyCubemapResource(ID3D12Device* device, UINT cubemapSize, UINT mipLevels = 1);
+
+	void LoadHDRImage(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, const PipelineStateManager* pipelineStateManager);
 };
 	
 } // namespace Lunar

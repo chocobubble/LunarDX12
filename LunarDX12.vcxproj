@@ -277,5 +277,10 @@
       <ShaderModel>5.1</ShaderModel>
       <ShaderType>Compute</ShaderType>
     </FxCompile>
+    <FxCompile Include="Shaders\IblCS.hlsl">
+      <EntryPointName>main</EntryPointName>
+      <ShaderModel>5.1</ShaderModel>
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
   </ItemGroup>
 </Project>

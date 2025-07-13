@@ -1,12 +1,15 @@
 #include "TextureManager.h"
 
 #include <DirectXTex.h>
+#include <DirectXMath.h>
+#include <DirectXPackedVector.h>
 #include <filesystem>
 #include <stb_image.h>
 #include <random>
 #include <cmath>
 
 #include "DescriptorAllocator.h"
+#include "PipelineStateManager.h"
 #include "Utils/IBLUtils.h"
 #include "Utils/Logger.h"
 #include "Utils/Utils.h"
@@ -18,22 +21,22 @@ using namespace DirectX;
 namespace Lunar
 {
 	
-void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator)
+void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, PipelineStateManager* pipelineStateManager)
 {
 	LOG_FUNCTION_ENTRY();
 
     for (auto& textureInfo : Lunar::LunarConstants::TEXTURE_INFO)
     {
+    	if (textureInfo.fileType == LunarConstants::FileType::HDR)
+    	{
+    		LoadHDRImage(textureInfo, device, commandList, descriptorAllocator, pipelineStateManager);
+    		continue;
+    	}
         Texture texture = {};
         texture.Resource = LoadTexture(textureInfo, device, commandList, textureInfo.path, texture.UploadBuffer);
         m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
 	    CreateShaderResourceView(textureInfo, device, descriptorAllocator);
     }
-
-	LunarConstants::TextureInfo irradianceTextureInfo = 
-    {"Irradiance", "Assets\\Textures\\skybox\\skybox", LunarConstants::FileType::HDR, LunarConstants::TextureDimension::CUBEMAP};
-	CreateShaderResourceView(irradianceTextureInfo, device, descriptorAllocator);
-	
 }
 
 void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator)
@@ -215,55 +218,6 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         
         ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, data, rowSizeInBytes, uploadBuffer);
         return texture;
-    }
-    else if (textureInfo.fileType == LunarConstants::FileType::HDR)
-    {
-        float* data = nullptr;
-        if (stbi_is_hdr(filename.c_str()) == 0)
-        {
-            LOG_ERROR("File is not a valid HDR texture: ", filename);
-            throw std::runtime_error("File is not a valid HDR texture: " + filename);
-        }
-
-        int width, height, channels;
-        data = stbi_loadf(filename.c_str(), &width, &height, &channels, 3); // loadf : float
-        if (!data) 
-        {
-            LOG_ERROR("Failed to load HDR texture: ", filename);
-            throw std::runtime_error("Failed to load HDR texture: " + filename);
-        }
-        LOG_DEBUG("HDR texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
-    	UINT cubemapSize = max(width / 4, height / 2);
-        textureDesc.Width = cubemapSize;
-        textureDesc.Height = cubemapSize;
-    	textureDesc.DepthOrArraySize = 6;
-        textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT; // HDR typically uses 3 channels of float
-        if (channels < 3)
-        {
-            LOG_WARNING("HDR texture has less than 3 channels: ", channels);
-        }
-        rowSizeInBytes = UINT64(cubemapSize) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
-
-        // Convert HDR equirectangular to cubemap
-        vector<vector<float>> faceData = EquirectangularToCubemap(data, width, height);
-        vector<uint8_t*> faceDataBytes(6);
-        for (int face = 0; face < 6; ++face) {
-            faceDataBytes[face] = reinterpret_cast<uint8_t*>(faceData[face].data());
-        }
-    	
-        ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceDataBytes, rowSizeInBytes, uploadBuffer);
-    	
-    	// FIXME: not to be hardcoded
-    	Texture irradianceTexture = {};
-    	vector<vector<float>> irradianceMap = IBLUtils::GenerateIrradianceMap(faceData, cubemapSize, cubemapSize / 2);
-    	textureDesc.Width = 256;
-    	textureDesc.Height = 256;
-    	rowSizeInBytes = UINT64(256) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
-    	irradianceTexture.Resource =  CreateTextureResource(device, commandList, textureDesc, reinterpret_cast<uint8_t*>(irradianceMap.data()), rowSizeInBytes, irradianceTexture.UploadBuffer);
-    	m_textureMap["Irradiance"] = make_unique<Texture>(irradianceTexture);
-    	
-    	stbi_image_free(data);
-    	return texture;
     }
     else 
     {
@@ -528,6 +482,7 @@ vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData,
     vector<vector<float>> faceData(6);
 
     for (int face = 0; face < 6; ++face) {
+        LOG_DEBUG("Processing cubemap face: ", face);
         faceData[face].resize(cubemapSize * cubemapSize * 3); // 3 channels RGB
 
         for (int y = 0; y < cubemapSize; ++y) {
@@ -570,6 +525,7 @@ vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData,
 						break;
                     default:
                         LOG_ERROR("Invalid cubemap face index: ", face);
+                        continue;
                 }
                 // Normalize direction vector
                 float length = sqrtf(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
@@ -607,7 +563,7 @@ vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData,
     return faceData;
 }
 
-ComPtr<ID3D12Resource> TextureManager::CreateEmptyCubemapResource( ID3D12Device* device, UINT cubemapSize, D3D12_RESOURCE_FLAGS flags, UINT mipLevels)
+ComPtr<ID3D12Resource> TextureManager::CreateEmptyCubemapResource(ID3D12Device* device, UINT cubemapSize, UINT mipLevels)
 {
     LOG_FUNCTION_ENTRY();
     
@@ -622,7 +578,7 @@ ComPtr<ID3D12Resource> TextureManager::CreateEmptyCubemapResource( ID3D12Device*
     resourceDesc.SampleDesc.Count = 1;
     resourceDesc.SampleDesc.Quality = 0;
     resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    resourceDesc.Flags = flags;
+    resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
     D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
     defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -642,6 +598,123 @@ ComPtr<ID3D12Resource> TextureManager::CreateEmptyCubemapResource( ID3D12Device*
     
     LOG_DEBUG("Empty cube map created: ", cubemapSize, "x", cubemapSize, " with ", mipLevels, " mip levels");
     return cubemap;
+}
+
+void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, const PipelineStateManager* pipelineStateManager)
+{
+	// 1. Load HDR Image and save as a cubemap
+	// 2. Create an empty cubemap resource for irradiance map
+	// 3. Calculate the irradiance map and copy to the resource
+	
+	string filename = textureInfo.path;
+	
+    if (stbi_is_hdr(filename.c_str()) == 0)
+    {
+        LOG_ERROR("File is not a valid HDR texture: ", filename);
+        throw std::runtime_error("File is not a valid HDR texture: " + filename);
+    }
+
+    int width, height, channels;
+    float* data = stbi_loadf(filename.c_str(), &width, &height, &channels, 3); // loadf : float
+    if (!data) 
+    {
+        LOG_ERROR("Failed to load HDR texture: ", filename);
+        throw std::runtime_error("Failed to load HDR texture: " + filename);
+    }
+	
+    LOG_DEBUG("HDR texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
+    UINT cubemapSize = max(width / 4, height / 2);
+	
+	D3D12_RESOURCE_DESC textureDesc = {};
+	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	textureDesc.MipLevels = 1;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    textureDesc.Width = cubemapSize;
+    textureDesc.Height = cubemapSize;
+    textureDesc.DepthOrArraySize = 6;
+    textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	
+    vector<vector<float>> faceData = EquirectangularToCubemap(data, width, height);
+    
+    vector<vector<uint16_t>> faceDataRGBA16(6);
+    for (int face = 0; face < 6; ++face) {
+        faceDataRGBA16[face].resize(cubemapSize * cubemapSize * 4); 
+        for (size_t i = 0; i < cubemapSize * cubemapSize; ++i) {
+            // Convert RGB float to RGBA16F
+            faceDataRGBA16[face][i * 4 + 0] = PackedVector::XMConvertFloatToHalf(faceData[face][i * 3 + 0]); // R
+            faceDataRGBA16[face][i * 4 + 1] = PackedVector::XMConvertFloatToHalf(faceData[face][i * 3 + 1]); // G
+            faceDataRGBA16[face][i * 4 + 2] = PackedVector::XMConvertFloatToHalf(faceData[face][i * 3 + 2]); // B
+            faceDataRGBA16[face][i * 4 + 3] = PackedVector::XMConvertFloatToHalf(1.0f); // A
+        }
+    }
+    
+    UINT64 rowSizeInBytes = static_cast<UINT64>(cubemapSize) * 4 /*RGBA*/ * sizeof(uint16_t) /*16-bit per channel*/;
+    
+    vector<uint8_t*> faceDataBytes(6);
+    for (int face = 0; face < 6; ++face) {
+        faceDataBytes[face] = reinterpret_cast<uint8_t*>(faceDataRGBA16[face].data());
+    }
+
+	Texture texture = {};
+	texture.Resource = CreateCubemapResource(device, commandList, textureDesc, faceDataBytes, rowSizeInBytes, texture.UploadBuffer);
+    
+    stbi_image_free(data);
+	
+	m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
+	CreateShaderResourceView(textureInfo, device, descriptorAllocator);
+
+	UINT irradianceMapSize = cubemapSize / 2;
+	Texture irradianceTexture = {};
+	irradianceTexture.Resource = CreateEmptyCubemapResource(device, irradianceMapSize);
+
+	LunarConstants::TextureInfo irradianceTextureInfo = textureInfo;
+	irradianceTextureInfo.name = "skybox_irradiance";
+	m_textureMap[irradianceTextureInfo.name] = make_unique<Texture>(irradianceTexture);
+	CreateShaderResourceView(irradianceTextureInfo, device, descriptorAllocator);
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	descriptorAllocator->AllocateDescriptor("skybox_irradiance_uav");
+	descriptorAllocator->CreateUAV(irradianceTexture.Resource.Get(), &uavDesc, "skybox_irradiance_uav");
+
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Transition.pResource = texture.Resource.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	commandList->ResourceBarrier(1, &barrier);
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorAllocator->GetHeap() };
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	commandList->SetComputeRootSignature(pipelineStateManager->GetRootSignature());
+	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle(textureInfo.name));
+	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle("skybox_irradiance_uav"));
+	commandList->SetPipelineState(pipelineStateManager->GetPSO("irradiance"));
+	commandList->Dispatch((irradianceMapSize + 7) / 8, (irradianceMapSize + 7) / 8, 1);
+
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	commandList->ResourceBarrier(1, &barrier);
+
+	barrier.Transition.pResource = irradianceTexture.Resource.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	commandList->ResourceBarrier(1, &barrier);
+	
+	// FIXME: not to be hardcoded
+	// Texture irradianceTexture = {};
+	// vector<vector<float>> irradianceMap = IBLUtils::GenerateIrradianceMap(faceData, cubemapSize, cubemapSize / 2);
+	// textureDesc.Width = 256;
+	// textureDesc.Height = 256;
+	// rowSizeInBytes = UINT64(256) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
+	// irradianceTexture.Resource =  CreateTextureResource(device, commandList, textureDesc, reinterpret_cast<uint8_t*>(irradianceMap.data()), rowSizeInBytes, irradianceTexture.UploadBuffer);
+	// m_textureMap["Irradiance"] = make_unique<Texture>(irradianceTexture);
 }
 
 } //namespace Lunar

@@ -557,6 +557,18 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		THROW_IF_FAILED(device->CreateComputePipelineState(&gaussianBlurPsoDesc, 
 			IID_PPV_ARGS(m_psoMap["gaussianBlurY"].GetAddressOf())))
 	}
+
+	// PSO for IBL
+	{
+		D3D12_COMPUTE_PIPELINE_STATE_DESC irradiancePsoDesc = {};
+		irradiancePsoDesc.pRootSignature = m_rootSignature.Get();
+		irradiancePsoDesc.NodeMask = 0;
+		irradiancePsoDesc.CS.pShaderBytecode = m_shaderMap["irradianceCS"]->GetBufferPointer();
+		irradiancePsoDesc.CS.BytecodeLength = m_shaderMap["irradianceCS"]->GetBufferSize();
+		irradiancePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+		THROW_IF_FAILED(device->CreateComputePipelineState(&irradiancePsoDesc, 
+			IID_PPV_ARGS(m_psoMap["irradiance"].GetAddressOf())))
+	}
 }
 
 ID3D12PipelineState* PipelineStateManager::GetPSO(const string& psoName) const

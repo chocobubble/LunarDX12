@@ -58,7 +58,7 @@ static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
 	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
 	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
 	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-    {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
+    {"skybox", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP},
 }};
 
 /////////////// Shaders ///////////////
@@ -69,7 +69,7 @@ struct ShaderInfo
 	const char* target;
     const char* entryPoint = "main"; // Default entry point
 };
-static constexpr std::array<ShaderInfo, 20> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 21> SHADER_INFO = {{
 	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_1" },
 	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_1" },
 	{ "basicHS", "Shaders\\BasicHullShader.hlsl", "hs_5_1" },
@@ -90,6 +90,7 @@ static constexpr std::array<ShaderInfo, 20> SHADER_INFO = {{
     { "particlesGS", "Shaders\\ParticleGeometryShader.hlsl", "gs_5_1" },
     { "gaussianBlurXCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1", "BlurX" },
     { "gaussianBlurYCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1", "BlurY" },
+    { "irradianceCS", "Shaders\\IblCS.hlsl", "cs_5_1", "irradiance" },
 }};
 
 /////////////// Debug Flags ///////////////

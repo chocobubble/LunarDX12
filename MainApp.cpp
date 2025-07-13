@@ -422,7 +422,6 @@ void MainApp::Render(double dt)
 		// Switch to graphics pipeline
 		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 		
-		// Set Constant Buffer Descriptor heap
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_descriptorAllocator->GetHeap() };
 		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
@@ -552,7 +551,6 @@ void MainApp::Initialize()
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
 	InitializeTextures(); // for now, should come after InitializeGeometry method
-	// REFACTOR: mainapp controls srvheap & offset or with new struct
 	m_postProcessManager->Initialize(m_device.Get(), m_descriptorAllocator.get());
 	m_postProcessViewModel->Initialize(m_gui.get(), m_postProcessManager.get());
 	m_performanceProfiler->Initialize();
