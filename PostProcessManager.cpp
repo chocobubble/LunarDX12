@@ -47,7 +47,7 @@ void PostProcessManager::Initialize(ID3D12Device* device, DescriptorAllocator* d
         &heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &textureDesc,
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
         nullptr,
         IID_PPV_ARGS(&m_postProcessPing.texture)));
 
@@ -55,7 +55,7 @@ void PostProcessManager::Initialize(ID3D12Device* device, DescriptorAllocator* d
         &heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &textureDesc,
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
         nullptr,
         IID_PPV_ARGS(&m_postProcessPong.texture)));
 

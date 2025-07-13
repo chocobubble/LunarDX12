@@ -105,6 +105,7 @@
     <ClCompile Include="UI\PostProcessViewModel.cpp" />
     <ClCompile Include="UI\SceneViewModel.cpp" />
     <ClCompile Include="UI\ShadowViewModel.cpp" />
+    <ClCompile Include="Utils\IBLUtils.cpp" />
     <ClCompile Include="Utils\Logger.cpp" />
     <ClCompile Include="Utils\MathUtils.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
@@ -139,6 +140,7 @@
     <ClInclude Include="UI\PostProcessViewModel.h" />
     <ClInclude Include="UI\SceneViewModel.h" />
     <ClInclude Include="UI\ShadowViewModel.h" />
+    <ClInclude Include="Utils\IBLUtils.h" />
     <ClInclude Include="Utils\Logger.h" />
     <ClInclude Include="Utils\MathUtils.h" />
     <ClInclude Include="Utils\Utils.h" />

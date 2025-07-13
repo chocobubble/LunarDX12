@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include "DescriptorAllocator.h"
+#include "Utils/IBLUtils.h"
 #include "Utils/Logger.h"
 #include "Utils/Utils.h"
 
@@ -28,6 +29,11 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
         m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
 	    CreateShaderResourceView(textureInfo, device, descriptorAllocator);
     }
+
+	LunarConstants::TextureInfo irradianceTextureInfo = 
+    {"Irradiance", "Assets\\Textures\\skybox\\skybox", LunarConstants::FileType::HDR, LunarConstants::TextureDimension::CUBEMAP};
+	CreateShaderResourceView(irradianceTextureInfo, device, descriptorAllocator);
+	
 }
 
 void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator)
@@ -227,7 +233,7 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
             throw std::runtime_error("Failed to load HDR texture: " + filename);
         }
         LOG_DEBUG("HDR texture loaded: ", filename, " (", width, "x", height, ", ", channels, " channels)");
-    	UINT cubemapSize = 512;
+    	UINT cubemapSize = max(width / 4, height / 2);
         textureDesc.Width = cubemapSize;
         textureDesc.Height = cubemapSize;
     	textureDesc.DepthOrArraySize = 6;
@@ -238,22 +244,27 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         }
         rowSizeInBytes = UINT64(cubemapSize) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
 
-        if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
-        {
-            // Convert HDR equirectangular to cubemap
-            vector<vector<float>> faceData = EquirectangularToCubemap(data, width, height);
-            vector<uint8_t*> faceDataBytes(6);
-            for (int face = 0; face < 6; ++face) {
-                faceDataBytes[face] = reinterpret_cast<uint8_t*>(faceData[face].data());
-            }
-            ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceDataBytes, rowSizeInBytes, uploadBuffer);
-            stbi_image_free(data);
-            return texture;
-        }
 
-        ComPtr<ID3D12Resource> texture = CreateTextureResource(device, commandList, textureDesc, reinterpret_cast<uint8_t*>(data), rowSizeInBytes, uploadBuffer);
-        stbi_image_free(data);
-        return texture;
+        // Convert HDR equirectangular to cubemap
+        vector<vector<float>> faceData = EquirectangularToCubemap(data, width, height);
+        vector<uint8_t*> faceDataBytes(6);
+        for (int face = 0; face < 6; ++face) {
+            faceDataBytes[face] = reinterpret_cast<uint8_t*>(faceData[face].data());
+        }
+    	
+        ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceDataBytes, rowSizeInBytes, uploadBuffer);
+    	
+    	// FIXME: not to be hardcoded
+    	Texture irradianceTexture = {};
+    	vector<vector<float>> irradianceMap = IBLUtils::GenerateIrradianceMap(faceData, cubemapSize, cubemapSize / 2);
+    	textureDesc.Width = 256;
+    	textureDesc.Height = 256;
+    	rowSizeInBytes = UINT64(256) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
+    	irradianceTexture.Resource =  CreateTextureResource(device, commandList, textureDesc, reinterpret_cast<uint8_t*>(irradianceMap.data()), rowSizeInBytes, irradianceTexture.UploadBuffer);
+    	m_textureMap["Irradiance"] = make_unique<Texture>(irradianceTexture);
+    	
+    	stbi_image_free(data);
+    	return texture;
     }
     else 
     {
@@ -513,7 +524,7 @@ ComPtr<ID3D12Resource> TextureManager::CreateCubemapResource(
 
 vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData, UINT width, UINT height)
 {
-    UINT cubemapSize = 512;
+    UINT cubemapSize = max(width / 4, height / 2);
 
     vector<vector<float>> faceData(6);
 
