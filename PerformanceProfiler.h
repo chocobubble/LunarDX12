@@ -80,32 +80,32 @@ private:
     void UpdateSectionStatistics();
 };
 
-	#define PROFILE_SCOPE(profiler, name) Lunar::ScopedProfiler _prof(profiler, name)
-	#define PROFILE_FUNCTION(profiler) Lunar::ScopedProfiler _prof(profiler, __FUNCTION__)
+#define PROFILE_SCOPE(profiler, name) Lunar::ScopedProfiler _prof(profiler, name)
+#define PROFILE_FUNCTION(profiler) Lunar::ScopedProfiler _prof(profiler, __FUNCTION__)
 
-	// RAII helper
-	class ScopedProfiler
+// RAII helper
+class ScopedProfiler
+{
+public:
+	ScopedProfiler(PerformanceProfiler* profiler, const std::string& name)
+		: m_profiler(profiler), m_name(name)
 	{
-	public:
-		ScopedProfiler(PerformanceProfiler* profiler, const std::string& name)
-			: m_profiler(profiler), m_name(name)
+		if (m_profiler && m_profiler->IsEnabled())
 		{
-			if (m_profiler && m_profiler->IsEnabled())
-			{
-				m_profiler->BeginSection(m_name);
-			}
+			m_profiler->BeginSection(m_name);
 		}
-    
-		~ScopedProfiler()
-		{
-			if (m_profiler && m_profiler->IsEnabled())
-			{
-				m_profiler->EndSection(m_name);
-			}
-		}
+	}
 
-	private:
-		PerformanceProfiler* m_profiler;
-		std::string m_name;
-	};
+	~ScopedProfiler()
+	{
+		if (m_profiler && m_profiler->IsEnabled())
+		{
+			m_profiler->EndSection(m_name);
+		}
+	}
+
+private:
+	PerformanceProfiler* m_profiler;
+	std::string m_name;
+};
 } // namespace Lunar

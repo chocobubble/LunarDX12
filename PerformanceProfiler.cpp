@@ -1,5 +1,4 @@
 #include "PerformanceProfiler.h"
-#include <algorithm>
 
 using namespace std;
 

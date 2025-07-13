@@ -11,9 +11,10 @@ namespace Lunar
 {
 vector<vector<float>> IBLUtils::GenerateIrradianceMap(const vector<vector<float>>& cubemapData, int cubemapSize, int irradianceMapSize, int channels)
 {
+	LOG_FUNCTION_ENTRY();
     vector<vector<float>> irradianceMap(6);
 
-    const int sampleCount = 1024; // Number of samples for Monte Carlo integration
+    const int sampleCount = 128; // Number of samples for Monte Carlo integration
     std::random_device rd;
     std::mt19937 generator(rd());
     std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
@@ -72,6 +73,7 @@ vector<vector<float>> IBLUtils::GenerateIrradianceMap(const vector<vector<float>
         }
     }
 
+	LOG_FUNCTION_EXIT();
     return irradianceMap;
 }
 

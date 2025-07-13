@@ -244,7 +244,6 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         }
         rowSizeInBytes = UINT64(cubemapSize) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
 
-
         // Convert HDR equirectangular to cubemap
         vector<vector<float>> faceData = EquirectangularToCubemap(data, width, height);
         vector<uint8_t*> faceDataBytes(6);

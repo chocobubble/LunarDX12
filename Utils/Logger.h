@@ -13,7 +13,8 @@ enum class LogLevel : int8_t
 {
 	DEBUG,
 	WARN,
-	ERR
+	ERR,
+	PROFILE
 };
 
 class Logger
@@ -150,6 +151,8 @@ private:
 				return "WARNING";
 			case LogLevel::ERR:
 				return "ERROR";
+			case LogLevel::PROFILE:
+				return "PROFILE";
 			default:
 				return "UNKNOWN";
 		}
@@ -171,6 +174,7 @@ private:
 #define LOG_DEBUG(...)    Logger::GetInstance().Log(LogLevel::DEBUG, __func__, __VA_ARGS__)
 #define LOG_WARNING(...)  Logger::GetInstance().Log(LogLevel::WARN, __func__, __VA_ARGS__)
 #define LOG_ERROR(...)    Logger::GetInstance().Log(LogLevel::ERR, __func__, __VA_ARGS__)
+#define LOG_PROFILE(...)  Logger::GetInstance().Log(LogLevel::PROFILE, __func__, __VA_ARGS__)
 
 #define LOG_FUNCTION_ENTRY()  Logger::GetInstance().LogFunctionEntry(__func__)
 #define LOG_FUNCTION_EXIT()   Logger::GetInstance().LogFunctionExit(__func__)
