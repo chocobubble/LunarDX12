@@ -677,7 +677,10 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 	uavDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+	uavDesc.Texture2DArray.MipSlice = 0;
+	uavDesc.Texture2DArray.FirstArraySlice = 0;
+	uavDesc.Texture2DArray.ArraySize = 6;
 	descriptorAllocator->AllocateDescriptor("skybox_irradiance_uav");
 	descriptorAllocator->CreateUAV(irradianceTexture.Resource.Get(), &uavDesc, "skybox_irradiance_uav");
 
