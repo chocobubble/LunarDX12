@@ -325,7 +325,7 @@ void MainApp::CreateRenderTargetView()
 void MainApp::CreateFence()
 {
 	LOG_FUNCTION_ENTRY();
-	m_fenceValue = 0;
+	m_fenceValue = 1;
 	THROW_IF_FAILED(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf())))
 
 	m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -403,6 +403,12 @@ void MainApp::ProcessInput(double dt)
 void MainApp::Render(double dt)
 {
 	PROFILE_FUNCTION(m_performanceProfiler.get());
+	
+	if (m_fence->GetCompletedValue() < m_fenceValue - 1)
+	{
+		THROW_IF_FAILED(m_fence->SetEventOnCompletion(m_fenceValue - 1, m_fenceEvent))
+		WaitForSingleObject(m_fenceEvent, INFINITE);
+	}
 	
 	ComPtr<IDXGISwapChain3> swapChain3;
 	THROW_IF_FAILED(m_swapChain.As(&swapChain3));
@@ -522,12 +528,12 @@ void MainApp::Render(double dt)
 	m_commandQueue->Signal(m_fence.Get(), currentFenceValue);
 	m_fenceValue++;
 
-	// wait for completing current frame
-	if (m_fence->GetCompletedValue() < currentFenceValue)
-	{
-		THROW_IF_FAILED(m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent))
-		WaitForSingleObject(m_fenceEvent, INFINITE);
-	}
+	// // wait for completing current frame
+	// if (m_fence->GetCompletedValue() < currentFenceValue)
+	// {
+	// 	THROW_IF_FAILED(m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent))
+	// 	WaitForSingleObject(m_fenceEvent, INFINITE);
+	// }
 
 	// update next frame index
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
@@ -555,7 +561,6 @@ void MainApp::Initialize()
 	m_postProcessViewModel->Initialize(m_gui.get(), m_postProcessManager.get());
 	m_performanceProfiler->Initialize();
 	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
-	
 
     LOG_FUNCTION_EXIT();
 }

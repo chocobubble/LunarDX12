@@ -692,6 +692,11 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	commandList->ResourceBarrier(1, &barrier);
 
+	barrier.Transition.pResource = irradianceTexture.Resource.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	commandList->ResourceBarrier(1, &barrier);
+	
 	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorAllocator->GetHeap() };
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
@@ -699,7 +704,6 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 	commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_INPUT_SRV_INDEX, descriptorAllocator->GetGPUHandle(textureInfo.name));
 	commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_OUTPUT_UAV_INDEX, descriptorAllocator->GetGPUHandle("skybox_irradiance_uav"));
 	commandList->SetPipelineState(pipelineStateManager->GetPSO("irradiance"));
-	// commandList->SetPipelineState(pipelineStateManager->GetPSO("irradianceDebug"));
 	commandList->Dispatch((irradianceMapSize + 7) / 8, (irradianceMapSize + 7) / 8, 6);
 
 	barrier.Transition.pResource = irradianceTexture.Resource.Get();

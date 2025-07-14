@@ -80,7 +80,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	*/
 	D3D12_DESCRIPTOR_RANGE textureSrvRange = {};
 	textureSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	textureSrvRange.NumDescriptors = LunarConstants::TEXTURE_INFO.size();
+	textureSrvRange.NumDescriptors = LunarConstants::TEXTURE_INFO.size() + 3;
 	textureSrvRange.BaseShaderRegister = 0;
 	textureSrvRange.RegisterSpace = 0;
 	textureSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
