@@ -28,7 +28,7 @@ public:
 private:
 	std::unordered_map<std::string, std::unique_ptr<Texture>> m_textureMap;
 	
-	void CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator);
+	void CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator, UINT mipLevels = 1);
 	
 	Microsoft::WRL::ComPtr<ID3D12Resource> LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
 	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(

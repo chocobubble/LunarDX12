@@ -238,11 +238,84 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 											   IID_PPV_ARGS(m_rootSignature.GetAddressOf())))
 }
 
+void PipelineStateManager::CreateComputeRootSignature(ID3D12Device* device)
+{
+	LOG_FUNCTION_ENTRY();
+	
+	// Compute Root Signature 
+	// 0: 32-bit constants (roughness, mipLevel)
+	// 1: Input SRV table (environment cubemap)
+	// 2: Output UAV table (irradiance/prefiltered maps)
+	
+	D3D12_DESCRIPTOR_RANGE computeInputSrvRange = {};
+	computeInputSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	computeInputSrvRange.NumDescriptors = 1;
+	computeInputSrvRange.BaseShaderRegister = 0;
+	computeInputSrvRange.RegisterSpace = 0; 
+	computeInputSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	
+	D3D12_DESCRIPTOR_RANGE computeOutputUavRange = {};
+	computeOutputUavRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+	computeOutputUavRange.NumDescriptors = 2;
+	computeOutputUavRange.BaseShaderRegister = 0;
+	computeOutputUavRange.RegisterSpace = 0; 
+	computeOutputUavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	
+	D3D12_ROOT_PARAMETER computeRootParameters[3];
+	
+	computeRootParameters[LunarConstants::COMPUTE_CONSTANTS_INDEX].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+	computeRootParameters[LunarConstants::COMPUTE_CONSTANTS_INDEX].Constants.ShaderRegister = 0;
+	computeRootParameters[LunarConstants::COMPUTE_CONSTANTS_INDEX].Constants.RegisterSpace = 0;
+	computeRootParameters[LunarConstants::COMPUTE_CONSTANTS_INDEX].Constants.Num32BitValues = 4; // float roughness + uint mipLevel + 2 padding
+	computeRootParameters[LunarConstants::COMPUTE_CONSTANTS_INDEX].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	
+	computeRootParameters[LunarConstants::COMPUTE_INPUT_SRV_INDEX].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	computeRootParameters[LunarConstants::COMPUTE_INPUT_SRV_INDEX].DescriptorTable.NumDescriptorRanges = 1;
+	computeRootParameters[LunarConstants::COMPUTE_INPUT_SRV_INDEX].DescriptorTable.pDescriptorRanges = &computeInputSrvRange;
+	computeRootParameters[LunarConstants::COMPUTE_INPUT_SRV_INDEX].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	
+	computeRootParameters[LunarConstants::COMPUTE_OUTPUT_UAV_INDEX].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	computeRootParameters[LunarConstants::COMPUTE_OUTPUT_UAV_INDEX].DescriptorTable.NumDescriptorRanges = 1;
+	computeRootParameters[LunarConstants::COMPUTE_OUTPUT_UAV_INDEX].DescriptorTable.pDescriptorRanges = &computeOutputUavRange;
+	computeRootParameters[LunarConstants::COMPUTE_OUTPUT_UAV_INDEX].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	
+	D3D12_STATIC_SAMPLER_DESC computeSampler = {};
+	computeSampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	computeSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	computeSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	computeSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	computeSampler.MipLODBias = 0;
+	computeSampler.MaxAnisotropy = 1;
+	computeSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+	computeSampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+	computeSampler.MinLOD = 0.0f;
+	computeSampler.MaxLOD = D3D12_FLOAT32_MAX;
+	computeSampler.ShaderRegister = 0;
+	computeSampler.RegisterSpace = 0;
+	computeSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	
+	D3D12_ROOT_SIGNATURE_DESC computeRootSignatureDesc = {};
+	computeRootSignatureDesc.NumParameters = _countof(computeRootParameters);
+	computeRootSignatureDesc.pParameters = computeRootParameters;
+	computeRootSignatureDesc.NumStaticSamplers = 1;
+	computeRootSignatureDesc.pStaticSamplers = &computeSampler;
+	computeRootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE; // No input assembler for compute
+	
+	ComPtr<ID3DBlob> computeSignature = nullptr;
+	ComPtr<ID3DBlob> computeError = nullptr;
+
+	THROW_IF_FAILED(D3D12SerializeRootSignature(&computeRootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, computeSignature.GetAddressOf(), computeError.GetAddressOf()))
+	THROW_IF_FAILED(device->CreateRootSignature(0, computeSignature->GetBufferPointer(), computeSignature->GetBufferSize(), IID_PPV_ARGS(m_computeRootSignature.GetAddressOf())))
+
+	LOG_DEBUG("Compute root signature created successfully");
+}
+
 void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 {
 	LOG_FUNCTION_ENTRY();
 
 	CreateRootSignature(device);
+	CreateComputeRootSignature(device);
 	
 	m_inputLayout = m_inputLayoutMap["default"];
 
@@ -561,13 +634,31 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 	// PSO for IBL
 	{
 		D3D12_COMPUTE_PIPELINE_STATE_DESC irradiancePsoDesc = {};
-		irradiancePsoDesc.pRootSignature = m_rootSignature.Get();
+		irradiancePsoDesc.pRootSignature = m_computeRootSignature.Get();
 		irradiancePsoDesc.NodeMask = 0;
 		irradiancePsoDesc.CS.pShaderBytecode = m_shaderMap["irradianceCS"]->GetBufferPointer();
 		irradiancePsoDesc.CS.BytecodeLength = m_shaderMap["irradianceCS"]->GetBufferSize();
 		irradiancePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		THROW_IF_FAILED(device->CreateComputePipelineState(&irradiancePsoDesc, 
 			IID_PPV_ARGS(m_psoMap["irradiance"].GetAddressOf())))
+
+		// for Debugging
+		irradiancePsoDesc.CS.pShaderBytecode = m_shaderMap["irradianceDebugCS"]->GetBufferPointer();
+		irradiancePsoDesc.CS.BytecodeLength = m_shaderMap["irradianceDebugCS"]->GetBufferSize();
+		THROW_IF_FAILED(device->CreateComputePipelineState(&irradiancePsoDesc, 
+			IID_PPV_ARGS(m_psoMap["irradianceDebug"].GetAddressOf())))
+	}
+	
+	// PSO for Prefiltered Environment Map
+	{
+		D3D12_COMPUTE_PIPELINE_STATE_DESC prefilteredPsoDesc = {};
+		prefilteredPsoDesc.pRootSignature = m_computeRootSignature.Get();
+		prefilteredPsoDesc.NodeMask = 0;
+		prefilteredPsoDesc.CS.pShaderBytecode = m_shaderMap["prefilteredCS"]->GetBufferPointer();
+		prefilteredPsoDesc.CS.BytecodeLength = m_shaderMap["prefilteredCS"]->GetBufferSize();
+		prefilteredPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+		THROW_IF_FAILED(device->CreateComputePipelineState(&prefilteredPsoDesc, 
+			IID_PPV_ARGS(m_psoMap["prefiltered"].GetAddressOf())))
 	}
 }
 

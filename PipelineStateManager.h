@@ -17,8 +17,10 @@ public:
 	void                             Initialize(ID3D12Device* device);
 	Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(const LunarConstants::ShaderInfo& shaderInfo) const;
 	void                             CreateRootSignature(ID3D12Device* device);
+	void                             CreateComputeRootSignature(ID3D12Device* device);
 	void                             BuildPSOs(ID3D12Device* device);
 	ID3D12RootSignature*             GetRootSignature() const { return m_rootSignature.Get(); }
+	ID3D12RootSignature*             GetComputeRootSignature() const { return m_computeRootSignature.Get(); }
 	ID3D12PipelineState*             GetPSO(const std::string& psoName) const;
 	
 private:
@@ -31,6 +33,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencilBuffer;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_computeRootSignature;
 };
 	
 } // namespace Lunar

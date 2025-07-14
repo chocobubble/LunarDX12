@@ -30,6 +30,12 @@ static constexpr UINT PARTICLE_UAV_ROOT_PARAMETER_INDEX = 5;
 static constexpr UINT POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX = 6;
 static constexpr UINT POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX = 7;
 
+// Compute Root Signature Parameters 
+static constexpr UINT COMPUTE_CONSTANTS_INDEX = 0;
+static constexpr UINT COMPUTE_INPUT_SRV_INDEX = 1;
+static constexpr UINT COMPUTE_OUTPUT_UAV_INDEX = 2;
+static constexpr UINT COMPUTE_CONSTANTS_ROOT_PARAMETER_INDEX = 8;
+
 /////////////// textures  ///////////////
 enum class FileType : uint8_t {
     DEFAULT = 0,
@@ -69,7 +75,7 @@ struct ShaderInfo
 	const char* target;
     const char* entryPoint = "main"; // Default entry point
 };
-static constexpr std::array<ShaderInfo, 21> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 23> SHADER_INFO = {{
 	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_1" },
 	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_1" },
 	{ "basicHS", "Shaders\\BasicHullShader.hlsl", "hs_5_1" },
@@ -91,6 +97,8 @@ static constexpr std::array<ShaderInfo, 21> SHADER_INFO = {{
     { "gaussianBlurXCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1", "BlurX" },
     { "gaussianBlurYCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1", "BlurY" },
     { "irradianceCS", "Shaders\\IblCS.hlsl", "cs_5_1", "irradiance" },
+    { "prefilteredCS", "Shaders\\IblCS.hlsl", "cs_5_1", "prefiltered" },
+    { "irradianceDebugCS", "Shaders\\IblCS.hlsl", "cs_5_1", "debug" },
 }};
 
 /////////////// Debug Flags ///////////////

@@ -1,9 +1,14 @@
-// IBL Compute Shader for Irradiance Map Generation
-// Converts environment cubemap to irradiance map using Monte Carlo integration
-
-TextureCube<float4> environmentMap : register(t0, space3);
-RWTexture2DArray<float4> irradianceMap : register(u0, space1);
+TextureCube<float4> environmentMap : register(t0, space0);
+RWTexture2DArray<float4> irradianceMap : register(u0, space0);
+RWTexture2DArray<float4> prefilteredMap : register(u1, space0);
 SamplerState linearSampler : register(s0);
+
+cbuffer RootConstants : register(b0)
+{
+    float roughness;
+    uint mipLevel;
+    uint2 padding;
+};
 
 static const float PI = 3.14159265359;
 static const uint SAMPLE_COUNT = 1024;
@@ -63,6 +68,43 @@ float2 GetRandomSample(uint index, uint2 pixelCoord)
     float r2 = float(seed & 0x00FFFFFFu) / float(0x01000000u);
     
     return float2(r1, r2);
+}
+
+// GGX/Trowbridge-Reitz Normal Distribution Function
+float DistributionGGX(float3 N, float3 H, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+    
+    float num = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+    
+    return num / denom;
+}
+
+// Importance sample GGX distribution
+float3 ImportanceSampleGGX(float2 xi, float3 N, float roughness)
+{
+    float a = roughness * roughness;
+    
+    float phi = 2.0 * PI * xi.x;
+    float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    
+    float3 H;
+    H.x = cos(phi) * sinTheta;
+    H.y = sin(phi) * sinTheta;
+    H.z = cosTheta;
+    
+    float3 up = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+    float3 tangent = normalize(cross(up, N));
+    float3 bitangent = cross(N, tangent);
+    
+    float3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+    return normalize(sampleVec);
 }
 
 [numthreads(8, 8, 1)]
@@ -144,4 +186,57 @@ void irradiance(uint3 id : SV_DispatchThreadID)
 [numthreads(8, 8, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
+}
+
+[numthreads(8, 8, 1)]
+void prefiltered(uint3 id : SV_DispatchThreadID)
+{
+    uint width, height, elements;
+    prefilteredMap.GetDimensions(width, height, elements);
+    
+    if (id.x >= width || id.y >= height || id.z >= 6)
+        return;
+    
+    float2 uv = (float2(id.xy) + 0.5) / float2(width, height);
+    
+    float3 N = GetCubemapDirection(id.z, uv);
+    
+    float3 R = N;
+    float3 V = R;
+    
+    const uint SAMPLE_COUNT_PREFILTERED = 1024;
+    float totalWeight = 0.0;
+    float3 prefilteredColor = float3(0.0, 0.0, 0.0);
+    
+    for (uint i = 0; i < SAMPLE_COUNT_PREFILTERED; ++i)
+    {
+        float2 xi = GetRandomSample(i, id.xy);
+        
+        float3 H = ImportanceSampleGGX(xi, N, roughness);
+        
+        float3 L = normalize(2.0 * dot(V, H) * H - V);
+        
+        float NdotL = max(dot(N, L), 0.0);
+        if (NdotL > 0.0)
+        {
+            float D = DistributionGGX(N, H, roughness);
+            float NdotH = max(dot(N, H), 0.0);
+            float HdotV = max(dot(H, V), 0.0);
+            float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
+            
+            float resolution = 512.0; 
+            float saTexel = 4.0 * PI / (6.0 * resolution * resolution);
+            float saSample = 1.0 / (float(SAMPLE_COUNT_PREFILTERED) * pdf + 0.0001);
+            
+            float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
+            
+            float3 color = environmentMap.SampleLevel(linearSampler, L, mipLevel).rgb;
+            prefilteredColor += color * NdotL;
+            totalWeight += NdotL;
+        }
+    }
+    
+    prefilteredColor = prefilteredColor / totalWeight;
+    
+    prefilteredMap[id] = float4(prefilteredColor, 1.0);
 }

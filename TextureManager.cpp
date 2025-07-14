@@ -39,7 +39,7 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
     }
 }
 
-void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator)
+void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator, UINT mipLevels)
 {
 	LOG_FUNCTION_ENTRY();
 
@@ -97,11 +97,11 @@ void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo&
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	
 	if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) {
-		srvDesc.TextureCube.MipLevels = 1;
+		srvDesc.TextureCube.MipLevels = mipLevels;
 		srvDesc.TextureCube.MostDetailedMip = 0;
 		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 	} else {
-		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.MipLevels = mipLevels;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.PlaneSlice = 0;
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
@@ -695,29 +695,76 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorAllocator->GetHeap() };
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	commandList->SetComputeRootSignature(pipelineStateManager->GetRootSignature());
-	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle(textureInfo.name));
-	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle("skybox_irradiance_uav"));
+	commandList->SetComputeRootSignature(pipelineStateManager->GetComputeRootSignature());
+	commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_INPUT_SRV_INDEX, descriptorAllocator->GetGPUHandle(textureInfo.name));
+	commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_OUTPUT_UAV_INDEX, descriptorAllocator->GetGPUHandle("skybox_irradiance_uav"));
 	commandList->SetPipelineState(pipelineStateManager->GetPSO("irradiance"));
-	commandList->Dispatch((irradianceMapSize + 7) / 8, (irradianceMapSize + 7) / 8, 1);
-
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	commandList->ResourceBarrier(1, &barrier);
+	// commandList->SetPipelineState(pipelineStateManager->GetPSO("irradianceDebug"));
+	commandList->Dispatch((irradianceMapSize + 7) / 8, (irradianceMapSize + 7) / 8, 6);
 
 	barrier.Transition.pResource = irradianceTexture.Resource.Get();
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	commandList->ResourceBarrier(1, &barrier);
 	
-	// FIXME: not to be hardcoded
-	// Texture irradianceTexture = {};
-	// vector<vector<float>> irradianceMap = IBLUtils::GenerateIrradianceMap(faceData, cubemapSize, cubemapSize / 2);
-	// textureDesc.Width = 256;
-	// textureDesc.Height = 256;
-	// rowSizeInBytes = UINT64(256) * 3 /*channels*/ * sizeof(float) /*size per channel*/;
-	// irradianceTexture.Resource =  CreateTextureResource(device, commandList, textureDesc, reinterpret_cast<uint8_t*>(irradianceMap.data()), rowSizeInBytes, irradianceTexture.UploadBuffer);
-	// m_textureMap["Irradiance"] = make_unique<Texture>(irradianceTexture);
+	// Generate Prefiltered Environment Map
+	UINT prefilteredMapSize = cubemapSize / 2; 
+	UINT maxMipLevels = static_cast<UINT>(std::floor(std::log2(prefilteredMapSize))) + 1;
+	
+	Texture prefilteredTexture = {};
+	prefilteredTexture.Resource = CreateEmptyCubemapResource(device, prefilteredMapSize, maxMipLevels);
+	
+	LunarConstants::TextureInfo prefilteredTextureInfo = textureInfo;
+	prefilteredTextureInfo.name = "skybox_prefiltered";
+	m_textureMap[prefilteredTextureInfo.name] = make_unique<Texture>(prefilteredTexture);
+	CreateShaderResourceView(prefilteredTextureInfo, device, descriptorAllocator, maxMipLevels);
+	
+	string uavName = "skybox_prefiltered_uav_mip";
+	descriptorAllocator->AllocateDescriptor(uavName);
+	for (UINT mip = 0; mip < maxMipLevels; ++mip)
+	{
+		barrier.Transition.Subresource = mip;
+		barrier.Transition.pResource = prefilteredTexture.Resource.Get();
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		commandList->ResourceBarrier(1, &barrier);
+		
+		UINT mipSize = prefilteredMapSize >> mip;
+		if (mipSize == 0) mipSize = 1;
+		
+		float roughness = static_cast<float>(mip) / static_cast<float>(maxMipLevels - 1);
+		
+		UINT constants[4] = {
+			*reinterpret_cast<UINT*>(&roughness), // float as uint32
+			mip,                                   // mip level
+			0,                                     // padding
+			0                                      // padding
+		};
+		
+		uavDesc.Texture2DArray.MipSlice = mip;
+		
+		// string uavName = "skybox_prefiltered_uav_mip" + to_string(mip);
+		// descriptorAllocator->AllocateDescriptor(uavName);
+		// descriptorAllocator->CreateUAV(prefilteredTexture.Resource.Get(), &uavDesc, uavName);
+		descriptorAllocator->CreateUAV(prefilteredTexture.Resource.Get(), &uavDesc, uavName);
+		
+		commandList->SetComputeRoot32BitConstants(LunarConstants::COMPUTE_CONSTANTS_INDEX, 4, constants, 0);
+		commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_OUTPUT_UAV_INDEX, descriptorAllocator->GetGPUHandle(uavName));
+		commandList->SetPipelineState(pipelineStateManager->GetPSO("prefiltered"));
+		
+		commandList->Dispatch((mipSize + 7) / 8, (mipSize + 7) / 8, 6);
+
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		commandList->ResourceBarrier(1, &barrier);
+	}
+
+	// restore cubemap state
+	barrier.Transition.pResource = texture.Resource.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	commandList->ResourceBarrier(1, &barrier);
 }
 
 } //namespace Lunar
