@@ -1,8 +1,8 @@
 // IBL Compute Shader for Irradiance Map Generation
 // Converts environment cubemap to irradiance map using Monte Carlo integration
 
-TextureCube<float4> environmentMap : register(t0);
-RWTexture2DArray<float4> irradianceMap : register(u0);
+TextureCube<float4> environmentMap : register(t0, space3);
+RWTexture2DArray<float4> irradianceMap : register(u0, space1);
 SamplerState linearSampler : register(s0);
 
 static const float PI = 3.14159265359;
@@ -63,6 +63,31 @@ float2 GetRandomSample(uint index, uint2 pixelCoord)
     float r2 = float(seed & 0x00FFFFFFu) / float(0x01000000u);
     
     return float2(r1, r2);
+}
+
+[numthreads(8, 8, 1)]
+void debug(uint3 id : SV_DispatchThreadID)
+{
+    uint width, height, elements;
+    irradianceMap.GetDimensions(width, height, elements);
+    
+    if (id.x >= width || id.y >= height)
+        return;
+    
+    float4 debugColors[6] = {
+        float4(1, 0, 0, 1), // +X = Red
+        float4(0, 1, 0, 1), // -X = Green  
+        float4(0, 0, 1, 1), // +Y = Blue
+        float4(1, 1, 0, 1), // -Y = Yellow
+        float4(1, 0, 1, 1), // +Z = Magenta
+        float4(0, 1, 1, 1)  // -Z = Cyan
+    };
+    
+    for (uint faceIndex = 0; faceIndex < 6; ++faceIndex)
+    {
+        uint3 outputCoord = uint3(id.x, id.y, faceIndex);
+        irradianceMap[outputCoord] = debugColors[faceIndex];
+    }
 }
 
 [numthreads(8, 8, 1)]
