@@ -1,6 +1,5 @@
 TextureCube<float4> environmentMap : register(t0, space0);
-RWTexture2DArray<float4> irradianceMap : register(u0, space0);
-RWTexture2DArray<float4> prefilteredMap : register(u1, space0);
+RWTexture2DArray<float4> outputMap : register(u0, space0);
 SamplerState linearSampler : register(s0);
 
 cbuffer RootConstants : register(b0)
@@ -13,10 +12,8 @@ cbuffer RootConstants : register(b0)
 static const float PI = 3.14159265359;
 static const uint SAMPLE_COUNT = 1024;
 
-// Convert cubemap face and UV coordinates to world direction vector
 float3 GetCubemapDirection(uint face, float2 uv)
 {
-    // Convert UV from [0,1] to [-1,1]
     float2 coords = uv * 2.0 - 1.0;
     
     switch (face)
@@ -31,16 +28,13 @@ float3 GetCubemapDirection(uint face, float2 uv)
     }
 }
 
-// Generate tangent space basis vectors from normal
 void GetTangentSpace(float3 normal, out float3 tangent, out float3 bitangent)
 {
-    // Choose up vector that's not parallel to normal
     float3 up = abs(normal.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
     tangent = normalize(cross(up, normal));
     bitangent = cross(normal, tangent);
 }
 
-// Cosine-weighted hemisphere sampling
 float3 CosineSampleHemisphere(float2 xi)
 {
     float cosTheta = sqrt(xi.x);
@@ -54,13 +48,10 @@ float3 CosineSampleHemisphere(float2 xi)
     );
 }
 
-// Simple pseudo-random number generator
 float2 GetRandomSample(uint index, uint2 pixelCoord)
 {
-    // Simple hash-based random
     uint seed = index + pixelCoord.x * 1973 + pixelCoord.y * 9277;
     
-    // Linear congruential generator
     seed = seed * 1664525u + 1013904223u;
     float r1 = float(seed & 0x00FFFFFFu) / float(0x01000000u);
     
@@ -70,9 +61,23 @@ float2 GetRandomSample(uint index, uint2 pixelCoord)
     return float2(r1, r2);
 }
 
-// GGX/Trowbridge-Reitz Normal Distribution Function
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
+    /*
+     * GGX Normal Distribution Function:
+     * 
+     * D(H) = α² / (π * ((N·H)² * (α² - 1) + 1)²)
+     * 
+     * Where:
+     * - α = roughness² (remapped roughness parameter)
+     * - N = surface normal vector
+     * - H = halfway vector between view and light
+     * - N·H = cosine of angle between normal and halfway vector
+     * 
+     * This function describes the distribution of microfacet normals
+     * for a given roughness value. Higher roughness = wider distribution.
+     */
+    
     float a = roughness * roughness;
     float a2 = a * a;
     float NdotH = max(dot(N, H), 0.0);
@@ -85,25 +90,49 @@ float DistributionGGX(float3 N, float3 H, float roughness)
     return num / denom;
 }
 
-// Importance sample GGX distribution
-float3 ImportanceSampleGGX(float2 xi, float3 N, float roughness)
+float3 ImportanceSampleGGX(float2 xi, float3 normal, float roughness)
 {
+    /*
+     * GGX Importance Sampling using Inverse Transform Method:
+     *
+     * Spherical coordinates:
+     * φ = 2π * ξ₁                                    (azimuth angle, uniform)
+     * cos θ = √((1 - ξ₂) / (1 + (α² - 1) * ξ₂))    (polar angle, GGX distribution)
+     * sin θ = √(1 - cos² θ)
+     * 
+     * Cartesian coordinates (tangent space):
+     * H.x = sin θ * cos φ
+     * H.y = cos θ           (Y-axis = normal direction in DirectX)
+     * H.z = sin θ * sin φ
+     * 
+     * Transform to world space:
+     * H_world = H.x * tangent + H.y * normal + H.z * bitangent
+     * 
+     * Where:
+     * - ξ₁, ξ₂ = uniform random variables [0,1]
+     * - α = roughness²
+     * - θ = polar angle from normal (0° = along normal)
+     * - φ = azimuth angle around normal
+     * 
+     * This generates halfway vectors (H) distributed according to GGX,
+     * which are then used to calculate light directions for sampling.
+     */
+
     float a = roughness * roughness;
     
     float phi = 2.0 * PI * xi.x;
     float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
     
-    float3 H;
-    H.x = cos(phi) * sinTheta;
-    H.y = sin(phi) * sinTheta;
-    H.z = cosTheta;
+    float3 halfVector = float3(0, 0, 0);
+    halfVector.x = sinTheta * cos(phi);  
+    halfVector.y = cosTheta;             
+    halfVector.z = sinTheta * sin(phi);  
     
-    float3 up = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
-    float3 tangent = normalize(cross(up, N));
-    float3 bitangent = cross(N, tangent);
+    float3 tangent, bitangent;
+    GetTangentSpace(normal, tangent, bitangent);
     
-    float3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+    float3 sampleVec = halfVector.x * tangent + halfVector.y * normal + halfVector.z * bitangent;
     return normalize(sampleVec);
 }
 
@@ -111,7 +140,7 @@ float3 ImportanceSampleGGX(float2 xi, float3 N, float roughness)
 void debug(uint3 id : SV_DispatchThreadID)
 {
     uint width, height, elements;
-    irradianceMap.GetDimensions(width, height, elements);
+    outputMap.GetDimensions(width, height, elements);
     
     if (id.x >= width || id.y >= height)
         return;
@@ -128,7 +157,7 @@ void debug(uint3 id : SV_DispatchThreadID)
     for (uint faceIndex = 0; faceIndex < 6; ++faceIndex)
     {
         uint3 outputCoord = uint3(id.x, id.y, faceIndex);
-        irradianceMap[outputCoord] = debugColors[faceIndex];
+        outputMap[outputCoord] = debugColors[faceIndex];
     }
 }
 
@@ -136,53 +165,40 @@ void debug(uint3 id : SV_DispatchThreadID)
 void irradiance(uint3 id : SV_DispatchThreadID)
 {
     uint width, height, elements;
-    irradianceMap.GetDimensions(width, height, elements);
+    outputMap.GetDimensions(width, height, elements);
     
-    // Bounds check
     if (id.x >= width || id.y >= height || id.z >= 6)
         return;
     
-    // Convert pixel coordinates to UV [0,1]
     float2 uv = (float2(id.xy) + 0.5) / float2(width, height);
     
-    // Get world direction for this pixel on the cubemap face
     float3 normal = GetCubemapDirection(id.z, uv);
     
-    // Generate tangent space basis
     float3 tangent, bitangent;
     GetTangentSpace(normal, tangent, bitangent);
     
-    // Monte Carlo integration for irradiance
     float3 irradiance = float3(0, 0, 0);
     
     for (uint i = 0; i < SAMPLE_COUNT; ++i)
     {
-        // Generate random sample
         float2 xi = GetRandomSample(i, id.xy);
         
-        // Cosine-weighted hemisphere sample in local space
         float3 localSample = CosineSampleHemisphere(xi);
         
-        // Transform sample to world space
         float3 worldSample = localSample.x * tangent + 
                             localSample.y * normal + 
                             localSample.z * bitangent;
         
-        // Sample environment map
         float3 color = environmentMap.SampleLevel(linearSampler, worldSample, 0).rgb;
         
-        // Accumulate irradiance
         irradiance += color;
     }
     
-    // Average the samples and apply Lambert BRDF factor (π)
     irradiance = irradiance * PI / float(SAMPLE_COUNT);
     
-    // Write result to irradiance map
-    irradianceMap[id] = float4(irradiance, 1.0);
+    outputMap[id] = float4(irradiance, 1.0);
 }
 
-// Alternative entry point for debugging - fills each face with different colors
 [numthreads(8, 8, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
@@ -192,17 +208,17 @@ void main(uint3 id : SV_DispatchThreadID)
 void prefiltered(uint3 id : SV_DispatchThreadID)
 {
     uint width, height, elements;
-    prefilteredMap.GetDimensions(width, height, elements);
+    outputMap.GetDimensions(width, height, elements);
     
     if (id.x >= width || id.y >= height || id.z >= 6)
         return;
     
     float2 uv = (float2(id.xy) + 0.5) / float2(width, height);
     
-    float3 N = GetCubemapDirection(id.z, uv);
+    float3 normal = GetCubemapDirection(id.z, uv);
     
-    float3 R = N;
-    float3 V = R;
+    float3 reflection = normal;
+    float3 toEye = reflection;
     
     const uint SAMPLE_COUNT_PREFILTERED = 1024;
     float totalWeight = 0.0;
@@ -212,25 +228,14 @@ void prefiltered(uint3 id : SV_DispatchThreadID)
     {
         float2 xi = GetRandomSample(i, id.xy);
         
-        float3 H = ImportanceSampleGGX(xi, N, roughness);
+        float3 halfVector = ImportanceSampleGGX(xi, normal, roughness);
         
-        float3 L = normalize(2.0 * dot(V, H) * H - V);
+        float3 lightVector = normalize(2.0 * dot(toEye, halfVector) * halfVector - toEye);
         
-        float NdotL = max(dot(N, L), 0.0);
+        float NdotL = dot(normal, lightVector);
         if (NdotL > 0.0)
         {
-            float D = DistributionGGX(N, H, roughness);
-            float NdotH = max(dot(N, H), 0.0);
-            float HdotV = max(dot(H, V), 0.0);
-            float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
-            
-            float resolution = 512.0; 
-            float saTexel = 4.0 * PI / (6.0 * resolution * resolution);
-            float saSample = 1.0 / (float(SAMPLE_COUNT_PREFILTERED) * pdf + 0.0001);
-            
-            float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
-            
-            float3 color = environmentMap.SampleLevel(linearSampler, L, mipLevel).rgb;
+            float3 color = environmentMap.SampleLevel(linearSampler, lightVector, 0).rgb;
             prefilteredColor += color * NdotL;
             totalWeight += NdotL;
         }
@@ -238,5 +243,5 @@ void prefiltered(uint3 id : SV_DispatchThreadID)
     
     prefilteredColor = prefilteredColor / totalWeight;
     
-    prefilteredMap[id] = float4(prefilteredColor, 1.0);
+    outputMap[id] = float4(prefilteredColor, 1.0);
 }
