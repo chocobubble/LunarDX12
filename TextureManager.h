@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 #include <wrl/client.h>
+#include <future>
+#include <chrono>
 
 #include "LunarConstants.h"
 
@@ -13,6 +15,8 @@ namespace Lunar
 
 class DescriptorAllocator;
 class PipelineStateManager;
+class AsyncTextureLoader;
+struct TextureLoadJob;
 	
 struct Texture
 {
@@ -24,9 +28,30 @@ class TextureManager
 {
 public:
 	void Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, PipelineStateManager* pipelineStateManager);
+	
+	// 비동기 텍스처 로딩
+	void InitializeAsync(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, PipelineStateManager* pipelineStateManager);
+	void UpdateAsyncLoading(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator);
+	bool IsAsyncLoadingComplete() const;
+	
+	// 성능 통계
+	struct LoadingStats {
+		std::chrono::milliseconds syncLoadTime{0};
+		std::chrono::milliseconds asyncLoadTime{0};
+		size_t totalTextures = 0;
+		size_t loadedTextures = 0;
+		float loadingProgress = 0.0f;
+	};
+	const LoadingStats& GetLoadingStats() const { return m_loadingStats; }
+	
+	// 텍스처 접근
+	ID3D12Resource* GetTexture(const std::string& name) const;
 
 private:
 	std::unordered_map<std::string, std::unique_ptr<Texture>> m_textureMap;
+	std::unique_ptr<AsyncTextureLoader> m_asyncLoader;
+	std::vector<std::future<bool>> m_loadingFutures;
+	LoadingStats m_loadingStats;
 	
 	void CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator, UINT mipLevels = 1);
 	
