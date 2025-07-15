@@ -117,6 +117,7 @@ private:
 	UINT m_srvDescriptorSize;
 
 	bool m_wireFrameRender = false;
+	bool m_lightVisualization = false;
 
 // TODO: Move to proper location
 public: // Template Section
