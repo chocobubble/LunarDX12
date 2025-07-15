@@ -30,10 +30,17 @@ static constexpr UINT PARTICLE_UAV_ROOT_PARAMETER_INDEX = 5;
 static constexpr UINT POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX = 6;
 static constexpr UINT POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX = 7;
 
+// Compute Root Signature Parameters 
+static constexpr UINT COMPUTE_CONSTANTS_INDEX = 0;
+static constexpr UINT COMPUTE_INPUT_SRV_INDEX = 1;
+static constexpr UINT COMPUTE_OUTPUT_UAV_INDEX = 2;
+static constexpr UINT COMPUTE_CONSTANTS_ROOT_PARAMETER_INDEX = 8;
+
 /////////////// textures  ///////////////
 enum class FileType : uint8_t {
     DEFAULT = 0,
-    DDS = 1
+    DDS = 1,
+    HDR = 2,
 };
 
 enum class TextureDimension : uint8_t {
@@ -57,7 +64,7 @@ static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
 	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
 	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
 	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-    {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP},
+    {"skybox", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP},
 }};
 
 /////////////// Shaders ///////////////
@@ -68,7 +75,7 @@ struct ShaderInfo
 	const char* target;
     const char* entryPoint = "main"; // Default entry point
 };
-static constexpr std::array<ShaderInfo, 20> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 24> SHADER_INFO = {{
 	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_1" },
 	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_1" },
 	{ "basicHS", "Shaders\\BasicHullShader.hlsl", "hs_5_1" },
@@ -89,6 +96,10 @@ static constexpr std::array<ShaderInfo, 20> SHADER_INFO = {{
     { "particlesGS", "Shaders\\ParticleGeometryShader.hlsl", "gs_5_1" },
     { "gaussianBlurXCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1", "BlurX" },
     { "gaussianBlurYCS", "Shaders\\GaussianBlurCS.hlsl", "cs_5_1", "BlurY" },
+    { "irradianceCS", "Shaders\\IblCS.hlsl", "cs_5_1", "irradiance" },
+    { "prefilteredCS", "Shaders\\IblCS.hlsl", "cs_5_1", "prefiltered" },
+    { "irradianceDebugCS", "Shaders\\IblCS.hlsl", "cs_5_1", "debug" },
+    { "brdfLutCS", "Shaders\\IblCS.hlsl", "cs_5_1", "brdfLut" },
 }};
 
 /////////////// Debug Flags ///////////////
@@ -107,7 +118,9 @@ namespace DebugFlags
         HEIGHT_MAP_ENABLED = 1 << 8,  // 0x100
         METALLIC_MAP_ENABLED = 1 << 9, // 0x200
         ROUGHNESS_MAP_ENABLED = 1 << 10, // 0x400
-        ALBEDO_MAP_ENABLED = 1 << 11, // 0x800
+        ALBEDO_MAP_ENABLED = 1 << 11, // 0x800,
+        IBL_DIFFUSE_ENABLED = 1 << 12, // 0x1000
+        IBL_SPECULAR_ENABLED = 1 << 13, // 0x2000
     };
 }
 

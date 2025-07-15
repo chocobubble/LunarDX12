@@ -19,6 +19,7 @@ class PerformanceProfiler;
 class PerformanceViewModel;
 class PostProcessManager;
 class PostProcessViewModel;
+class DescriptorAllocator;
 	
 class MainApp {
 public:
@@ -33,7 +34,6 @@ private:
 	void InitializeCommandList();
 	void CreateSwapChain();
 	void CreateSceneRenderTarget();
-	void CreateSRVDescriptorHeap();
 	void CreateRTVDescriptorHeap();
 	void CreateRenderTargetView();
 	void CreateFence();
@@ -58,7 +58,7 @@ private:
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter;
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 	Microsoft::WRL::ComPtr<IDXGISwapChain1> m_swapChain;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
+	// Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
@@ -69,7 +69,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imGuiDescriptorHeap;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandle;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
+	// D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
 
 	UINT m_renderTargetViewDescriptorSize;
 	UINT m_fenceValue;
@@ -95,6 +95,7 @@ private:
 	std::unique_ptr<PipelineStateManager> m_pipelineStateManager;
 	std::unique_ptr<PostProcessManager> m_postProcessManager;
 	std::unique_ptr<PostProcessViewModel> m_postProcessViewModel;
+	std::unique_ptr<DescriptorAllocator> m_descriptorAllocator;
 
 	bool m_mouseMoving = false;
 };

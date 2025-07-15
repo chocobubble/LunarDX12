@@ -33,6 +33,8 @@ private:
     bool m_metallicMapEnabled = false;
     bool m_roughnessMapEnabled = false;
     bool m_albedoMapEnabled = false;
+    bool m_iblDiffuseEnabled = false;
+    bool m_iblSpecularEnabled = false;
 
     void UpdateFlags();
     void SyncFromConstants();

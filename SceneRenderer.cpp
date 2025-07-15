@@ -3,6 +3,7 @@
 #include "MaterialManager.h"
 #include "LightingSystem.h"
 #include "ConstantBuffers.h"
+#include "DescriptorAllocator.h"
 #include "UI/LunarGUI.h"
 #include "Utils/MathUtils.h"
 #include "PipelineStateManager.h"
@@ -71,7 +72,7 @@ void SceneRenderer::InitializeScene(ID3D12Device* device, LunarGui* gui, Pipelin
     m_lightViewModel->Initialize(gui, m_lightingSystem.get(), this);
     
     // Debugging
-    CreateLightVisualizationCubes();
+    // CreateLightVisualizationCubes();
     
 	m_materialManager->Initialize(device);
     for (auto& [layer, geometryEntries] : m_layeredGeometries)
@@ -152,11 +153,10 @@ void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
 	m_shadowManager->CreateDSV(device, m_dsvHeap.Get());
 }
 
-void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, ID3D12DescriptorHeap* srvHeap)
+void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator)
 {
-	m_srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
-	m_textureManager->Initialize(device, commandList, m_srvHandle);
-	m_shadowManager->CreateSRV(device, srvHeap);
+	m_textureManager->Initialize(device, commandList, descriptorAllocator, m_pipelineStateManager);
+	m_shadowManager->CreateSRV(device, descriptorAllocator);
 
 	// REFACTORING: Rename or refactor this method
 	m_particleSystem->Initialize(device, commandList);
@@ -236,6 +236,8 @@ void SceneRenderer::EmitParticles(const XMFLOAT3& position)
 void SceneRenderer::CreateLightVisualizationCubes()
 {
     LOG_FUNCTION_ENTRY();
+
+	m_lightVisualization = true;
     
     // Directional Light - Yellow cube
     const LightData* dirLight = m_lightingSystem->GetLight("SunLight");
@@ -299,6 +301,8 @@ void SceneRenderer::CreateLightVisualizationCubes()
 
 void SceneRenderer::UpdateLightVisualization()
 {
+	if (!m_lightVisualization) return;
+	
     // Directional Light 
     auto* dirLight = m_lightingSystem->GetLight("SunLight");
     if (dirLight) 

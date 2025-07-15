@@ -78,6 +78,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ConstantBuffers.cpp" />
+    <ClCompile Include="DescriptorAllocator.cpp" />
     <ClCompile Include="Geometry\Geometry.cpp" />
     <ClCompile Include="Geometry\Cube.cpp" />
     <ClCompile Include="Geometry\IcoSphere.cpp" />
@@ -104,6 +105,7 @@
     <ClCompile Include="UI\PostProcessViewModel.cpp" />
     <ClCompile Include="UI\SceneViewModel.cpp" />
     <ClCompile Include="UI\ShadowViewModel.cpp" />
+    <ClCompile Include="Utils\IBLUtils.cpp" />
     <ClCompile Include="Utils\Logger.cpp" />
     <ClCompile Include="Utils\MathUtils.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
@@ -111,6 +113,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ConstantBuffers.h" />
+    <ClInclude Include="DescriptorAllocator.h" />
     <ClInclude Include="Geometry\Geometry.h" />
     <ClInclude Include="Geometry\IcoSphere.h" />
     <ClInclude Include="Geometry\Transform.h" />
@@ -134,9 +137,10 @@
     <ClInclude Include="UI\LightViewModel.h" />
     <ClInclude Include="UI\LunarGUI.h" />
     <ClInclude Include="UI\PerformanceViewModel.h" />
-    <ClCompile Include="UI\PostProcessViewModel.h" />
+    <ClInclude Include="UI\PostProcessViewModel.h" />
     <ClInclude Include="UI\SceneViewModel.h" />
     <ClInclude Include="UI\ShadowViewModel.h" />
+    <ClInclude Include="Utils\IBLUtils.h" />
     <ClInclude Include="Utils\Logger.h" />
     <ClInclude Include="Utils\MathUtils.h" />
     <ClInclude Include="Utils\Utils.h" />
@@ -270,6 +274,11 @@
     </FxCompile>
     <FxCompile Include="Shaders\GaussianBlurCS.hlsl">
       <EntryPointName>BlurX</EntryPointName>
+      <ShaderModel>5.1</ShaderModel>
+      <ShaderType>Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shaders\IblCS.hlsl">
+      <EntryPointName>main</EntryPointName>
       <ShaderModel>5.1</ShaderModel>
       <ShaderType>Compute</ShaderType>
     </FxCompile>
