@@ -245,3 +245,98 @@ void prefiltered(uint3 id : SV_DispatchThreadID)
     
     outputMap[id] = float4(prefilteredColor, 1.0);
 }
+    
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    /*
+     * Schlick-GGX approximation for geometry function:
+     * 
+     * G₁(v) = (N·V) / ((N·V) * (1 - k) + k)
+     * 
+     */
+    float a = roughness + 1.0;
+    float k = (a * a) / 8.0;
+
+	return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float GeometrySmith(float3 normal, float3 toEye, float3 lightVector, float roughness)
+{
+    /*
+     * Smith's method combines masking and shadowing:
+     * G(L,V,H) = G₁(L) * G₁(V)
+     */
+    float NdotV = max(dot(normal, toEye), 0.0);
+    float NdotL = max(dot(normal, lightVector), 0.0);
+    float g2 = GeometrySchlickGGX(NdotV, roughness);
+    float g1 = GeometrySchlickGGX(NdotL, roughness);
+
+    return g1 * g2;
+}
+
+float2 IntegrateBRDF(float NdotV, float roughness)
+{
+    /*
+     * BRDF Integration for Split-Sum Approximation:
+     * 
+     * ∫ BRDF(l,v) * n·l dl ≈ F₀ * scale + bias
+     * 
+     * This function computes (scale, bias) for given NdotV and roughness
+     * Red channel: scale factor for F₀
+     * Green channel: bias term
+     */
+    float3 V;
+    V.x = sqrt(1.0 - NdotV * NdotV);
+    V.y = 0.0;
+    V.z = NdotV;
+
+    float A = 0.0;
+    float B = 0.0; 
+
+    float3 N = float3(0.0, 0.0, 1.0);
+    
+    const uint SAMPLE_COUNT_BRDF = 1024;
+    for(uint i = 0; i < SAMPLE_COUNT_BRDF; ++i)
+    {
+        float2 Xi = GetRandomSample(i, uint2(NdotV * 1000, roughness * 1000));
+        float3 H = ImportanceSampleGGX(Xi, N, roughness);
+        float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+        float NdotL = max(L.z, 0.0);
+        float NdotH = max(H.z, 0.0);
+        float VdotH = max(dot(V, H), 0.0);
+
+        if(NdotL > 0.0)
+        {
+            float G = GeometrySmith(N, V, L, roughness);
+            float G_Vis = (G * VdotH) / (NdotH * NdotV);
+            float Fc = pow(1.0 - VdotH, 5.0);
+
+            A += (1.0 - Fc) * G_Vis;
+            B += Fc * G_Vis;
+        }
+    }
+    A /= float(SAMPLE_COUNT_BRDF);
+    B /= float(SAMPLE_COUNT_BRDF);
+    return float2(A, B);
+}
+
+[numthreads(8, 8, 1)]
+void brdfLut(uint3 id : SV_DispatchThreadID)
+{
+    uint width, height, elements;
+    outputMap.GetDimensions(width, height, elements);
+    
+    if (id.x >= width || id.y >= height)
+        return;
+    
+    float2 uv = (float2(id.xy) + 0.5) / float2(width, height);
+    
+    float NdotV = uv.x;
+    float roughness = uv.y;
+    
+    float2 integratedBRDF = IntegrateBRDF(NdotV, roughness);
+    
+    outputMap[uint3(id.x, id.y, 0)] = float4(integratedBRDF.x, integratedBRDF.y, 0.0, 1.0);
+}
+

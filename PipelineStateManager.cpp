@@ -80,7 +80,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	*/
 	D3D12_DESCRIPTOR_RANGE textureSrvRange = {};
 	textureSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	textureSrvRange.NumDescriptors = LunarConstants::TEXTURE_INFO.size() + 3;
+	textureSrvRange.NumDescriptors = LunarConstants::TEXTURE_INFO.size() + 13;
 	textureSrvRange.BaseShaderRegister = 0;
 	textureSrvRange.RegisterSpace = 0;
 	textureSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -659,6 +659,18 @@ void PipelineStateManager::BuildPSOs(ID3D12Device* device)
 		prefilteredPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		THROW_IF_FAILED(device->CreateComputePipelineState(&prefilteredPsoDesc, 
 			IID_PPV_ARGS(m_psoMap["prefiltered"].GetAddressOf())))
+	}
+
+	// PSO for BRDF LUT
+	{
+		D3D12_COMPUTE_PIPELINE_STATE_DESC brdfLutPsoDesc = {};
+		brdfLutPsoDesc.pRootSignature = m_computeRootSignature.Get();
+		brdfLutPsoDesc.NodeMask = 0;
+		brdfLutPsoDesc.CS.pShaderBytecode = m_shaderMap["brdfLutCS"]->GetBufferPointer();
+		brdfLutPsoDesc.CS.BytecodeLength = m_shaderMap["brdfLutCS"]->GetBufferSize();
+		brdfLutPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+		THROW_IF_FAILED(device->CreateComputePipelineState(&brdfLutPsoDesc, 
+			IID_PPV_ARGS(m_psoMap["brdfLut"].GetAddressOf())))
 	}
 }
 

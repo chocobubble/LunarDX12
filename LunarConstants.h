@@ -75,7 +75,7 @@ struct ShaderInfo
 	const char* target;
     const char* entryPoint = "main"; // Default entry point
 };
-static constexpr std::array<ShaderInfo, 23> SHADER_INFO = {{
+static constexpr std::array<ShaderInfo, 24> SHADER_INFO = {{
 	{ "basicVS", "Shaders\\BasicVertexShader.hlsl", "vs_5_1" },
 	{ "basicPS", "Shaders\\BasicPixelShader.hlsl", "ps_5_1" },
 	{ "basicHS", "Shaders\\BasicHullShader.hlsl", "hs_5_1" },
@@ -99,6 +99,7 @@ static constexpr std::array<ShaderInfo, 23> SHADER_INFO = {{
     { "irradianceCS", "Shaders\\IblCS.hlsl", "cs_5_1", "irradiance" },
     { "prefilteredCS", "Shaders\\IblCS.hlsl", "cs_5_1", "prefiltered" },
     { "irradianceDebugCS", "Shaders\\IblCS.hlsl", "cs_5_1", "debug" },
+    { "brdfLutCS", "Shaders\\IblCS.hlsl", "cs_5_1", "brdfLut" },
 }};
 
 /////////////// Debug Flags ///////////////

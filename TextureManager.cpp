@@ -35,11 +35,11 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
         Texture texture = {};
         texture.Resource = LoadTexture(textureInfo, device, commandList, textureInfo.path, texture.UploadBuffer);
         m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
-	    CreateShaderResourceView(textureInfo, device, descriptorAllocator);
+	    CreateShaderResourceView(textureInfo, descriptorAllocator);
     }
 }
 
-void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, DescriptorAllocator* descriptorAllocator, UINT mipLevels)
+void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, DescriptorAllocator* descriptorAllocator, UINT mipLevels)
 {
 	LOG_FUNCTION_ENTRY();
 
@@ -563,18 +563,18 @@ vector<vector<float>> TextureManager::EquirectangularToCubemap(float* imageData,
     return faceData;
 }
 
-ComPtr<ID3D12Resource> TextureManager::CreateEmptyCubemapResource(ID3D12Device* device, UINT cubemapSize, UINT mipLevels)
+ComPtr<ID3D12Resource> TextureManager::CreateEmptyMapResource(ID3D12Device* device, UINT mapSize, UINT depthOrArraySize, DXGI_FORMAT format, UINT mipLevels)
 {
     LOG_FUNCTION_ENTRY();
     
     D3D12_RESOURCE_DESC resourceDesc = {};
     resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     resourceDesc.Alignment = 0;
-    resourceDesc.Width = cubemapSize;
-    resourceDesc.Height = cubemapSize;
-    resourceDesc.DepthOrArraySize = 6; 
+    resourceDesc.Width = mapSize;
+    resourceDesc.Height = mapSize;
+    resourceDesc.DepthOrArraySize = depthOrArraySize; 
     resourceDesc.MipLevels = mipLevels;
-    resourceDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    resourceDesc.Format = format;
     resourceDesc.SampleDesc.Count = 1;
     resourceDesc.SampleDesc.Quality = 0;
     resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -587,17 +587,17 @@ ComPtr<ID3D12Resource> TextureManager::CreateEmptyCubemapResource(ID3D12Device* 
     defaultHeapProperties.CreationNodeMask = 1;
     defaultHeapProperties.VisibleNodeMask = 1;
 
-    ComPtr<ID3D12Resource> cubemap;
+    ComPtr<ID3D12Resource> emptyMap;
     
     THROW_IF_FAILED(device->CreateCommittedResource(
         &defaultHeapProperties, 
         D3D12_HEAP_FLAG_NONE, 
         &resourceDesc, 
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-        nullptr, IID_PPV_ARGS(&cubemap)));
+        nullptr, IID_PPV_ARGS(&emptyMap)));
     
-    LOG_DEBUG("Empty cube map created: ", cubemapSize, "x", cubemapSize, " with ", mipLevels, " mip levels");
-    return cubemap;
+    LOG_DEBUG("Empty map created: ", mapSize, "x", mapSize, " with ", mipLevels, " mip levels");
+    return emptyMap;
 }
 
 void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, const PipelineStateManager* pipelineStateManager)
@@ -664,16 +664,16 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
     stbi_image_free(data);
 	
 	m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
-	CreateShaderResourceView(textureInfo, device, descriptorAllocator);
+	CreateShaderResourceView(textureInfo, descriptorAllocator);
 
 	UINT irradianceMapSize = cubemapSize / 2;
 	Texture irradianceTexture = {};
-	irradianceTexture.Resource = CreateEmptyCubemapResource(device, irradianceMapSize);
+	irradianceTexture.Resource = CreateEmptyMapResource(device, irradianceMapSize, 6, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
 	LunarConstants::TextureInfo irradianceTextureInfo = textureInfo;
 	irradianceTextureInfo.name = "skybox_irradiance";
 	m_textureMap[irradianceTextureInfo.name] = make_unique<Texture>(irradianceTexture);
-	CreateShaderResourceView(irradianceTextureInfo, device, descriptorAllocator);
+	CreateShaderResourceView(irradianceTextureInfo, descriptorAllocator);
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 	uavDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -716,12 +716,12 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 	UINT maxMipLevels = static_cast<UINT>(std::floor(std::log2(prefilteredMapSize))) + 1;
 	
 	Texture prefilteredTexture = {};
-	prefilteredTexture.Resource = CreateEmptyCubemapResource(device, prefilteredMapSize, maxMipLevels);
+	prefilteredTexture.Resource = CreateEmptyMapResource(device, prefilteredMapSize, 6, DXGI_FORMAT_R16G16B16A16_FLOAT, maxMipLevels);
 	
 	LunarConstants::TextureInfo prefilteredTextureInfo = textureInfo;
 	prefilteredTextureInfo.name = "skybox_prefiltered";
 	m_textureMap[prefilteredTextureInfo.name] = make_unique<Texture>(prefilteredTexture);
-	CreateShaderResourceView(prefilteredTextureInfo, device, descriptorAllocator, maxMipLevels);
+	CreateShaderResourceView(prefilteredTextureInfo, descriptorAllocator, maxMipLevels);
 	
 	// commandList->SetComputeRootSignature(pipelineStateManager->GetComputeRootSignature());
 	for (UINT mip = 0; mip < maxMipLevels; ++mip)
@@ -765,6 +765,44 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 	// restore cubemap state
 	barrier.Transition.pResource = texture.Resource.Get();
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	commandList->ResourceBarrier(1, &barrier);
+
+	// BRDF LUT
+	const UINT brdfLutSize = 512;
+	
+	Texture brdfLutTexture = {};
+	LunarConstants::TextureInfo brdfLutTextureInfo = textureInfo;
+	string brdfLutName = string(textureInfo.name) + "_brdf_lut";
+	brdfLutTextureInfo.dimensionType = LunarConstants::TextureDimension::TEXTURE2D;
+	brdfLutTextureInfo.name = brdfLutName.c_str();
+	brdfLutTexture.Resource = CreateEmptyMapResource(device, brdfLutSize, 1, DXGI_FORMAT_R16G16_FLOAT);
+	m_textureMap[brdfLutTextureInfo.name] = make_unique<Texture>(brdfLutTexture);
+	CreateShaderResourceView(brdfLutTextureInfo, descriptorAllocator);
+	
+	D3D12_UNORDERED_ACCESS_VIEW_DESC brdfLutUavDesc = {};
+	brdfLutUavDesc.Format = DXGI_FORMAT_R16G16_FLOAT;
+	brdfLutUavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	brdfLutUavDesc.Texture2D.MipSlice = 0;
+	brdfLutUavDesc.Texture2D.PlaneSlice = 0;
+
+	descriptorAllocator->AllocateDescriptor("brdf_lut_uav");
+	descriptorAllocator->CreateUAV(brdfLutTexture.Resource.Get(), &brdfLutUavDesc, "brdf_lut_uav");
+
+	barrier.Transition.pResource = brdfLutTexture.Resource.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	commandList->ResourceBarrier(1, &barrier);
+
+	commandList->SetComputeRootSignature(pipelineStateManager->GetComputeRootSignature());
+	commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_OUTPUT_UAV_INDEX, descriptorAllocator->GetGPUHandle("brdf_lut_uav"));
+	commandList->SetPipelineState(pipelineStateManager->GetPSO("brdfLut"));
+	commandList->Dispatch((brdfLutSize + 7) / 8, (brdfLutSize + 7) / 8, 1);
+
+	barrier.Transition.pResource = brdfLutTexture.Resource.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	commandList->ResourceBarrier(1, &barrier);
