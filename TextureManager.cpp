@@ -723,8 +723,7 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 	m_textureMap[prefilteredTextureInfo.name] = make_unique<Texture>(prefilteredTexture);
 	CreateShaderResourceView(prefilteredTextureInfo, device, descriptorAllocator, maxMipLevels);
 	
-	string uavName = "skybox_prefiltered_uav_mip";
-	descriptorAllocator->AllocateDescriptor(uavName);
+	// commandList->SetComputeRootSignature(pipelineStateManager->GetComputeRootSignature());
 	for (UINT mip = 0; mip < maxMipLevels; ++mip)
 	{
 		barrier.Transition.Subresource = mip;
@@ -747,12 +746,12 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 		
 		uavDesc.Texture2DArray.MipSlice = mip;
 		
-		// string uavName = "skybox_prefiltered_uav_mip" + to_string(mip);
-		// descriptorAllocator->AllocateDescriptor(uavName);
-		// descriptorAllocator->CreateUAV(prefilteredTexture.Resource.Get(), &uavDesc, uavName);
+		string uavName = "skybox_prefiltered_uav_mip" + to_string(mip);
+		descriptorAllocator->AllocateDescriptor(uavName);
 		descriptorAllocator->CreateUAV(prefilteredTexture.Resource.Get(), &uavDesc, uavName);
 		
 		commandList->SetComputeRoot32BitConstants(LunarConstants::COMPUTE_CONSTANTS_INDEX, 4, constants, 0);
+		// commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_INPUT_SRV_INDEX, descriptorAllocator->GetGPUHandle(textureInfo.name));
 		commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_OUTPUT_UAV_INDEX, descriptorAllocator->GetGPUHandle(uavName));
 		commandList->SetPipelineState(pipelineStateManager->GetPSO("prefiltered"));
 		
