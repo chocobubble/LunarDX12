@@ -107,9 +107,18 @@ float4 main(PixelIn pIn) : SV_TARGET
 	float3 nToEye = normalize(toEye);
 	float3 finalColor = ambientLight.rgb * diffuseColor.rgb;
 	
+	// Direct lighting from light sources
 	finalColor += ComputeLight(lights[0], pIn.posW, normalWS, nToEye, material) * shadowFactor;
 	finalColor += ComputeLight(lights[1], pIn.posW, normalWS, nToEye, material);
 	finalColor += ComputeLight(lights[2], pIn.posW, normalWS, nToEye, material);
+
+	// IBL (Image-Based Lighting) contribution
+	static const uint iblMask = 0x80;
+	if (debugFlags & iblMask)
+	{
+		float3 iblContribution = GetIBLContribution(normalWS, nToEye, material);
+		finalColor += iblContribution;
+	}
 
     finalColor *= material.ao;
 

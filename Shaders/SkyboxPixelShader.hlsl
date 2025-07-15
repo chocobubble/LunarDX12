@@ -1,4 +1,4 @@
-TextureCube<float4> skyCube : register(t11);
+TextureCube<float4> skyCube : register(t9);
 SamplerState g_sampler : register(s0);
 
 struct PixelIn
