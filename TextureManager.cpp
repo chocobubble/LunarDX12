@@ -8,6 +8,7 @@
 #include <random>
 #include <cmath>
 
+#include "AsyncTextureLoader.h"
 #include "DescriptorAllocator.h"
 #include "PipelineStateManager.h"
 #include "Utils/IBLUtils.h"
@@ -37,6 +38,20 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
         m_textureMap[textureInfo.name] = make_unique<Texture>(texture);
 	    CreateShaderResourceView(textureInfo, descriptorAllocator);
     }
+}
+
+void TextureManager::InitializeAsync()
+{
+	m_asyncLoader = make_unique<AsyncTextureLoader>();
+	m_asyncLoader->Initialize();
+}
+
+void TextureManager::LoadHDRAsync()
+{
+	for (auto& textureInfo : Lunar::LunarConstants::TEXTURE_INFO)
+	{
+		m_asyncLoader->LoadTextureAsync(textureInfo);
+	}
 }
 
 void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, DescriptorAllocator* descriptorAllocator, UINT mipLevels)

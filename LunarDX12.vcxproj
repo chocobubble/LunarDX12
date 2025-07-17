@@ -76,7 +76,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AsyncTextureLoader.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CommandListPool.cpp" />
     <ClCompile Include="ConstantBuffers.cpp" />
     <ClCompile Include="DescriptorAllocator.cpp" />
     <ClCompile Include="Geometry\Geometry.cpp" />
@@ -111,7 +113,9 @@
     <ClCompile Include="Utils\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AsyncTextureLoader.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CommandListPool.h" />
     <ClInclude Include="ConstantBuffers.h" />
     <ClInclude Include="DescriptorAllocator.h" />
     <ClInclude Include="Geometry\Geometry.h" />
