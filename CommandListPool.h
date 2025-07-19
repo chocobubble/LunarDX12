@@ -11,7 +11,8 @@
 namespace Lunar
 {
 
-struct CommandListContext {
+struct CommandListContext 
+{
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
     UINT64 fenceValue = 0;
@@ -21,7 +22,8 @@ struct CommandListContext {
     std::chrono::high_resolution_clock::time_point endTime;
 };
 
-class CommandListPool {
+class CommandListPool 
+{
 public:
     CommandListPool();
     ~CommandListPool();
@@ -32,7 +34,8 @@ public:
     CommandListContext* GetAvailableCommandList(UINT64 completedFenceValue);
     void ReturnCommandList(CommandListContext* context);
     
-    struct PoolStats {
+    struct PoolStats 
+    {
         size_t totalContexts = 0;
         size_t availableContexts = 0;
         size_t inUseContexts = 0;
@@ -61,7 +64,8 @@ private:
     bool m_initialized = false;
 };
 
-class ScopedCommandList {
+class ScopedCommandList 
+{
 public:
     ScopedCommandList(CommandListPool* pool, UINT64 completedFenceValue);
     ~ScopedCommandList();

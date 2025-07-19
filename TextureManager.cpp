@@ -40,20 +40,6 @@ void TextureManager::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*
     }
 }
 
-void TextureManager::InitializeAsync()
-{
-	m_asyncLoader = make_unique<AsyncTextureLoader>();
-	m_asyncLoader->Initialize();
-}
-
-void TextureManager::LoadHDRAsync()
-{
-	for (auto& textureInfo : Lunar::LunarConstants::TEXTURE_INFO)
-	{
-		m_asyncLoader->LoadTextureAsync(textureInfo);
-	}
-}
-
 void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, DescriptorAllocator* descriptorAllocator, UINT mipLevels)
 {
 	LOG_FUNCTION_ENTRY();
