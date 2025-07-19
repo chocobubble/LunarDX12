@@ -8,38 +8,59 @@
 namespace Lunar
 {
 
+struct DescriptorRange 
+{
+    LunarConstants::DescriptorRanges::RangeType rangeType;
+    UINT startIndex;
+    UINT count;
+    UINT currentIndex;
+    
+    bool IsFull() const { return currentIndex >= startIndex + count; }
+    UINT GetUsedCount() const { return currentIndex - startIndex; }
+    float GetUsagePercent() const { return (float)GetUsedCount() / count * 100.0f; }
+};
+
 class DescriptorAllocator
 {
 public:
-    void Initialize(ID3D12Device* device, UINT maxDescriptors = 1000);
+    void Initialize(ID3D12Device* device);  
     
-    UINT AllocateDescriptor(const std::string& name);
+    UINT CreateSRV(LunarConstants::DescriptorRanges::RangeType rangeType, const std::string& resourceName,
+                   ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
+    
+    UINT CreateUAV(LunarConstants::DescriptorRanges::RangeType rangeType, const std::string& resourceName,
+                   ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
+    
+    const DescriptorRange* GetRange(LunarConstants::DescriptorRanges::RangeType rangeType) const;
+    
+    void LogRangeUsage() const;
     
     D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT index);
     D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT index);
     D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(const std::string& name);
     D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(const std::string& name);
+    ID3D12DescriptorHeap* GetHeap() const { return m_descriptorHeap.Get(); }
+    UINT GetDescriptorIndex(const std::string& name) const;
     
+    // Obsolete
     void CreateSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc, const std::string& name);
     void CreateUAV(ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc, const std::string& name);
     
-    ID3D12DescriptorHeap* GetHeap() const { return m_descriptorHeap.Get(); }
-    
-    void PrintAllocation();
-    
-    UINT GetDescriptorIndex(const std::string& name) const;
-    
 private:
-    Microsoft::WRL::ComPtr<ID3D12Device> m_device;
+    Microsoft::WRL::ComPtr<ID3D12Device> m_device; // TODO: Delete
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
 	UINT m_currentIndex = 0;
     UINT m_descriptorSize;
     D3D12_CPU_DESCRIPTOR_HANDLE m_cpuStart;
     D3D12_GPU_DESCRIPTOR_HANDLE m_gpuStart;
     
-    std::vector<bool> m_allocated; 
-    std::unordered_map<std::string, UINT> m_nameToIndex; 
+    std::unordered_map<std::string, UINT> m_nameToIndex;
+    std::unordered_map<LunarConstants::DescriptorRanges::RangeType, DescriptorRange> m_enumRanges;
+
+    UINT AllocateInRange(LunarConstants::DescriptorRanges::RangeType rangeType, const std::string& resourceName);
     
+    // Helper methods
+    std::string GetRangeName(LunarConstants::DescriptorRanges::RangeType type) const;
     UINT FindFreeRange(UINT count);
 };
 

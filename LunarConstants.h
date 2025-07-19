@@ -36,17 +36,63 @@ static constexpr UINT COMPUTE_INPUT_SRV_INDEX = 1;
 static constexpr UINT COMPUTE_OUTPUT_UAV_INDEX = 2;
 static constexpr UINT COMPUTE_CONSTANTS_ROOT_PARAMETER_INDEX = 8;
 
+/////////////// Descriptor Ranges ///////////////
+enum class RangeType : uint8_t 
+{
+    BASIC_TEXTURES = 0,
+    ENVIRONMENT,
+    SHADOW,
+    POSTPROCESS,
+    RENDERTARGET,
+    DYNAMIC_UAV
+};
+
+struct DescriptorRangeInfo 
+{
+    RangeType type;
+    UINT start;
+    UINT count;
+};
+
+static constexpr DescriptorRangeInfo RANGES[] = 
+{
+    {RangeType::BASIC_TEXTURES,  0,  30},
+    {RangeType::ENVIRONMENT,     30, 15},
+    {RangeType::SHADOW,          45, 5},
+    {RangeType::POSTPROCESS,     50, 10},
+    {RangeType::RENDERTARGET,    60, 5},
+    {RangeType::DYNAMIC_UAV,     65, 35}
+};
+
+static constexpr size_t RANGE_COUNT = sizeof(RANGES) / sizeof(DescriptorRangeInfo);
+static constexpr UINT TOTAL_DESCRIPTORS = 100;
+
+inline const DescriptorRangeInfo* FindRange(RangeType type) 
+{
+    for (size_t i = 0; i < RANGE_COUNT; ++i) 
+    {
+        if (RANGES[i].type == type) 
+        {
+            return &RANGES[i];
+        }
+    }
+    return nullptr;
+}
+
 /////////////// textures  ///////////////
-enum class FileType : uint8_t {
+enum class FileType : uint8_t 
+{
     DEFAULT = 0,
     DDS = 1,
     HDR = 2,
 };
 
-enum class TextureDimension : uint8_t {
+enum class TextureDimension : uint8_t 
+{
     TEXTURE2D = 4,
     CUBEMAP = 9
 }; 
+
 struct TextureInfo
 {
     const char* name;
@@ -54,6 +100,7 @@ struct TextureInfo
     FileType fileType;
     TextureDimension dimensionType; 
 };
+
 static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
     {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
     {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
