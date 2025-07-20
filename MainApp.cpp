@@ -23,6 +23,8 @@
 #include "Geometry/Transform.h"
 #include "Geometry/Plane.h"
 #include "UI/PostProcessViewModel.h"
+#include "CommandListPool.h"
+#include "AsyncTextureLoader.h"
 
 using namespace std;
 using namespace DirectX;
@@ -414,27 +416,37 @@ void MainApp::Render(double dt)
 	THROW_IF_FAILED(m_swapChain.As(&swapChain3));
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
 
+	// 🚀 Command List Pool 사용 - 이전 동기화 문제 해결
+	UINT64 completedFenceValue = m_fence->GetCompletedValue();
+	ScopedCommandList scopedCmdList(m_commandListPool.get());
+	
+	if (!scopedCmdList.IsValid()) {
+		LOG_ERROR("Failed to get available command list from pool");
+		return;
+	}
+	
+	auto* cmdList = scopedCmdList.Get();
+	auto* context = scopedCmdList.GetContext();
+
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Command List Setup");
-		m_commandAllocator->Reset(); // Cautions!
-		m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 		
 		{ // Compute Shader
-			m_commandList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
-			m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("particlesUpdate"));
-			m_sceneRenderer->UpdateParticleSystem(dt, m_commandList.Get());
+			cmdList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
+			cmdList->SetPipelineState(m_pipelineStateManager->GetPSO("particlesUpdate"));
+			m_sceneRenderer->UpdateParticleSystem(dt, cmdList);
 		}
 		
 		// Switch to graphics pipeline
-		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
+		cmdList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 		
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_descriptorAllocator->GetHeap() };
-		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_descriptorAllocator->GetHeap()->GetGPUDescriptorHandleForHeapStart(); 
-		m_commandList->SetGraphicsRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, descriptorHandle);
+		cmdList->SetGraphicsRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, descriptorHandle);
 		
-		m_sceneRenderer->RenderShadowMap(m_commandList.Get());
+		m_sceneRenderer->RenderShadowMap(cmdList);
 
 		m_viewport = {};
 		m_viewport.TopLeftX = 0.0f;
@@ -444,14 +456,14 @@ void MainApp::Render(double dt)
 		m_viewport.MinDepth = 0.0f;
 		m_viewport.MaxDepth = 1.0f;
 
-		m_commandList->RSSetViewports(1, &m_viewport);
+		cmdList->RSSetViewports(1, &m_viewport);
 
 		m_scissorRect = {};
 		m_scissorRect.left = 0;
 		m_scissorRect.top = 0;
 		m_scissorRect.right = static_cast<LONG>(Utils::GetDisplayWidth());
 		m_scissorRect.bottom = static_cast<LONG>(Utils::GetDisplayHeight());
-		m_commandList->RSSetScissorRects(1, &m_scissorRect);
+		cmdList->RSSetScissorRects(1, &m_scissorRect);
     }
 
     {
@@ -459,22 +471,22 @@ void MainApp::Render(double dt)
 		
 		D3D12_CPU_DESCRIPTOR_HANDLE sceneRenderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
-		m_commandList->OMSetRenderTargets(1, &sceneRenderTargetViewHandle, FALSE, &depthStencilViewHandle);
+		cmdList->OMSetRenderTargets(1, &sceneRenderTargetViewHandle, FALSE, &depthStencilViewHandle);
 
 		// clear
 		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		m_commandList->ClearRenderTargetView(sceneRenderTargetViewHandle, clearColor, 0, nullptr);
-		m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		cmdList->ClearRenderTargetView(sceneRenderTargetViewHandle, clearColor, 0, nullptr);
+		cmdList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Scene Rendering");
-		m_sceneRenderer->RenderScene(m_commandList.Get());
+		m_sceneRenderer->RenderScene(cmdList);
 	}
 	
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Particle Rendering");
-		m_sceneRenderer->RenderParticles(m_commandList.Get());
+		m_sceneRenderer->RenderParticles(cmdList);
 	}
 
 	{
@@ -550,7 +562,14 @@ void MainApp::Initialize()
 	CreateFence();
 	CreateCamera();
 	CreateSwapChain();
+	
+	// Initialize range-based descriptor allocation
 	m_descriptorAllocator->Initialize(m_device.Get());
+	
+	// Command List Pool initialization - replaces single command list
+	m_commandListPool = std::make_unique<CommandListPool>();
+	m_commandListPool->Initialize(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, 4, m_fence.Get());
+	
 	CreateSceneRenderTarget();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();

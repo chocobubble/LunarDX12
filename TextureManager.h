@@ -7,6 +7,8 @@
 #include <wrl/client.h>
 #include <future>
 #include <chrono>
+#include <future>
+#include <chrono>
 
 #include "LunarConstants.h"
 #include "AsyncTextureLoader.h"
@@ -29,9 +31,6 @@ class TextureManager
 public:
 	void Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, PipelineStateManager* pipelineStateManager);
 	
-	void InitializeAsync();
-	void LoadHDRAsync();
-	
 	struct LoadingStats {
 		std::chrono::milliseconds syncLoadTime{0};
 		std::chrono::milliseconds asyncLoadTime{0};
@@ -45,8 +44,6 @@ public:
 
 private:
 	std::unordered_map<std::string, std::unique_ptr<Texture>> m_textureMap;
-	std::unique_ptr<AsyncTextureLoader> m_asyncLoader;
-	std::vector<std::future<bool>> m_loadingFutures;
 	LoadingStats m_loadingStats;
 	
 	void CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, DescriptorAllocator* descriptorAllocator, UINT mipLevels = 1);
@@ -75,3 +72,4 @@ private:
 };
 	
 } // namespace Lunar
+    

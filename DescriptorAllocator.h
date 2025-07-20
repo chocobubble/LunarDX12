@@ -1,16 +1,16 @@
 #pragma once
 #include <d3d12.h>
 #include <wrl/client.h>
-#include <vector>
 #include <string>
 #include <unordered_map>
+#include "LunarConstants.h"
 
 namespace Lunar
 {
 
 struct DescriptorRange 
 {
-    LunarConstants::DescriptorRanges::RangeType rangeType;
+    LunarConstants::RangeType rangeType;
     UINT startIndex;
     UINT count;
     UINT currentIndex;
@@ -25,13 +25,13 @@ class DescriptorAllocator
 public:
     void Initialize(ID3D12Device* device);  
     
-    UINT CreateSRV(LunarConstants::DescriptorRanges::RangeType rangeType, const std::string& resourceName,
+    UINT CreateSRV(LunarConstants::RangeType rangeType, const std::string& resourceName,
                    ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
     
-    UINT CreateUAV(LunarConstants::DescriptorRanges::RangeType rangeType, const std::string& resourceName,
+    UINT CreateUAV(LunarConstants::RangeType rangeType, const std::string& resourceName,
                    ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
     
-    const DescriptorRange* GetRange(LunarConstants::DescriptorRanges::RangeType rangeType) const;
+    const DescriptorRange* GetRange(LunarConstants::RangeType rangeType) const;
     
     void LogRangeUsage() const;
     
@@ -43,8 +43,8 @@ public:
     UINT GetDescriptorIndex(const std::string& name) const;
     
     // Obsolete
-    void CreateSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc, const std::string& name);
-    void CreateUAV(ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc, const std::string& name);
+    // void CreateSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc, const std::string& name);
+    // void CreateUAV(ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc, const std::string& name);
     
 private:
     Microsoft::WRL::ComPtr<ID3D12Device> m_device; // TODO: Delete
@@ -55,13 +55,9 @@ private:
     D3D12_GPU_DESCRIPTOR_HANDLE m_gpuStart;
     
     std::unordered_map<std::string, UINT> m_nameToIndex;
-    std::unordered_map<LunarConstants::DescriptorRanges::RangeType, DescriptorRange> m_enumRanges;
+    std::unordered_map<LunarConstants::RangeType, DescriptorRange> m_enumRanges;
 
-    UINT AllocateInRange(LunarConstants::DescriptorRanges::RangeType rangeType, const std::string& resourceName);
-    
-    // Helper methods
-    std::string GetRangeName(LunarConstants::DescriptorRanges::RangeType type) const;
-    UINT FindFreeRange(UINT count);
+    UINT AllocateInRange(LunarConstants::RangeType rangeType, const std::string& resourceName);
 };
 
 } // namespace Lunar

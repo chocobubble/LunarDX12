@@ -20,6 +20,8 @@ class PerformanceViewModel;
 class PostProcessManager;
 class PostProcessViewModel;
 class DescriptorAllocator;
+class CommandListPool;
+class AsyncTextureLoader;
 	
 class MainApp {
 public:
@@ -96,6 +98,8 @@ private:
 	std::unique_ptr<PostProcessManager> m_postProcessManager;
 	std::unique_ptr<PostProcessViewModel> m_postProcessViewModel;
 	std::unique_ptr<DescriptorAllocator> m_descriptorAllocator;
+	std::unique_ptr<CommandListPool> m_commandListPool;
+	std::unique_ptr<AsyncTextureLoader> m_asyncTextureLoader;
 
 	bool m_mouseMoving = false;
 };

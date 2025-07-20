@@ -6,6 +6,7 @@
 #include <iomanip>
 
 using namespace Microsoft::WRL;
+using namespace std;
 
 namespace Lunar
 {
@@ -19,7 +20,7 @@ void DescriptorAllocator::Initialize(ID3D12Device* device)
     
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = LunarConstants::DescriptorRanges::TOTAL_DESCRIPTORS;
+    heapDesc.NumDescriptors = LunarConstants::TOTAL_DESCRIPTORS;
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     heapDesc.NodeMask = 0;
     
@@ -30,9 +31,9 @@ void DescriptorAllocator::Initialize(ID3D12Device* device)
     m_gpuStart = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
     
     // Reserve all predefined ranges from the array
-    for (size_t i = 0; i < LunarConstants::DescriptorRanges::RANGE_COUNT; ++i) 
+    for (size_t i = 0; i < LunarConstants::RANGE_COUNT; ++i) 
     {
-        const auto& rangeInfo = LunarConstants::DescriptorRanges::RANGES[i];
+        const auto& rangeInfo = LunarConstants::RANGES[i];
         
         DescriptorRange range;
         range.rangeType = rangeInfo.type;
@@ -40,14 +41,14 @@ void DescriptorAllocator::Initialize(ID3D12Device* device)
         range.count = rangeInfo.count;
         range.currentIndex = range.startIndex;
         
-        m_enumRanges[rangeType] = range;
+        m_enumRanges[rangeInfo.type] = range;
     }
     
     LOG_DEBUG("DescriptorAllocator initialized with range-based allocation");
     LogRangeUsage();
 }
 
-UINT DescriptorAllocator::AllocateInRange(LunarConstants::DescriptorRanges::RangeType rangeType, const std::string& resourceName) 
+UINT DescriptorAllocator::AllocateInRange(LunarConstants::RangeType rangeType, const string& resourceName) 
 {
     auto it = m_enumRanges.find(rangeType);
     if (it == m_enumRanges.end()) 
@@ -67,7 +68,7 @@ UINT DescriptorAllocator::AllocateInRange(LunarConstants::DescriptorRanges::Rang
     return index;
 }
 
-const DescriptorRange* DescriptorAllocator::GetRange(LunarConstants::DescriptorRanges::RangeType rangeType) const 
+const DescriptorRange* DescriptorAllocator::GetRange(LunarConstants::RangeType rangeType) const 
 {
     auto it = m_enumRanges.find(rangeType);
     return (it != m_enumRanges.end()) ? &it->second : nullptr;
@@ -89,12 +90,12 @@ void DescriptorAllocator::LogRangeUsage() const
     }
 }
 
-UINT DescriptorAllocator::CreateSRV(LunarConstants::DescriptorRanges::RangeType rangeType, 
-                                   const std::string& resourceName,
+UINT DescriptorAllocator::CreateSRV(LunarConstants::RangeType rangeType, 
+                                   const string& resourceName,
                                    ID3D12Resource* resource, 
                                    const D3D12_SHADER_RESOURCE_VIEW_DESC* desc) 
 {
-    const auto* rangeInfo = LunarConstants::DescriptorRanges::FindRange(rangeType);
+    const auto* rangeInfo = LunarConstants::FindRange(rangeType);
     if (!rangeInfo) 
     {
         throw std::runtime_error("Invalid range type");
@@ -121,12 +122,12 @@ UINT DescriptorAllocator::CreateSRV(LunarConstants::DescriptorRanges::RangeType 
     return index;
 }
 
-UINT DescriptorAllocator::CreateUAV(LunarConstants::DescriptorRanges::RangeType rangeType,
-                                   const std::string& resourceName,
+UINT DescriptorAllocator::CreateUAV(LunarConstants::RangeType rangeType,
+                                   const string& resourceName,
                                    ID3D12Resource* resource,
                                    const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc) 
 {
-    const auto* rangeInfo = LunarConstants::DescriptorRanges::FindRange(rangeType);
+    const auto* rangeInfo = LunarConstants::FindRange(rangeType);
     if (!rangeInfo) 
     {
         throw std::runtime_error("Invalid range type");
@@ -166,7 +167,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetGPUHandle(UINT index)
     return handle;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetCPUHandle(const std::string& name)
+D3D12_CPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetCPUHandle(const string& name)
 {
     auto it = m_nameToIndex.find(name);
     if (it != m_nameToIndex.end())
@@ -178,7 +179,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetCPUHandle(const std::string&
     return {};
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetGPUHandle(const std::string& name)
+D3D12_GPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetGPUHandle(const string& name)
 {
     auto it = m_nameToIndex.find(name);
     if (it != m_nameToIndex.end())
@@ -190,33 +191,33 @@ D3D12_GPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetGPUHandle(const std::string&
     return {};
 }
 
-void DescriptorAllocator::CreateSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc, const std::string& name)
-{
-    auto it = m_nameToIndex.find(name);
-    if (it == m_nameToIndex.end())
-    {
-        LOG_ERROR("Descriptor not allocated: ", name);
-        return;
-    }
-    
-    m_device->CreateShaderResourceView(resource, desc, GetCPUHandle(it->second));
-    LOG_DEBUG("SRV created for '", name, "' at index ", it->second);
-}
+// void DescriptorAllocator::CreateSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc, const string& name)
+// {
+//     auto it = m_nameToIndex.find(name);
+//     if (it == m_nameToIndex.end())
+//     {
+//         LOG_ERROR("Descriptor not allocated: ", name);
+//         return;
+//     }
+//     
+//     m_device->CreateShaderResourceView(resource, desc, GetCPUHandle(it->second));
+//     LOG_DEBUG("SRV created for '", name, "' at index ", it->second);
+// }
+//
+// void DescriptorAllocator::CreateUAV(ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc, const string& name)
+// {
+//     auto it = m_nameToIndex.find(name);
+//     if (it == m_nameToIndex.end())
+//     {
+//         LOG_ERROR("Descriptor not allocated: ", name);
+//         return;
+//     }
+//     
+//     m_device->CreateUnorderedAccessView(resource, nullptr, desc, GetCPUHandle(it->second));
+//     LOG_DEBUG("UAV created for '", name, "' at index ", it->second);
+// }
 
-void DescriptorAllocator::CreateUAV(ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc, const std::string& name)
-{
-    auto it = m_nameToIndex.find(name);
-    if (it == m_nameToIndex.end())
-    {
-        LOG_ERROR("Descriptor not allocated: ", name);
-        return;
-    }
-    
-    m_device->CreateUnorderedAccessView(resource, nullptr, desc, GetCPUHandle(it->second));
-    LOG_DEBUG("UAV created for '", name, "' at index ", it->second);
-}
-
-UINT DescriptorAllocator::GetDescriptorIndex(const std::string& name) const
+UINT DescriptorAllocator::GetDescriptorIndex(const string& name) const
 {
     auto it = m_nameToIndex.find(name);
     return (it != m_nameToIndex.end()) ? it->second : UINT_MAX;

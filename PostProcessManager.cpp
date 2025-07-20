@@ -59,7 +59,7 @@ void PostProcessManager::Initialize(ID3D12Device* device, DescriptorAllocator* d
         nullptr,
         IID_PPV_ARGS(&m_postProcessPong.texture)));
 
-	m_postProcessPing.srvOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPing.srvOffsetKey);
+	// m_postProcessPing.srvOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPing.srvOffsetKey);
     
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -68,7 +68,7 @@ void PostProcessManager::Initialize(ID3D12Device* device, DescriptorAllocator* d
     srvDesc.Texture2D.MipLevels = 1;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-	descriptorAllocator->CreateSRV(m_postProcessPing.texture.Get(), &srvDesc, m_postProcessPing.srvOffsetKey);
+	descriptorAllocator->CreateSRV(LunarConstants::RangeType::POSTPROCESS, m_postProcessPing.srvOffsetKey, m_postProcessPing.texture.Get(), &srvDesc);
 
     /*
     typedef struct D3D12_UNORDERED_ACCESS_VIEW_DESC {
@@ -90,13 +90,13 @@ void PostProcessManager::Initialize(ID3D12Device* device, DescriptorAllocator* d
     uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
-	m_postProcessPing.uavOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPing.uavOffsetKey);
-	descriptorAllocator->CreateUAV(m_postProcessPing.texture.Get(), &uavDesc, m_postProcessPing.uavOffsetKey);
+	// m_postProcessPing.uavOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPing.uavOffsetKey);
+	descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, m_postProcessPing.uavOffsetKey, m_postProcessPing.texture.Get(), &uavDesc);
 
-	m_postProcessPong.srvOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPong.srvOffsetKey);
-	descriptorAllocator->CreateSRV(m_postProcessPong.texture.Get(), &srvDesc, m_postProcessPong.srvOffsetKey);
-	m_postProcessPong.uavOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPong.uavOffsetKey);
-	descriptorAllocator->CreateUAV(m_postProcessPong.texture.Get(), &uavDesc, m_postProcessPong.uavOffsetKey);
+	// m_postProcessPong.srvOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPong.srvOffsetKey);
+	descriptorAllocator->CreateSRV(LunarConstants::RangeType::POSTPROCESS, m_postProcessPong.srvOffsetKey, m_postProcessPong.texture.Get(), &srvDesc);
+	// m_postProcessPong.uavOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPong.uavOffsetKey);
+	descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, m_postProcessPong.uavOffsetKey, m_postProcessPong.texture.Get(), &uavDesc);
 }
 
 void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, PipelineStateManager* pipelineStateManager, DescriptorAllocator* descriptorAllocator)

@@ -11,7 +11,8 @@
 namespace Lunar
 {
 
-struct CommandListContext {
+struct CommandListContext 
+{
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
     UINT64 fenceValue = 0;
@@ -21,18 +22,22 @@ struct CommandListContext {
     std::chrono::high_resolution_clock::time_point endTime;
 };
 
-class CommandListPool {
+class CommandListPool 
+{
 public:
     CommandListPool();
     ~CommandListPool();
     
-    void Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, size_t poolSize = 4);
+    void Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, size_t poolSize, ID3D12Fence* fence);
     void Shutdown();
     
-    CommandListContext* GetAvailableCommandList(UINT64 completedFenceValue);
+    CommandListContext* GetAvailableCommandList();
     void ReturnCommandList(CommandListContext* context);
     
-    struct PoolStats {
+    UINT64 GetNextFenceValue() const { return m_nextFenceValue.load(); }
+    
+    struct PoolStats 
+    {
         size_t totalContexts = 0;
         size_t availableContexts = 0;
         size_t inUseContexts = 0;
@@ -53,6 +58,10 @@ private:
     
     ID3D12Device* m_device = nullptr;
     D3D12_COMMAND_LIST_TYPE m_commandListType;
+    ID3D12Fence* m_fence = nullptr;
+    
+    // Fence value management
+    std::atomic<UINT64> m_nextFenceValue{1};
     
     mutable std::mutex m_statsMutex;
     std::atomic<size_t> m_totalExecutions{0};
@@ -61,9 +70,10 @@ private:
     bool m_initialized = false;
 };
 
-class ScopedCommandList {
+class ScopedCommandList 
+{
 public:
-    ScopedCommandList(CommandListPool* pool, UINT64 completedFenceValue);
+    ScopedCommandList(CommandListPool* pool);
     ~ScopedCommandList();
     
     ScopedCommandList(const ScopedCommandList&) = delete;
