@@ -155,7 +155,7 @@ void SceneRenderer::CreateDepthStencilView(ID3D12Device* device)
 
 void SceneRenderer::InitializeTextures(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator)
 {
-	m_textureManager->Initialize(device, commandList, descriptorAllocator, m_pipelineStateManager);
+	// m_textureManager->Initialize(device, commandList, descriptorAllocator, m_pipelineStateManager);
 	m_shadowManager->CreateSRV(device, descriptorAllocator);
 
 	// REFACTORING: Rename or refactor this method

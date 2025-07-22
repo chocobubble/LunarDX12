@@ -121,7 +121,7 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
             context->endTime = chrono::high_resolution_clock::now();
             UpdateStats(context.get());
             
-            // LOG_DEBUG("Command list context ", i, " returned to pool");
+            LOG_DEBUG("Command list context ", i, " returned to pool");
         }
     }
     
@@ -166,27 +166,27 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
 
 void CommandListPool::ReturnCommandList(CommandListContext* context) 
 {
-    if (!context) return;
-    
-    std::lock_guard<std::mutex> lock(m_poolMutex);
-    
-    auto it = std::find_if(m_contexts.begin(), m_contexts.end(),
-        [context](const unique_ptr<CommandListContext>& ctx) {
-            return ctx.get() == context;
-        });
-    
-    if (it != m_contexts.end()) 
-    {
-        size_t index = std::distance(m_contexts.begin(), it);
-        
-        context->commandList->Close();
-        
-        // LOG_DEBUG("Command list context ", index, " marked for return");
-    } 
-    else 
-    {
-        LOG_ERROR("Invalid command list context returned");
-    }
+    // if (!context) return;
+    //
+    // std::lock_guard<std::mutex> lock(m_poolMutex);
+    //
+    // auto it = std::find_if(m_contexts.begin(), m_contexts.end(),
+    //     [context](const unique_ptr<CommandListContext>& ctx) {
+    //         return ctx.get() == context;
+    //     });
+    //
+    // if (it != m_contexts.end()) 
+    // {
+    //     size_t index = std::distance(m_contexts.begin(), it);
+    //     
+    //     context->commandList->Close();
+    //     
+    //     // LOG_DEBUG("Command list context ", index, " marked for return");
+    // } 
+    // else 
+    // {
+    //     LOG_ERROR("Invalid command list context returned");
+    // }
 }
 
 CommandListPool::PoolStats CommandListPool::GetStats() const 

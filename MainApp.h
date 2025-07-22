@@ -54,7 +54,7 @@ private:
 	
 	Microsoft::WRL::ComPtr<ID3D12Device> m_device;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+	// Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_commandList;
 	Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory;
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter;

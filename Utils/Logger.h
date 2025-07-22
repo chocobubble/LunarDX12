@@ -29,6 +29,10 @@ public:
 	template <typename... Args>
 	void Log(LogLevel level, const std::string& functionName, Args... args)
 	{
+		if (level == LogLevel::ERR)
+		{
+			__debugbreak();
+		}
 		std::stringstream message;
 		message << GetCurrentTime() << " [" << LogLevelToString(level) << "] "
 			<< "[" << functionName << "] ";

@@ -187,9 +187,9 @@ void MainApp::InitializeCommandList()
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_commandQueue.GetAddressOf()));
 	
-	THROW_IF_FAILED(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())))
-	
-	THROW_IF_FAILED(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_commandList.GetAddressOf())))
+	// THROW_IF_FAILED(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())))
+	//
+	// THROW_IF_FAILED(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_commandList.GetAddressOf())))
 
 	// m_commandList->Close();
 }
@@ -406,19 +406,18 @@ void MainApp::Render(double dt)
 {
 	PROFILE_FUNCTION(m_performanceProfiler.get());
 	
-	if (m_fence->GetCompletedValue() < m_fenceValue - 1)
-	{
-		THROW_IF_FAILED(m_fence->SetEventOnCompletion(m_fenceValue - 1, m_fenceEvent))
-		WaitForSingleObject(m_fenceEvent, INFINITE);
-	}
+	// if (m_fence->GetCompletedValue() < m_fenceValue - 1)
+	// {
+	// 	THROW_IF_FAILED(m_fence->SetEventOnCompletion(m_fenceValue - 1, m_fenceEvent))
+	// 	WaitForSingleObject(m_fenceEvent, INFINITE);
+	// }
 	
 	ComPtr<IDXGISwapChain3> swapChain3;
 	THROW_IF_FAILED(m_swapChain.As(&swapChain3));
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
 
-	// 🚀 Command List Pool 사용 - 이전 동기화 문제 해결
-	UINT64 completedFenceValue = m_fence->GetCompletedValue();
 	ScopedCommandList scopedCmdList(m_commandListPool.get());
+	m_commandList = scopedCmdList.Get();
 	
 	if (!scopedCmdList.IsValid()) {
 		LOG_ERROR("Failed to get available command list from pool");
@@ -567,19 +566,28 @@ void MainApp::Initialize()
 	m_descriptorAllocator->Initialize(m_device.Get());
 	
 	// Command List Pool initialization - replaces single command list
-	m_commandListPool = std::make_unique<CommandListPool>();
+	m_commandListPool = make_unique<CommandListPool>();
 	m_commandListPool->Initialize(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, 4, m_fence.Get());
+
+	ScopedCommandList scopedCmdList(m_commandListPool.get());
 	
 	CreateSceneRenderTarget();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
+
+	m_commandList = scopedCmdList.Get();
+	
 	InitializeTextures(); // for now, should come after InitializeGeometry method
 	m_postProcessManager->Initialize(m_device.Get(), m_descriptorAllocator.get());
 	m_postProcessViewModel->Initialize(m_gui.get(), m_postProcessManager.get());
 	m_performanceProfiler->Initialize();
 	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
+
+	m_commandList->Close();
+	ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     LOG_FUNCTION_EXIT();
 }
@@ -688,8 +696,8 @@ void MainApp::InitializeGeometry()
 	LOG_FUNCTION_ENTRY();
 	
     // TODO: Check really need this resetting?
-	m_commandAllocator->Reset();
-	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+	// m_commandAllocator->Reset();
+	// m_commandList->Reset(m_commandAllocator.Get(), nullptr);
     Transform transform = {};
     transform.Location = XMFLOAT3(0.0f, 1.5f, 0.0f);
     m_sceneRenderer->AddGeometry<IcoSphere>("Sphere0", transform, RenderLayer::World);
@@ -751,7 +759,6 @@ void MainApp::CopyPPTextureToBackBuffer()
 	barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	barriers[1].Transition.pResource = m_renderTargets[m_frameIndex].Get();
-	// barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 	barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;

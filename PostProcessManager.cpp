@@ -165,6 +165,9 @@ void PostProcessManager::SwapBuffers(ID3D12GraphicsCommandList* commandList, Des
 
 	commandList->ResourceBarrier(_countof(barriers), barriers);
 
+	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorAllocator->GetHeap() };
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
 	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle(m_postProcessPing.uavOffsetKey));
 	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle(m_postProcessPong.uavOffsetKey));
 }
