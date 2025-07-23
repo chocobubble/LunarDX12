@@ -51,6 +51,7 @@ MainApp::MainApp()
 	m_postProcessManager = make_unique<PostProcessManager>();
 	m_postProcessViewModel = make_unique<PostProcessViewModel>();
 	m_descriptorAllocator = make_unique<DescriptorAllocator>();
+	m_asyncTextureLoader = make_unique<AsyncTextureLoader>();
 }
 
 MainApp::~MainApp()
@@ -327,7 +328,7 @@ void MainApp::CreateRenderTargetView()
 void MainApp::CreateFence()
 {
 	LOG_FUNCTION_ENTRY();
-	m_fenceValue = 1;
+	// m_fenceValue = 1;
 	THROW_IF_FAILED(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf())))
 
 	m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -535,9 +536,8 @@ void MainApp::Render(double dt)
 	m_swapChain->Present(1, 0);
 
 	// ready for next frame
-	const UINT64 currentFenceValue = m_fenceValue;
+	const UINT64 currentFenceValue = context->fenceValue;
 	m_commandQueue->Signal(m_fence.Get(), currentFenceValue);
-	m_fenceValue++;
 
 	// // wait for completing current frame
 	// if (m_fence->GetCompletedValue() < currentFenceValue)
@@ -568,8 +568,17 @@ void MainApp::Initialize()
 	// Command List Pool initialization - replaces single command list
 	m_commandListPool = make_unique<CommandListPool>();
 	m_commandListPool->Initialize(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, 4, m_fence.Get());
-
-	ScopedCommandList scopedCmdList(m_commandListPool.get());
+	m_asyncTextureLoader->Initialize(4, m_device.Get(), m_commandListPool.get(), m_descriptorAllocator.get(), m_commandQueue.Get(), m_fence.Get());
+	vector<future<bool>> futures;
+	for (auto& textureInfo : LunarConstants::TEXTURE_INFO)
+	{
+		auto f = m_asyncTextureLoader->LoadTextureAsync(textureInfo);
+		futures.push_back(move(f));
+	}
+	for (auto& f : futures)
+	{
+		f.wait();
+	}
 	
 	CreateSceneRenderTarget();
 	CreateRTVDescriptorHeap();
@@ -577,6 +586,7 @@ void MainApp::Initialize()
 	InitializeGeometry();
 	m_pipelineStateManager->Initialize(m_device.Get());
 
+	ScopedCommandList scopedCmdList(m_commandListPool.get());
 	m_commandList = scopedCmdList.Get();
 	
 	InitializeTextures(); // for now, should come after InitializeGeometry method
@@ -588,6 +598,16 @@ void MainApp::Initialize()
 	m_commandList->Close();
 	ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
 	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	// Wait for initialization to complete
+	const UINT64 initFenceValue = scopedCmdList.GetContext()->fenceValue;
+	m_commandQueue->Signal(m_fence.Get(), initFenceValue);
+
+	if (m_fence->GetCompletedValue() < initFenceValue)
+	{
+		THROW_IF_FAILED(m_fence->SetEventOnCompletion(initFenceValue, m_fenceEvent))
+		WaitForSingleObject(m_fenceEvent, INFINITE);
+	}
 
     LOG_FUNCTION_EXIT();
 }

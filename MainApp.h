@@ -74,7 +74,7 @@ private:
 	// D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
 
 	UINT m_renderTargetViewDescriptorSize;
-	UINT m_fenceValue;
+	// UINT m_fenceValue;
 	UINT m_frameIndex;
 
 	HANDLE m_fenceEvent;

@@ -29,15 +29,17 @@ public:
 	template <typename... Args>
 	void Log(LogLevel level, const std::string& functionName, Args... args)
 	{
+		std::stringstream message;
+		message << GetCurrentTime() << " [" << LogLevelToString(level) << "] " << "[" << functionName << "] ";
+		LogMessage(message, args...);
 		if (level == LogLevel::ERR)
 		{
-			__debugbreak();
+			std::cout << message.str() << std::endl;
 		}
-		std::stringstream message;
-		message << GetCurrentTime() << " [" << LogLevelToString(level) << "] "
-			<< "[" << functionName << "] ";
-		LogMessage(message, args...);
-		std::cout << message.str() << std::endl;
+		else
+		{
+			std::cout << message.str() << std::endl;
+		}
 
 		if (m_logToFile && m_logFile.is_open())
 		{

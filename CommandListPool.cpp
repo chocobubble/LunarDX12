@@ -156,7 +156,7 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
             return nullptr;
         }
         
-        // LOG_DEBUG("Allocated command list context ", index);
+        LOG_DEBUG("Allocated command list context ", index);
         return context;
     }
     
