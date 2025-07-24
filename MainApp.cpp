@@ -567,7 +567,7 @@ void MainApp::Initialize()
 	
 	// Command List Pool initialization - replaces single command list
 	m_commandListPool = make_unique<CommandListPool>();
-	m_commandListPool->Initialize(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, 4, m_fence.Get());
+	m_commandListPool->Initialize(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, 6, m_fence.Get());
 	m_asyncTextureLoader->Initialize(4, m_device.Get(), m_commandListPool.get(), m_descriptorAllocator.get(), m_commandQueue.Get(), m_fence.Get());
 	vector<future<bool>> futures;
 	for (auto& textureInfo : LunarConstants::TEXTURE_INFO)

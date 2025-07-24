@@ -125,18 +125,27 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
         }
     }
     
-    if (!m_availableIndices.empty()) 
+    while (!m_availableIndices.empty()) 
     {
         size_t index = m_availableIndices.front();
         m_availableIndices.pop();
         
         auto* context = m_contexts[index].get();
+        
+        // Double-check fence completion before reset
+        if (context->fenceValue > 0 && m_fence->GetCompletedValue() < context->fenceValue) 
+        {
+            // GPU hasn't finished yet, put back in queue and try another
+            m_availableIndices.push(index);
+            continue;
+        }
+        
         context->inUse = true;
-        
-        // Assign unique fence value
         context->fenceValue = m_nextFenceValue.fetch_add(1);
-        
         context->startTime = chrono::high_resolution_clock::now();
+        
+        // Ensure command list is closed before resetting allocator
+        context->commandList->Close();
         
         HRESULT hr = context->allocator->Reset();
         if (FAILED(hr)) 
@@ -166,27 +175,7 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
 
 void CommandListPool::ReturnCommandList(CommandListContext* context) 
 {
-    // if (!context) return;
-    //
-    // std::lock_guard<std::mutex> lock(m_poolMutex);
-    //
-    // auto it = std::find_if(m_contexts.begin(), m_contexts.end(),
-    //     [context](const unique_ptr<CommandListContext>& ctx) {
-    //         return ctx.get() == context;
-    //     });
-    //
-    // if (it != m_contexts.end()) 
-    // {
-    //     size_t index = std::distance(m_contexts.begin(), it);
-    //     
-    //     context->commandList->Close();
-    //     
-    //     // LOG_DEBUG("Command list context ", index, " marked for return");
-    // } 
-    // else 
-    // {
-    //     LOG_ERROR("Invalid command list context returned");
-    // }
+
 }
 
 CommandListPool::PoolStats CommandListPool::GetStats() const 
