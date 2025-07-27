@@ -424,7 +424,12 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 		}
 		
 		SetupSRVDescription(job);
-		m_descriptorAllocator->CreateSRV(LunarConstants::RangeType::BASIC_TEXTURES, job->textureInfo.name, job->gpuResource.Get(), &job->srvDesc);
+		
+		m_descriptorAllocator->CreateSRVAtRangeIndex(job->textureInfo.rangeType,
+		                                            job->textureInfo.registerIndex,
+		                                            job->textureInfo.name,
+		                                            job->gpuResource.Get(),
+		                                            &job->srvDesc);
 		
 		std::queue<std::unique_ptr<TextureLoadJob>> completedTextures;
 	

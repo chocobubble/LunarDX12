@@ -98,20 +98,22 @@ struct TextureInfo
     const char* name;
     const char* path;
     FileType fileType;
-    TextureDimension dimensionType; 
+    TextureDimension dimensionType;
+    RangeType rangeType;        
+    UINT registerIndex;         
 };
 
 static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
-    {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-    {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
-    {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
-	{"tile_color", "Assets\\Textures\\metal\\metal-color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_normal", "Assets\\Textures\\metal\\metal-normal.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_ao", "Assets\\Textures\\metal\\metal-ao.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-    {"skybox", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP},
+    {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 0},
+    {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 1},
+    {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 2},
+	{"tile_color", "Assets\\Textures\\metal\\metal-color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 3},
+	{"tile_normal", "Assets\\Textures\\metal\\metal-normal.png", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 4},
+	{"tile_ao", "Assets\\Textures\\metal\\metal-ao.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 5},
+	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 6},
+	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 7},
+	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 8},
+    {"skybox", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP, RangeType::ENVIRONMENT, 0},
 }};
 
 /////////////// Shaders ///////////////

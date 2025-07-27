@@ -31,6 +31,17 @@ public:
     UINT CreateUAV(LunarConstants::RangeType rangeType, const std::string& resourceName,
                    ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
     
+    void CreateSRVAtRangeIndex(LunarConstants::RangeType rangeType,
+                              UINT relativeIndex,
+                              const std::string& resourceName,
+                              ID3D12Resource* resource,
+                              const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
+    
+    void CreateSRVAtAbsoluteIndex(UINT absoluteIndex,
+                                 const std::string& resourceName,
+                                 ID3D12Resource* resource,
+                                 const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
+    
     const DescriptorRange* GetRange(LunarConstants::RangeType rangeType) const;
     
     void LogRangeUsage() const;

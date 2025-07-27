@@ -152,6 +152,64 @@ UINT DescriptorAllocator::CreateUAV(LunarConstants::RangeType rangeType,
     LOG_DEBUG("Created UAV '", resourceName, "' at index ", index);
     return index;
 }
+
+void DescriptorAllocator::CreateSRVAtRangeIndex(LunarConstants::RangeType rangeType,
+                                               UINT relativeIndex,
+                                               const std::string& resourceName,
+                                               ID3D12Resource* resource,
+                                               const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
+{
+    if (!IsRelativeIndexValid(rangeType, relativeIndex)) 
+    {
+        throw std::runtime_error("Invalid relative index " + std::to_string(relativeIndex) + 
+                                " for range type " + std::to_string(static_cast<int>(rangeType)));
+    }
+    
+    const auto* rangeInfo = LunarConstants::FindRange(rangeType);
+    UINT absoluteIndex = rangeInfo->start + relativeIndex;
+    
+    CreateSRVAtAbsoluteIndex(absoluteIndex, resourceName, resource, desc);
+    
+    LOG_DEBUG("Created SRV '", resourceName, "' at range index ", relativeIndex, " (absolute: ", absoluteIndex, ")");
+}
+
+void DescriptorAllocator::CreateSRVAtAbsoluteIndex(UINT absoluteIndex,
+                                                  const std::string& resourceName,
+                                                  ID3D12Resource* resource,
+                                                  const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
+{
+    if (!IsAbsoluteIndexValid(absoluteIndex)) 
+    {
+        throw std::runtime_error("Invalid absolute index: " + std::to_string(absoluteIndex));
+    }
+    
+    // check the index is used 
+    auto existingIt = std::find_if(m_nameToIndex.begin(), m_nameToIndex.end(),
+        [absoluteIndex](const auto& pair) { return pair.second == absoluteIndex; });
+    
+    if (existingIt != m_nameToIndex.end()) 
+    {
+        LOG_ERROR("Overwriting existing SRV '", existingIt->first, "' at index ", absoluteIndex, " with '", resourceName, "'");
+    }
+    
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = GetCPUHandle(absoluteIndex);
+    
+    D3D12_SHADER_RESOURCE_VIEW_DESC defaultDesc = {};
+    if (!desc) 
+    {
+        auto resourceDesc = resource->GetDesc();
+        defaultDesc.Format = resourceDesc.Format;
+        defaultDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        defaultDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        defaultDesc.Texture2D.MipLevels = resourceDesc.MipLevels;
+        desc = &defaultDesc;
+    }
+    
+    m_device->CreateShaderResourceView(resource, desc, handle);
+    m_nameToIndex[resourceName] = absoluteIndex;
+    
+    LOG_DEBUG("Created SRV '", resourceName, "' at absolute index ", absoluteIndex);
+}
 	
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetCPUHandle(UINT index)
 {
