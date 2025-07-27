@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <chrono>
+#include <DirectXTex.h>
 
 #include "LunarConstants.h"
 
@@ -29,6 +30,10 @@ struct TextureLoadJob
 	int width = 0;
 	int height = 0;
 	int channels = 0;
+	DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+	int mipLevels = 1;
+	size_t rowPitch = 0;
+	DirectX::ScratchImage ddsImage; 
 	
 	Microsoft::WRL::ComPtr<ID3D12Resource> gpuResource;
 	Microsoft::WRL::ComPtr<ID3D12Resource> uploadBuffer;
@@ -79,6 +84,7 @@ private:
 	void ProcessLoadAndUploadJob(std::unique_ptr<TextureLoadJob> job);
 	
 	bool Load2DTexture(TextureLoadJob* job);
+	bool LoadDDSTexture(TextureLoadJob* job);
 	bool LoadCubemapTexture(TextureLoadJob* job);
 	bool LoadHDRTexture(TextureLoadJob* job);
 	

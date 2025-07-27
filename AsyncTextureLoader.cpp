@@ -189,6 +189,10 @@ void AsyncTextureLoader::ProcessLoadAndUploadJob(unique_ptr<TextureLoadJob> job)
 		{
 			loadSuccess = LoadHDRTexture(job.get());
 		} 
+		else if (job->textureInfo.fileType == LunarConstants::FileType::DDS) 
+		{
+			loadSuccess = LoadDDSTexture(job.get());
+		} 
 		else if (job->textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) 
 		{
 			loadSuccess = LoadCubemapTexture(job.get());
@@ -340,6 +344,40 @@ bool AsyncTextureLoader::LoadCubemapTexture(TextureLoadJob* job)
 	return success;
 }
 
+bool AsyncTextureLoader::LoadDDSTexture(TextureLoadJob* job) 
+{
+	LOG_DEBUG("Loading DDS texture: ", job->textureInfo.path);
+
+	string filename = job->textureInfo.path;
+	std::wstring wfilename(filename.begin(), filename.end());
+	HRESULT hr = DirectX::LoadFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, job->ddsImage);
+	if (FAILED(hr))
+	{
+		LOG_ERROR("Failed to load DDS texture: ", job->textureInfo.path);
+		return false;
+	}
+	
+	const DirectX::Image* img = job->ddsImage.GetImage(0, 0, 0);
+	if (!img)
+	{
+		LOG_ERROR("Failed to get DDS image data: ", job->textureInfo.path);
+		return false;
+	}
+	
+	LOG_DEBUG("DDS texture loaded: ", job->textureInfo.path, " (", img->width, "x", img->height, ")");
+	
+	job->width = static_cast<int>(img->width);
+	job->height = static_cast<int>(img->height);
+	job->channels = 4;
+	job->format = img->format;
+	job->mipLevels = static_cast<int>(job->ddsImage.GetMetadata().mipLevels);
+	job->rowPitch = img->rowPitch;
+	
+	job->imageData = img->pixels;
+	
+	return true;
+}
+
 bool AsyncTextureLoader::LoadHDRTexture(TextureLoadJob* job) 
 {
 	LOG_DEBUG("Loading HDR texture: ", job->textureInfo.path);
@@ -404,10 +442,11 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 			{
 				stbi_image_free(reinterpret_cast<float*>(job->imageData));
 			} 
-			else 
+			else if (job->textureInfo.fileType != LunarConstants::FileType::DDS) 
 			{
 				stbi_image_free(job->imageData);
 			}
+			// DDS memory is managed by ScratchImage, no manual cleanup needed
 			job->imageData = nullptr;
 		}
 	
@@ -446,6 +485,10 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateTextureResource(TextureLoadJob*
 	if (job->textureInfo.fileType == LunarConstants::FileType::HDR) 
 	{
 		textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	} 
+	else if (job->textureInfo.fileType == LunarConstants::FileType::DDS) 
+	{
+		textureDesc.Format = job->format;
 	} 
 	else 
 	{
@@ -516,6 +559,10 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateTextureResource(TextureLoadJob*
 	if (job->textureInfo.fileType == LunarConstants::FileType::HDR) 
 	{
 		rowSizeInBytes = static_cast<UINT64>(job->width) * sizeof(float) * 3; // RGB float
+	} 
+	else if (job->textureInfo.fileType == LunarConstants::FileType::DDS) 
+	{
+		rowSizeInBytes = job->rowPitch; 
 	} 
 	else 
 	{
