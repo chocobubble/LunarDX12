@@ -44,6 +44,7 @@ void AsyncTextureLoader::Initialize(size_t numWorkerThreads, ID3D12Device* devic
 	m_fence = fence;
 	m_pipelineStateManager = pipelineStateManager;
 	m_gpuUploadEnabled = true;
+	m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	
 	m_workerThreads.reserve(numWorkerThreads);
 	for (size_t i = 0; i < numWorkerThreads; ++i) 
@@ -133,7 +134,7 @@ future<bool> AsyncTextureLoader::LoadTextureAsync(const LunarConstants::TextureI
 
 bool AsyncTextureLoader::IsInitialized() const 
 {
-    if (!m_device || !m_uploadPool || !m_descriptorAllocator || !m_commandQueue) 
+    if (!m_device || !m_uploadPool || !m_descriptorAllocator || !m_commandQueue || !m_pipelineStateManager) 
     {
         LOG_ERROR("AsyncTextureLoader is not properly initialized");
         return false;
@@ -180,7 +181,7 @@ void AsyncTextureLoader::ProcessLoadAndUploadJob(unique_ptr<TextureLoadJob> job)
 	
 	job->loadStartTime = chrono::high_resolution_clock::now();
 
-	try 
+	try
 	{
 		if (!filesystem::exists(job->textureInfo.path)) 
 		{
@@ -219,7 +220,15 @@ void AsyncTextureLoader::ProcessLoadAndUploadJob(unique_ptr<TextureLoadJob> job)
 			return;
 		}
 		
-		bool uploadSuccess = UploadTextureToGPU(job.get());
+		bool uploadSuccess = false;
+		if (job->textureInfo.fileType == LunarConstants::FileType::HDR) 
+		{
+			uploadSuccess = ProcessHDRTexture(job.get());
+		}
+		else 
+		{
+			uploadSuccess = UploadTextureToGPU(job.get());
+		}
 
 	    auto uploadStartTime = chrono::high_resolution_clock::now();
 		auto uploadEndTime = chrono::high_resolution_clock::now();
@@ -252,7 +261,7 @@ void AsyncTextureLoader::ProcessLoadAndUploadJob(unique_ptr<TextureLoadJob> job)
 		}
 		
 		job->completion.set_value(uploadSuccess);
-		
+		return;
 	}
 	catch (const exception& e) 
 	{
@@ -355,7 +364,7 @@ bool AsyncTextureLoader::LoadDDSTexture(TextureLoadJob* job)
 	LOG_DEBUG("Loading DDS texture: ", job->textureInfo.path);
 
 	string filename = job->textureInfo.path;
-	std::wstring wfilename(filename.begin(), filename.end());
+	wstring wfilename(filename.begin(), filename.end());
 	HRESULT hr = DirectX::LoadFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, job->ddsImage);
 	if (FAILED(hr))
 	{
@@ -413,7 +422,6 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 
 	try 
 	{
-		// Get command list from pool (fence management handled internally)
 		ScopedCommandList cmdList(m_uploadPool);
 		
 		if (!cmdList.IsValid()) 
@@ -449,7 +457,7 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 		                                            job->gpuResource.Get(),
 		                                            &job->srvDesc);
 		
-		std::queue<std::unique_ptr<TextureLoadJob>> completedTextures;
+		queue<unique_ptr<TextureLoadJob>> completedTextures;
 	
 		{
 			lock_guard<mutex> lock(m_completedTexturesMutex);
@@ -477,7 +485,16 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 		
 		ID3D12CommandList* commandLists[] = { cmdList.Get() };
 		m_commandQueue->ExecuteCommandLists(1, commandLists);
-		m_commandQueue->Signal(m_fence, cmdList.GetContext()->fenceValue);
+
+		const UINT64 currentFenceValue = cmdList.GetFenceValue();
+		m_commandQueue->Signal(m_fence, currentFenceValue);
+
+		// wait for completing current frame
+		if (m_fence->GetCompletedValue() < currentFenceValue)
+		{
+			THROW_IF_FAILED(m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent))
+			WaitForSingleObject(m_fenceEvent, INFINITE);
+		}
 		
 		LOG_DEBUG("GPU upload executed for texture: ", job->textureInfo.name, 
 		         " (fence value: ", cmdList.GetContext()->fenceValue, ")");
@@ -578,14 +595,6 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateTextureResource(TextureLoadJob*
 	}
 	uploadBuffer->Unmap(0, nullptr);
 
-	// Get command list and copy texture (fence management handled by CommandListPool)
-	ScopedCommandList cmdList(m_uploadPool);
-	if (!cmdList.IsValid()) 
-	{
-		LOG_ERROR("Failed to get command list for texture copy");
-		return nullptr;
-	}
-
 	// Set up copy locations
 	D3D12_TEXTURE_COPY_LOCATION destLocation = {};
 	destLocation.pResource = texture.Get();
@@ -597,7 +606,7 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateTextureResource(TextureLoadJob*
 	srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 	srcLocation.PlacedFootprint = layouts;
 
-	cmdList->CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, nullptr);
+	commandList->CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, nullptr);
 
 	// Transition texture to shader resource state
 	D3D12_RESOURCE_BARRIER barrier = {};
@@ -608,7 +617,7 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateTextureResource(TextureLoadJob*
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-	cmdList->ResourceBarrier(1, &barrier);
+	commandList->ResourceBarrier(1, &barrier);
 
 	return texture;
 }
@@ -636,13 +645,13 @@ void AsyncTextureLoader::SetupSRVDescription(TextureLoadJob* job)
 }
 
 // Query methods
-bool AsyncTextureLoader::IsTextureReady(const std::string& textureName) const 
+bool AsyncTextureLoader::IsTextureReady(const string& textureName) const 
 {
 	lock_guard<mutex> lock(m_loadedTexturesMutex);
 	return m_textures.find(textureName) != m_textures.end();
 }
 
-ID3D12Resource* AsyncTextureLoader::GetTexture(const std::string& textureName) const 
+ID3D12Resource* AsyncTextureLoader::GetTexture(const string& textureName) const 
 {
 	lock_guard<mutex> lock(m_loadedTexturesMutex);
 	auto it = m_textures.find(textureName);

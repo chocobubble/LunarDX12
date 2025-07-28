@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d12.h>
+#include <mutex>
 #include <wrl/client.h>
 #include <string>
 #include <unordered_map>
@@ -67,6 +68,7 @@ private:
     
     std::unordered_map<std::string, UINT> m_nameToIndex;
     std::unordered_map<LunarConstants::RangeType, DescriptorRange> m_enumRanges;
+    mutable std::mutex m_mapMutex;
 
     UINT AllocateInRange(LunarConstants::RangeType rangeType, const std::string& resourceName);
 };

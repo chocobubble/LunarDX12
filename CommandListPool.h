@@ -34,7 +34,7 @@ public:
     CommandListContext* GetAvailableCommandList();
     void ReturnCommandList(CommandListContext* context);
     
-    UINT64 GetNextFenceValue() const { return m_nextFenceValue.load(); }
+    UINT64 GetNextFenceValue();
     
     struct PoolStats 
     {
@@ -61,7 +61,7 @@ private:
     ID3D12Fence* m_fence = nullptr;
     
     // Fence value management
-    std::atomic<UINT64> m_nextFenceValue{1};
+    std::atomic<UINT64> m_nextFenceValue{0};
     
     mutable std::mutex m_statsMutex;
     std::atomic<size_t> m_totalExecutions{0};
@@ -85,6 +85,7 @@ public:
     ID3D12GraphicsCommandList* Get() const { return m_context ? m_context->commandList.Get() : nullptr; }
     ID3D12GraphicsCommandList* operator->() const { return Get(); }
     CommandListContext* GetContext() const { return m_context; }
+	UINT64 GetFenceValue() const;
     
     bool IsValid() const { return m_context != nullptr; }
     

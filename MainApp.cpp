@@ -536,15 +536,8 @@ void MainApp::Render(double dt)
 	m_swapChain->Present(1, 0);
 
 	// ready for next frame
-	const UINT64 currentFenceValue = context->fenceValue;
+	const UINT64 currentFenceValue = scopedCmdList.GetFenceValue(); 
 	m_commandQueue->Signal(m_fence.Get(), currentFenceValue);
-
-	// // wait for completing current frame
-	// if (m_fence->GetCompletedValue() < currentFenceValue)
-	// {
-	// 	THROW_IF_FAILED(m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent))
-	// 	WaitForSingleObject(m_fenceEvent, INFINITE);
-	// }
 
 	// update next frame index
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
@@ -565,11 +558,12 @@ void MainApp::Initialize()
 	// Initialize range-based descriptor allocation
 	m_descriptorAllocator->Initialize(m_device.Get());
 	
+	m_pipelineStateManager->Initialize(m_device.Get());
+	
 	// Command List Pool initialization - replaces single command list
 	m_commandListPool = make_unique<CommandListPool>();
-	m_commandListPool->Initialize(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, 4, m_fence.Get());
-	m_asyncTextureLoader->Initialize(4, m_device.Get(), m_commandListPool.get(), m_descriptorAllocator.get(), m_commandQueue.Get(), m_fence.Get());
-	vector<future<bool>> futures;
+	m_commandListPool->Initialize(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, 15, m_fence.Get());
+	m_asyncTextureLoader->Initialize(4, m_device.Get(), m_commandListPool.get(), m_descriptorAllocator.get(), m_commandQueue.Get(), m_fence.Get(), m_pipelineStateManager.get());
 	for (auto& textureInfo : LunarConstants::TEXTURE_INFO)
 	{
 		auto f = m_asyncTextureLoader->LoadTextureAsync(textureInfo);
@@ -584,8 +578,8 @@ void MainApp::Initialize()
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
 	InitializeGeometry();
-	m_pipelineStateManager->Initialize(m_device.Get());
 
+	
 	ScopedCommandList scopedCmdList(m_commandListPool.get());
 	m_commandList = scopedCmdList.Get();
 	
@@ -600,7 +594,7 @@ void MainApp::Initialize()
 	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// Wait for initialization to complete
-	const UINT64 initFenceValue = scopedCmdList.GetContext()->fenceValue;
+	const UINT64 initFenceValue = scopedCmdList.GetFenceValue();
 	m_commandQueue->Signal(m_fence.Get(), initFenceValue);
 
 	if (m_fence->GetCompletedValue() < initFenceValue)

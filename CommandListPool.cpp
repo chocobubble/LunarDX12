@@ -132,10 +132,6 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
         
         auto* context = m_contexts[index].get();
         context->inUse = true;
-        
-        // Assign unique fence value
-        context->fenceValue = m_nextFenceValue.fetch_add(1);
-        
         context->startTime = chrono::high_resolution_clock::now();
         
         HRESULT hr = context->allocator->Reset();
@@ -166,27 +162,13 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
 
 void CommandListPool::ReturnCommandList(CommandListContext* context) 
 {
-    // if (!context) return;
-    //
-    // std::lock_guard<std::mutex> lock(m_poolMutex);
-    //
-    // auto it = std::find_if(m_contexts.begin(), m_contexts.end(),
-    //     [context](const unique_ptr<CommandListContext>& ctx) {
-    //         return ctx.get() == context;
-    //     });
-    //
-    // if (it != m_contexts.end()) 
-    // {
-    //     size_t index = std::distance(m_contexts.begin(), it);
-    //     
-    //     context->commandList->Close();
-    //     
-    //     // LOG_DEBUG("Command list context ", index, " marked for return");
-    // } 
-    // else 
-    // {
-    //     LOG_ERROR("Invalid command list context returned");
-    // }
+
+}
+
+UINT64 CommandListPool::GetNextFenceValue()
+{
+	m_nextFenceValue.fetch_add(1);
+	return m_nextFenceValue.load();
 }
 
 CommandListPool::PoolStats CommandListPool::GetStats() const 
@@ -242,7 +224,7 @@ ScopedCommandList::ScopedCommandList(CommandListPool* pool)
 
 ScopedCommandList::~ScopedCommandList() 
 {
-    if (m_pool && m_context) 
+	if (m_pool && m_context) 
     {
         m_pool->ReturnCommandList(m_context);
     }
@@ -271,6 +253,12 @@ ScopedCommandList& ScopedCommandList::operator=(ScopedCommandList&& other) noexc
         other.m_context = nullptr;
     }
     return *this;
+}
+
+UINT64 ScopedCommandList::GetFenceValue() const
+{
+	m_context->fenceValue = m_pool->GetNextFenceValue();
+	return m_context->fenceValue;
 }
 
 } // namespace Lunar

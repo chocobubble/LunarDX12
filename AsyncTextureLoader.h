@@ -115,6 +115,8 @@ private:
 	std::queue<std::unique_ptr<TextureLoadJob>> m_jobQueue;
 	std::mutex m_queueMutex;
 	std::condition_variable m_cv;
+
+	HANDLE m_fenceEvent;
 	
 	// Completed textures queue (GPU upload completed)
 	std::queue<std::unique_ptr<TextureLoadJob>> m_completedTextures;

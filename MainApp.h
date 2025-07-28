@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d12.h>
+#include <future>
 #include <Windows.h>
 #include <wrl.h>
 #include "dxgi1_6.h"
@@ -77,7 +78,8 @@ private:
 	// UINT m_fenceValue;
 	UINT m_frameIndex;
 
-	HANDLE m_fenceEvent;
+	HANDLE                         m_fenceEvent;
+	std::vector<std::future<bool>> futures;
 
 	D3D12_VIEWPORT m_viewport;
 	D3D12_RECT m_scissorRect;

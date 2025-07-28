@@ -63,7 +63,10 @@ UINT DescriptorAllocator::AllocateInRange(LunarConstants::RangeType rangeType, c
     }
     
     UINT index = range.currentIndex++;
-    m_nameToIndex[resourceName] = index;
+    {
+        std::lock_guard<std::mutex> lock(m_mapMutex);
+        m_nameToIndex[resourceName] = index;
+    }
     
     return index;
 }
@@ -153,17 +156,8 @@ UINT DescriptorAllocator::CreateUAV(LunarConstants::RangeType rangeType,
     return index;
 }
 
-void DescriptorAllocator::CreateSRVAtRangeIndex(LunarConstants::RangeType rangeType,
-                                               UINT relativeIndex,
-                                               const std::string& resourceName,
-                                               ID3D12Resource* resource,
-                                               const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
+void DescriptorAllocator::CreateSRVAtRangeIndex(LunarConstants::RangeType rangeType, UINT relativeIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
 {
-    if (!IsRelativeIndexValid(rangeType, relativeIndex)) 
-    {
-        throw std::runtime_error("Invalid relative index " + std::to_string(relativeIndex) + 
-                                " for range type " + std::to_string(static_cast<int>(rangeType)));
-    }
     
     const auto* rangeInfo = LunarConstants::FindRange(rangeType);
     UINT absoluteIndex = rangeInfo->start + relativeIndex;
@@ -173,16 +167,8 @@ void DescriptorAllocator::CreateSRVAtRangeIndex(LunarConstants::RangeType rangeT
     LOG_DEBUG("Created SRV '", resourceName, "' at range index ", relativeIndex, " (absolute: ", absoluteIndex, ")");
 }
 
-void DescriptorAllocator::CreateSRVAtAbsoluteIndex(UINT absoluteIndex,
-                                                  const std::string& resourceName,
-                                                  ID3D12Resource* resource,
-                                                  const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
+void DescriptorAllocator::CreateSRVAtAbsoluteIndex(UINT absoluteIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
 {
-    if (!IsAbsoluteIndexValid(absoluteIndex)) 
-    {
-        throw std::runtime_error("Invalid absolute index: " + std::to_string(absoluteIndex));
-    }
-    
     // check the index is used 
     auto existingIt = std::find_if(m_nameToIndex.begin(), m_nameToIndex.end(),
         [absoluteIndex](const auto& pair) { return pair.second == absoluteIndex; });
@@ -206,7 +192,10 @@ void DescriptorAllocator::CreateSRVAtAbsoluteIndex(UINT absoluteIndex,
     }
     
     m_device->CreateShaderResourceView(resource, desc, handle);
-    m_nameToIndex[resourceName] = absoluteIndex;
+    {
+        std::lock_guard<std::mutex> lock(m_mapMutex);
+        m_nameToIndex[resourceName] = absoluteIndex;
+    }
     
     LOG_DEBUG("Created SRV '", resourceName, "' at absolute index ", absoluteIndex);
 }
