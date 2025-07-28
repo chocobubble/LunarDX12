@@ -27,6 +27,7 @@ struct TextureLoadJob
 	std::promise<bool> completion;
 	
 	uint8_t* imageData = nullptr;
+	float* hdrImageData = nullptr;
 	int width = 0;
 	int height = 0;
 	int channels = 0;
@@ -42,6 +43,8 @@ struct TextureLoadJob
 	std::chrono::high_resolution_clock::time_point loadEndTime;
 };
 
+class PipelineStateManager;
+
 class AsyncTextureLoader
 {
 public:
@@ -50,7 +53,8 @@ public:
 	
 	void Initialize(size_t numWorkerThreads, ID3D12Device* device, 
 	               CommandListPool* uploadPool, DescriptorAllocator* descriptorAllocator,
-	               ID3D12CommandQueue* commandQueue, ID3D12Fence* fence);
+	               ID3D12CommandQueue* commandQueue, ID3D12Fence* fence,
+	               PipelineStateManager* pipelineStateManager);
 	
 	void Shutdown();
 	
@@ -90,8 +94,19 @@ private:
 	
 	// GPU upload functions
 	bool UploadTextureToGPU(TextureLoadJob* job);
-	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(TextureLoadJob* job, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(TextureLoadJob* job, D3D12_RESOURCE_DESC textureDesc, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer, ID3D12GraphicsCommandList
+		*                                                                        commandList);
 	void SetupSRVDescription(TextureLoadJob* job);
+	
+	// HDR processing functions
+	bool ProcessHDRTexture(TextureLoadJob* job);
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateSkyboxCubemap(TextureLoadJob* job, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer, ID3D12GraphicsCommandList* commandList);
+	Microsoft::WRL::ComPtr<ID3D12Resource> GenerateIrradianceMap(ID3D12Resource* skyboxResource, UINT cubemapSize, const std::string& baseName, ID3D12GraphicsCommandList* commandList);
+	Microsoft::WRL::ComPtr<ID3D12Resource> GeneratePrefilteredMap(UINT cubemapSize, const std::string& baseName, ID3D12GraphicsCommandList* commandList);
+	Microsoft::WRL::ComPtr<ID3D12Resource> GenerateBRDFLUT(const std::string& baseName, ID3D12GraphicsCommandList* commandList);
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateEmptyMapResource(UINT mapSize, UINT depthOrArraySize, DXGI_FORMAT format, UINT mipLevels = 1);
+	std::vector<std::vector<float>> EquirectangularToCubemap(float* imageData, UINT width, UINT height);
+	void BindHDRDerivedTextures(const std::string& baseName, ID3D12Resource* irradiance, ID3D12Resource* prefiltered, ID3D12Resource* brdfLut);
 	
 	std::vector<std::thread> m_workerThreads;
 	std::atomic<bool> m_shouldStop{false};
@@ -114,6 +129,7 @@ private:
 	DescriptorAllocator* m_descriptorAllocator = nullptr;
 	ID3D12CommandQueue* m_commandQueue = nullptr;
 	ID3D12Fence* m_fence = nullptr;
+	PipelineStateManager* m_pipelineStateManager = nullptr;
 	
 	// Statistics
 	mutable std::mutex m_statsMutex;
