@@ -23,11 +23,13 @@ class DescriptorAllocator;
 
 struct TextureLoadJob
 {
+	~TextureLoadJob();
 	LunarConstants::TextureInfo textureInfo;
 	std::promise<bool> completion;
 	
 	uint8_t* imageData = nullptr;
 	float* hdrImageData = nullptr;
+	std::vector<uint8_t*> cubemapFaceData; 
 	int width = 0;
 	int height = 0;
 	int channels = 0;

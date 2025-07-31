@@ -97,11 +97,14 @@ void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo&
 	srvDesc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(textureInfo.dimensionType);
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	
-	if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) {
+	if (textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) 
+    {
 		srvDesc.TextureCube.MipLevels = mipLevels;
 		srvDesc.TextureCube.MostDetailedMip = 0;
 		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
-	} else {
+	} 
+    else 
+    {
 		srvDesc.Texture2D.MipLevels = mipLevels;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.PlaneSlice = 0;
@@ -109,13 +112,16 @@ void TextureManager::CreateShaderResourceView(const LunarConstants::TextureInfo&
 	}
 
 	Texture* texture = m_textureMap[textureInfo.name].get();
-	if (!texture || !texture->Resource) {
+	if (!texture || !texture->Resource) 
+    {
 		LOG_ERROR("Failed to create texture resource for: ", textureInfo.name);
 		return;
 	}
 	srvDesc.Format = texture->Resource->GetDesc().Format;
 	// descriptorAllocator->AllocateDescriptor(textureInfo.name);
-	descriptorAllocator->CreateSRV(LunarConstants::RangeType::BASIC_TEXTURES, textureInfo.name, texture->Resource.Get(), &srvDesc);
+	// descriptorAllocator->CreateSRV(LunarConstants::RangeType::BASIC_TEXTURES, textureInfo.name, texture->Resource.Get(), &srvDesc);
+	
+	// DEPRECATED: TextureManager is no longer used, AsyncTextureLoader handles texture loading
 }
 
 ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::TextureInfo& textureInfo, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const std::string& filename, ComPtr<ID3D12Resource>& uploadBuffer)
@@ -154,11 +160,14 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
     		std::vector<uint8_t*> faceData(6);
     		int width, height, channels;
         
-    		for (int face = 0; face < 6; ++face) {
+    		for (int face = 0; face < 6; ++face) 
+            {
     			faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
-    			if (!faceData[face]) {
+    			if (!faceData[face]) 
+                {
     				LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
-    				for (int i = 0; i < face; ++i) {
+    				for (int i = 0; i < face; ++i) 
+                    {
     					stbi_image_free(faceData[i]);
     				}
     				throw std::runtime_error("Failed to load cubemap face: " + faceFiles[face]);
@@ -172,7 +181,8 @@ ComPtr<ID3D12Resource> TextureManager::LoadTexture(const LunarConstants::Texture
         
     		ComPtr<ID3D12Resource> texture = CreateCubemapResource(device, commandList, textureDesc, faceData, rowSizeInBytes, uploadBuffer);
         
-    		for (int i = 0; i < 6; ++i) {
+    		for (int i = 0; i < 6; ++i) 
+            {
     			stbi_image_free(faceData[i]);
     		}
         
@@ -392,9 +402,9 @@ ComPtr<ID3D12Resource> TextureManager::CreateCubemapResource(
         nullptr, IID_PPV_ARGS(&texture)));
 
     // calculate the layout of the 6 subresources
-    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(6);
-    std::vector<UINT> numRows(6);
-    std::vector<UINT64> rowPitch(6);
+    vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(6);
+    vector<UINT> numRows(6);
+    vector<UINT64> rowPitch(6);
     UINT64 totalUploadBufferSize = 0;
     
     for (int face = 0; face < 6; ++face)
@@ -694,7 +704,9 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 	uavDesc.Texture2DArray.FirstArraySlice = 0;
 	uavDesc.Texture2DArray.ArraySize = 6;
 	// descriptorAllocator->AllocateDescriptor("skybox_irradiance_uav");
-	descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, "skybox_irradiance_uav", irradianceTexture.Resource.Get(), &uavDesc);
+	// descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, "skybox_irradiance_uav", irradianceTexture.Resource.Get(), &uavDesc);
+	
+	// DEPRECATED: TextureManager is no longer used
 
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -760,7 +772,9 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 		
 		string uavName = "skybox_prefiltered_uav_mip" + to_string(mip);
 		// descriptorAllocator->AllocateDescriptor(uavName);
-		descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, uavName, prefilteredTexture.Resource.Get(), &uavDesc);
+		// descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, uavName, prefilteredTexture.Resource.Get(), &uavDesc);
+		
+		// DEPRECATED: TextureManager is no longer used
 		
 		commandList->SetComputeRoot32BitConstants(LunarConstants::COMPUTE_CONSTANTS_INDEX, 4, constants, 0);
 		// commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_INPUT_SRV_INDEX, descriptorAllocator->GetGPUHandle(textureInfo.name));
@@ -800,7 +814,9 @@ void TextureManager::LoadHDRImage(const LunarConstants::TextureInfo& textureInfo
 	brdfLutUavDesc.Texture2D.PlaneSlice = 0;
 
 	// descriptorAllocator->AllocateDescriptor("brdf_lut_uav");
-	descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, "brdf_lut_uav", brdfLutTexture.Resource.Get(), &brdfLutUavDesc);
+	// descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, "brdf_lut_uav", brdfLutTexture.Resource.Get(), &brdfLutUavDesc);
+	
+	// DEPRECATED: TextureManager is no longer used
 
 	barrier.Transition.pResource = brdfLutTexture.Resource.Get();
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
