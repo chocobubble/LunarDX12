@@ -838,17 +838,19 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateSkyboxCubemap(TextureLoadJob* j
 
 	for (int face = 0; face < 6; ++face)
 	{
-		// Get GPU memory layout requirements for the texture
+		UINT64 faceUploadSize = 0;
+		// Get GPU memory layout requirements for each face
 		m_device->GetCopyableFootprints(
 			&textureDesc,           // Input: texture description
-			0,                      // First subresource index
+			face,                   // Current subresource index (face)
 			1,                      // Number of subresources
-			0,                      // Base offset in upload buffer
-			&layouts[face],               // Output: memory layout with alignment
-			&numRows[face],               // Output: number of rows in the texture
-			&rowPitch[face],              // Output: actual bytes per row (without padding)
-			&totalUploadBufferSize  // Output: total bytes needed for upload buffer
+			totalUploadBufferSize,          // Current offset in upload buffer
+			&layouts[face],         // Output: memory layout with alignment
+			&numRows[face],         // Output: number of rows in the texture
+			&rowPitch[face],        // Output: actual bytes per row (without padding)
+			&faceUploadSize         // Output: bytes needed for this face
 		);
+		totalUploadBufferSize += faceUploadSize;
 	}
 
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
