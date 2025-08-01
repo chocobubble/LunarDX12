@@ -1,5 +1,5 @@
-Texture2D<float4> inputTexture : register(t0, space3);
-RWTexture2D<float4> outputTexture : register(u0, space1);
+Texture2D<float4> inputTexture : register(t0, space7);     
+RWTexture2D<float4> outputTexture : register(u0, space1);  
 
 static const float weights[7] = {
     0.006f, 0.061f, 0.242f, 0.383f, 0.242f, 0.061f, 0.006f

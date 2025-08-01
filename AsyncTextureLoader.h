@@ -62,9 +62,6 @@ public:
 	
 	std::future<bool> LoadTextureAsync(const LunarConstants::TextureInfo& textureInfo);
 	
-	bool IsTextureReady(const std::string& textureName) const;
-	ID3D12Resource* GetTexture(const std::string& textureName) const;
-	
 	bool AreAllTexturesLoaded() const;
 	float GetLoadingProgress() const;
 	int GetTotalTextures() const { return m_totalTextures.load(); }
@@ -96,8 +93,7 @@ private:
 	
 	// GPU upload functions
 	bool UploadTextureToGPU(TextureLoadJob* job);
-	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(TextureLoadJob* job, D3D12_RESOURCE_DESC textureDesc, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer, ID3D12GraphicsCommandList
-		*                                                                        commandList);
+
 	void SetupSRVDescription(TextureLoadJob* job);
 	
 	// HDR processing functions
@@ -109,6 +105,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> CreateEmptyMapResource(UINT mapSize, UINT depthOrArraySize, DXGI_FORMAT format, UINT mipLevels = 1);
 	std::vector<std::vector<float>> EquirectangularToCubemap(float* imageData, UINT width, UINT height);
 	void BindHDRDerivedTextures(const std::string& baseName, ID3D12Resource* irradiance, ID3D12Resource* prefiltered, ID3D12Resource* brdfLut);
+	
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateTextureResource(TextureLoadJob* job, const D3D12_RESOURCE_DESC& textureDesc, const uint8_t* srcData, UINT64 rowSizeInBytes, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer, ID3D12GraphicsCommandList* commandList);
+	Microsoft::WRL::ComPtr<ID3D12Resource> CreateCubemapResource(const D3D12_RESOURCE_DESC& textureDesc, const std::vector<uint8_t*>& faceData, UINT64 rowSizeInBytes, Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer, ID3D12GraphicsCommandList* commandList);
 	
 	std::vector<std::thread> m_workerThreads;
 	std::atomic<bool> m_shouldStop{false};

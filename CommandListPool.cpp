@@ -121,7 +121,7 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
             context->endTime = chrono::high_resolution_clock::now();
             UpdateStats(context.get());
             
-            LOG_DEBUG("Command list context ", i, " returned to pool");
+            // LOG_DEBUG("Command list context ", i, " returned to pool");
         }
     }
     
@@ -152,7 +152,7 @@ CommandListContext* CommandListPool::GetAvailableCommandList()
             return nullptr;
         }
         
-        LOG_DEBUG("Allocated command list context ", index);
+        // LOG_DEBUG("Allocated command list context ", index);
         return context;
     }
     

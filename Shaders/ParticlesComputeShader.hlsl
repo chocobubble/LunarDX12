@@ -8,7 +8,7 @@ struct Particle
     float age;    
 };
 
-StructuredBuffer<Particle> particlesInput : register(t0, space2);
+StructuredBuffer<Particle> particlesInput : register(t0, space6);
 RWStructuredBuffer<Particle> particlesOutput : register(u0);
 
 [numthreads(64, 1, 1)]

@@ -278,64 +278,42 @@ bool AsyncTextureLoader::LoadCubemapTexture(TextureLoadJob* job)
 {
 	LOG_DEBUG("Loading cubemap texture: ", job->textureInfo.path);
 
-	string path = job->textureInfo.path;
+	string filename = job->textureInfo.path;
+	
 	vector<string> faceFiles = {
-		path + "_right.jpg",   // +X
-		path + "_left.jpg",    // -X  
-		path + "_top.jpg",     // +Y
-		path + "_bottom.jpg",  // -Y
-		path + "_front.jpg",   // +Z
-		path + "_back.jpg"     // -Z
+		filename + "_right.jpg",   // +X
+		filename + "_left.jpg",    // -X  
+		filename + "_top.jpg",     // +Y
+		filename + "_bottom.jpg",  // -Y
+		filename + "_front.jpg",   // +Z
+		filename + "_back.jpg"     // -Z
 	};
 	
+	vector<uint8_t*> faceData(6);
 	int width, height, channels;
-	bool success = true;
 	
-	uint8_t* firstFace = stbi_load(faceFiles[0].c_str(), &width, &height, &channels, 4);
-	if (!firstFace) 
+	for (int face = 0; face < 6; ++face) 
 	{
-		LOG_ERROR("Failed to load cubemap face: ", faceFiles[0]);
-		return false;
-	}
-	
-	// Allocate memory for all 6 faces
-	size_t faceSize = width * height * 4; // RGBA
-	uint8_t* cubemapData = new uint8_t[faceSize * 6];
-	
-	// Copy first face
-	memcpy(cubemapData, firstFace, faceSize);
-	stbi_image_free(firstFace);
-	
-	// Load remaining faces
-	for (int face = 1; face < 6; ++face) 
-	{
-		int faceWidth, faceHeight, faceChannels;
-		uint8_t* faceData = stbi_load(faceFiles[face].c_str(), &faceWidth, &faceHeight, &faceChannels, 4);
-		
-		if (!faceData || faceWidth != width || faceHeight != height) 
+		faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
+		if (!faceData[face]) 
 		{
-			LOG_ERROR("Failed to load cubemap face or dimension mismatch: ", faceFiles[face]);
-			delete[] cubemapData;
-			if (faceData) stbi_image_free(faceData);
-			success = false;
-			break;
+			LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
+			for (int i = 0; i < face; ++i) 
+			{
+				stbi_image_free(faceData[i]);
+	}
+			return false;
 		}
-		
-		memcpy(cubemapData + face * faceSize, faceData, faceSize);
-		stbi_image_free(faceData);
 	}
 	
-	if (success) 
-	{
-		LOG_DEBUG("Cubemap texture loaded: ", job->textureInfo.path, " (", width, "x", height, ")");
+	LOG_DEBUG("Cubemap loaded: ", filename, " (", width, "x", height, ")");
 		
 		job->width = width;
 		job->height = height;
 		job->channels = 4;
-		job->imageData = cubemapData;
-	}
+	job->cubemapFaceData = faceData;  
 	
-	return success;
+	return true;
 }
 
 bool AsyncTextureLoader::LoadDDSTexture(TextureLoadJob* job) 
@@ -409,11 +387,10 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 			return false;
 		}
 		
+		string filename = job->textureInfo.path;
+		
 		D3D12_RESOURCE_DESC textureDesc = {};
 		textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		textureDesc.Width = static_cast<UINT>(job->width);
-		textureDesc.Height = static_cast<UINT>(job->height);
-		textureDesc.DepthOrArraySize = (job->textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP) ? 6 : 1;
 		textureDesc.MipLevels = 1;
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
@@ -421,184 +398,141 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 		textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		
-		job->gpuResource = CreateTextureResource(job, textureDesc, job->uploadBuffer, cmdList.Get());
-		if (!job->gpuResource) 
+		UINT64 rowSizeInBytes;
+		ComPtr<ID3D12Resource> texture;
+		
+		if (job->textureInfo.fileType == LunarConstants::FileType::DEFAULT) 
 		{
-			LOG_ERROR("Failed to create GPU texture resource");
+			if (job->textureInfo.dimensionType == LunarConstants::TextureDimension::CUBEMAP)
+			{
+				textureDesc.DepthOrArraySize = 6;
+				
+				vector<string> faceFiles = {
+					filename + "_right.jpg",   // +X
+					filename + "_left.jpg",    // -X  
+					filename + "_top.jpg",     // +Y
+					filename + "_bottom.jpg",  // -Y
+					filename + "_front.jpg",   // +Z
+					filename + "_back.jpg"     // -Z
+				};
+				
+				vector<uint8_t*> faceData(6);
+				int width, height, channels;
+				
+				for (int face = 0; face < 6; ++face)
+			{
+					faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
+					if (!faceData[face]) 
+					{
+						LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
+						for (int i = 0; i < face; ++i) 
+			{
+							stbi_image_free(faceData[i]);
+			}
+						return false;
+					}
+				}
+				
+				LOG_DEBUG("Cubemap loaded: ", filename, " (", width, "x", height, ")");
+				textureDesc.Width = static_cast<UINT>(width);
+				textureDesc.Height = static_cast<UINT>(height);
+				rowSizeInBytes = UINT64(width) * 4; // RGBA
+				
+				texture = CreateCubemapResource(textureDesc, faceData, rowSizeInBytes, job->uploadBuffer, cmdList.Get());
+				
+				for (int i = 0; i < 6; ++i) 
+				{
+					stbi_image_free(faceData[i]);
+		}
+			}
+			else
+			{
+				int width, height, channels;
+				uint8_t* data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
+				if (!data) 
+	{
+					LOG_ERROR("Failed to load texture: ", filename);
+		return false;
+	}
+				
+				LOG_DEBUG("2D texture loaded: ", filename, " (", width, "x", height, ")");
+				textureDesc.Width = static_cast<UINT>(width);
+				textureDesc.Height = static_cast<UINT>(height);
+				textureDesc.DepthOrArraySize = 1;
+				rowSizeInBytes = UINT64(width) * 4; // RGBA
+				
+				texture = CreateTextureResource(job, textureDesc, data, rowSizeInBytes, job->uploadBuffer, cmdList.Get());
+				stbi_image_free(data);
+			}
+	} 
+	else if (job->textureInfo.fileType == LunarConstants::FileType::DDS) 
+	{
+			uint8_t* data = nullptr;
+			DirectX::ScratchImage image;
+			std::wstring wfilename(filename.begin(), filename.end());
+			HRESULT hr = DirectX::LoadFromDDSFile(wfilename.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+			if (FAILED(hr))
+			{
+				LOG_ERROR("Failed to load DDS texture: ", filename);
+				return false;
+			}
+			
+			const DirectX::Image* img = image.GetImage(0, 0, 0);
+			data = img->pixels;
+			LOG_DEBUG("DDS texture loaded: ", filename, " (", img->width, "x", img->height, ")");
+			
+			textureDesc.Width = static_cast<UINT>(img->width);
+			textureDesc.Height = static_cast<UINT>(img->height);
+			textureDesc.DepthOrArraySize = 1;
+			textureDesc.Format = img->format;
+			rowSizeInBytes = img->rowPitch;
+			
+			texture = CreateTextureResource(job, textureDesc, data, rowSizeInBytes, job->uploadBuffer, cmdList.Get());
+	} 
+	else 
+	{
+			LOG_ERROR("Unsupported texture file type: ", static_cast<int>(job->textureInfo.fileType));
 			return false;
 		}
 		
-		SetupSRVDescription(job);
-		
-		m_descriptorAllocator->CreateSRVAtRangeIndex(job->textureInfo.rangeType,
-		                                            job->textureInfo.registerIndex,
-		                                            job->textureInfo.name,
-		                                            job->gpuResource.Get(),
-		                                            &job->srvDesc);
-		
-		queue<unique_ptr<TextureLoadJob>> completedTextures;
-	
+		if (!texture) 
 		{
-			lock_guard<mutex> lock(m_completedTexturesMutex);
-			completedTextures.swap(m_completedTextures);
+			LOG_ERROR("Failed to create texture resource");
+			return false;
 		}
-	
+		
+		job->gpuResource = texture;
+		job->width = static_cast<int>(textureDesc.Width);
+		job->height = static_cast<int>(textureDesc.Height);
+		
+		m_descriptorAllocator->CreateSRVAtRangeIndex(job->textureInfo.rangeType, job->textureInfo.registerIndex, job->textureInfo.name, job->gpuResource.Get());
+		
 		m_textures[job->textureInfo.name] = job->gpuResource;
-
-		// Clean up image data
-		if (job->imageData) 
-		{
-			if (job->textureInfo.fileType == LunarConstants::FileType::HDR) 
-			{
-				stbi_image_free(reinterpret_cast<float*>(job->imageData));
-			} 
-			else if (job->textureInfo.fileType != LunarConstants::FileType::DDS) 
-			{
-				stbi_image_free(job->imageData);
-			}
-			// DDS memory is managed by ScratchImage, no manual cleanup needed
-			job->imageData = nullptr;
-		}
-	
-		cmdList->Close();
 		
+		cmdList->Close();
 		ID3D12CommandList* commandLists[] = { cmdList.Get() };
 		m_commandQueue->ExecuteCommandLists(1, commandLists);
 
 		const UINT64 currentFenceValue = cmdList.GetFenceValue();
 		m_commandQueue->Signal(m_fence, currentFenceValue);
 
-		// wait for completing current frame
 		if (m_fence->GetCompletedValue() < currentFenceValue)
 		{
 			THROW_IF_FAILED(m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent))
-			WaitForSingleObject(m_fenceEvent, INFINITE);
+			DWORD waitResult = WaitForSingleObject(m_fenceEvent, 10000);
+			if (waitResult == WAIT_TIMEOUT)
+			{
+				LOG_ERROR("Fence wait timeout for texture: ", job->textureInfo.name);
+				return false;
+			}
 		}
-		
-		LOG_DEBUG("GPU upload executed for texture: ", job->textureInfo.name, 
-		         " (fence value: ", cmdList.GetContext()->fenceValue, ")");
-		
 		return true;
 	}
-	catch (const exception& e) 
+	catch (const exception& e)
 	{
-		LOG_ERROR("Exception during GPU upload: ", e.what());
+		LOG_ERROR("Exception during texture processing: ", e.what());
 		return false;
 	}
-}
-
-ComPtr<ID3D12Resource> AsyncTextureLoader::CreateTextureResource(TextureLoadJob* job, D3D12_RESOURCE_DESC textureDesc, ComPtr<ID3D12Resource>& uploadBuffer, ID3D12GraphicsCommandList* commandList) 
-{
-	D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
-	defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-	defaultHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-	defaultHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-	defaultHeapProperties.CreationNodeMask = 1;
-	defaultHeapProperties.VisibleNodeMask = 1;
-
-	ComPtr<ID3D12Resource> texture;
-
-    THROW_IF_FAILED(m_device->CreateCommittedResource(
-        &defaultHeapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &textureDesc,
-        D3D12_RESOURCE_STATE_COPY_DEST,
-        nullptr, IID_PPV_ARGS(&texture)))
-
-	// Calculate the size of the upload buffer
-	UINT64 uploadBufferSize;
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT layouts;
-	UINT numRows;
-	UINT64 rowPitch;
-	
-	// Get GPU memory layout requirements for the texture
-	m_device->GetCopyableFootprints(
-		&textureDesc,           // Input: texture description
-		0,                      // First subresource index
-		1,                      // Number of subresources
-		0,                      // Base offset in upload buffer
-		&layouts,               // Output: memory layout with alignment
-		&numRows,               // Output: number of rows in the texture
-		&rowPitch,              // Output: actual bytes per row (without padding)
-		&uploadBufferSize       // Output: total bytes needed for upload buffer
-	);
-
-	D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
-	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-
-	D3D12_RESOURCE_DESC uploadBufferDesc = {};
-	uploadBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	uploadBufferDesc.Width = uploadBufferSize;
-	uploadBufferDesc.Height = 1;
-	uploadBufferDesc.DepthOrArraySize = 1;
-	uploadBufferDesc.MipLevels = 1;
-	uploadBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
-	uploadBufferDesc.SampleDesc.Count = 1;
-	uploadBufferDesc.SampleDesc.Quality = 0;
-	uploadBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	uploadBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-	THROW_IF_FAILED(m_device->CreateCommittedResource(
-		&uploadHeapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&uploadBufferDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr, IID_PPV_ARGS(&uploadBuffer)))
-
-	// Copy data to upload buffer
-	void* mappedData;
-	uploadBuffer->Map(0, nullptr, &mappedData);
-	
-	UINT64 rowSizeInBytes;
-	if (job->textureInfo.fileType == LunarConstants::FileType::HDR) 
-	{
-		rowSizeInBytes = static_cast<UINT64>(job->width) * sizeof(float) * 3; // RGB float
-	} 
-	else if (job->textureInfo.fileType == LunarConstants::FileType::DDS) 
-	{
-		rowSizeInBytes = job->rowPitch; 
-	} 
-	else 
-	{
-		rowSizeInBytes = static_cast<UINT64>(job->width) * 4; // RGBA
-	}
-	
-	BYTE* destSliceStart = reinterpret_cast<BYTE*>(mappedData) + layouts.Offset;
-	for (UINT i = 0; i < numRows; i++) 
-	{
-		memcpy(
-			destSliceStart + layouts.Footprint.RowPitch * i, 
-			job->imageData + rowSizeInBytes * i, 
-			rowSizeInBytes
-		);
-	}
-	uploadBuffer->Unmap(0, nullptr);
-
-	// Set up copy locations
-	D3D12_TEXTURE_COPY_LOCATION destLocation = {};
-	destLocation.pResource = texture.Get();
-	destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-	destLocation.SubresourceIndex = 0;
-
-	D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-	srcLocation.pResource = uploadBuffer.Get();
-	srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-	srcLocation.PlacedFootprint = layouts;
-
-	commandList->CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, nullptr);
-
-	// Transition texture to shader resource state
-	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = texture.Get();
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-
-	commandList->ResourceBarrier(1, &barrier);
-
-	return texture;
 }
 
 void AsyncTextureLoader::SetupSRVDescription(TextureLoadJob* job) 
@@ -623,21 +557,6 @@ void AsyncTextureLoader::SetupSRVDescription(TextureLoadJob* job)
 	}
 }
 
-// Query methods
-bool AsyncTextureLoader::IsTextureReady(const string& textureName) const 
-{
-	lock_guard<mutex> lock(m_loadedTexturesMutex);
-	return m_textures.find(textureName) != m_textures.end();
-}
-
-ID3D12Resource* AsyncTextureLoader::GetTexture(const string& textureName) const 
-{
-	lock_guard<mutex> lock(m_loadedTexturesMutex);
-	auto it = m_textures.find(textureName);
-	return (it != m_textures.end()) ? it->second.Get() : nullptr;
-}
-
-// Statistics
 AsyncTextureLoader::LoadingStats AsyncTextureLoader::GetStats() const 
 {
 	lock_guard<mutex> lock(m_statsMutex);
@@ -662,7 +581,6 @@ void AsyncTextureLoader::LogStatus() const
 	}
 }
 
-// Simple completion tracking methods
 bool AsyncTextureLoader::AreAllTexturesLoaded() const 
 {
 	return m_loadedTextures.load() >= m_totalTextures.load();
@@ -813,8 +731,6 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateSkyboxCubemap(TextureLoadJob* j
 	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-	// return CreateTextureResource(job, textureDesc, uploadBuffer, commandList);
-
 	D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
 	defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
 	defaultHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -844,7 +760,7 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateSkyboxCubemap(TextureLoadJob* j
 			&textureDesc,           // Input: texture description
 			face,                   // Current subresource index (face)
 			1,                      // Number of subresources
-			totalUploadBufferSize,          // Current offset in upload buffer
+			totalUploadBufferSize,  // Current offset in upload buffer
 			&layouts[face],         // Output: memory layout with alignment
 			&numRows[face],         // Output: number of rows in the texture
 			&rowPitch[face],        // Output: actual bytes per row (without padding)
@@ -884,11 +800,12 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateSkyboxCubemap(TextureLoadJob* j
 	for (int face = 0; face < 6; ++face)
 	{
 		BYTE* destSliceStart = reinterpret_cast<BYTE*>(mappedData) + layouts[face].Offset;
+		BYTE* srcData = reinterpret_cast<BYTE*>(faceDataRGBA16[face].data());
 		for (UINT i = 0; i < numRows[face]; i++) 
 		{
 			memcpy(
 				destSliceStart + layouts[face].Footprint.RowPitch * i, 
-				faceData[face].data() + rowSizeInBytes * i, 
+				srcData + rowSizeInBytes * i, 
 				rowSizeInBytes
 			);
 		}
@@ -898,7 +815,6 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateSkyboxCubemap(TextureLoadJob* j
 
 	for (int face = 0; face < 6; ++face)
 	{
-		// Set up copy locations
 		D3D12_TEXTURE_COPY_LOCATION destLocation = {};
 		destLocation.pResource = texture.Get();
 		destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
@@ -912,7 +828,6 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateSkyboxCubemap(TextureLoadJob* j
 		commandList->CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, nullptr);
 	}
 
-	// Transition texture to shader resource state
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -1160,6 +1075,200 @@ void AsyncTextureLoader::BindHDRDerivedTextures(const string& baseName, ID3D12Re
 		baseName + "_brdf_lut", brdfLut, &brdfLutSrvDesc);
 
 	LOG_DEBUG("HDR derived textures bound for: ", baseName);
+}
+
+ComPtr<ID3D12Resource> AsyncTextureLoader::CreateTextureResource(TextureLoadJob* job, const D3D12_RESOURCE_DESC& textureDesc, const uint8_t* srcData, UINT64 rowSizeInBytes, ComPtr<ID3D12Resource>& uploadBuffer, ID3D12GraphicsCommandList* commandList)
+{
+    D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
+    defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	defaultHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	defaultHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	defaultHeapProperties.CreationNodeMask = 1;
+	defaultHeapProperties.VisibleNodeMask = 1;
+
+	ComPtr<ID3D12Resource> texture;
+
+    THROW_IF_FAILED(m_device->CreateCommittedResource(
+        &defaultHeapProperties, 
+        D3D12_HEAP_FLAG_NONE, 
+        &textureDesc, 
+        D3D12_RESOURCE_STATE_COPY_DEST, 
+        nullptr, IID_PPV_ARGS(&texture)))
+
+    UINT64 uploadBufferSize;
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT layouts;
+    UINT numRows;
+    UINT64 rowPitch;
+    
+    m_device->GetCopyableFootprints(
+        &textureDesc,           // Input: texture description
+        0,                      // First subresource index
+        1,                      // Number of subresources
+        0,                      // Base offset in upload buffer
+        &layouts,               // Output: memory layout with alignment
+        &numRows,               // Output: number of rows in the texture
+        &rowPitch,              // Output: actual bytes per row (without padding)
+        &uploadBufferSize       // Output: total bytes needed for upload buffer
+    );
+
+	D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
+    uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+    D3D12_RESOURCE_DESC uploadBufferDesc = {};
+    uploadBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    uploadBufferDesc.Width = uploadBufferSize;
+    uploadBufferDesc.Height = 1;
+    uploadBufferDesc.DepthOrArraySize = 1;
+    uploadBufferDesc.MipLevels = 1;
+    uploadBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uploadBufferDesc.SampleDesc.Count = 1;
+    uploadBufferDesc.SampleDesc.Quality = 0;
+    uploadBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    uploadBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    THROW_IF_FAILED(m_device->CreateCommittedResource(
+        &uploadHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &uploadBufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr, IID_PPV_ARGS(&uploadBuffer)))
+
+    void* mappedData;
+    uploadBuffer->Map(0, nullptr, &mappedData);
+    BYTE* destSliceStart = reinterpret_cast<BYTE*>(mappedData) + layouts.Offset;
+    for (UINT i = 0; i < numRows; i++)
+    {
+        memcpy(
+            destSliceStart + layouts.Footprint.RowPitch * i, 
+            srcData + rowSizeInBytes * i, 
+            rowSizeInBytes); 
+    }
+    uploadBuffer->Unmap(0, nullptr);
+
+    D3D12_TEXTURE_COPY_LOCATION destLocation = {};
+    destLocation.pResource = texture.Get();
+    destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    destLocation.SubresourceIndex = 0;
+
+    D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+    srcLocation.pResource = uploadBuffer.Get();
+    srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    srcLocation.PlacedFootprint = layouts;
+
+    commandList->CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, nullptr);
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = texture.Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    commandList->ResourceBarrier(1, &barrier);
+
+    return texture;
+}
+
+ComPtr<ID3D12Resource> AsyncTextureLoader::CreateCubemapResource(const D3D12_RESOURCE_DESC& textureDesc, const std::vector<uint8_t*>& faceData, UINT64 rowSizeInBytes, ComPtr<ID3D12Resource>& uploadBuffer, ID3D12GraphicsCommandList* commandList)
+{
+    D3D12_HEAP_PROPERTIES defaultHeapProperties = {};
+    defaultHeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+    defaultHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    defaultHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    defaultHeapProperties.CreationNodeMask = 1;
+    defaultHeapProperties.VisibleNodeMask = 1;
+
+    ComPtr<ID3D12Resource> texture;
+    THROW_IF_FAILED(m_device->CreateCommittedResource(
+        &defaultHeapProperties, 
+        D3D12_HEAP_FLAG_NONE, 
+        &textureDesc, 
+        D3D12_RESOURCE_STATE_COPY_DEST, 
+        nullptr, IID_PPV_ARGS(&texture)));
+
+    vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> layouts(6);
+    vector<UINT> numRows(6);
+    vector<UINT64> rowPitch(6);
+    UINT64 totalUploadBufferSize = 0;
+    
+    for (int face = 0; face < 6; ++face)
+    {
+        UINT64 faceUploadSize;
+        m_device->GetCopyableFootprints(
+            &textureDesc,           
+            face,                   
+            1,                      
+            totalUploadBufferSize,  
+            &layouts[face],         
+            &numRows[face],         
+            &rowPitch[face],        
+            &faceUploadSize         
+        );
+        totalUploadBufferSize += faceUploadSize;
+    }
+
+    D3D12_HEAP_PROPERTIES uploadHeapProperties = defaultHeapProperties;
+    uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+    D3D12_RESOURCE_DESC uploadBufferDesc = {};
+    uploadBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    uploadBufferDesc.Width = totalUploadBufferSize;
+    uploadBufferDesc.Height = 1;
+    uploadBufferDesc.DepthOrArraySize = 1;
+    uploadBufferDesc.MipLevels = 1;
+    uploadBufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uploadBufferDesc.SampleDesc.Count = 1;
+    uploadBufferDesc.SampleDesc.Quality = 0;
+    uploadBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    uploadBufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    THROW_IF_FAILED(m_device->CreateCommittedResource(
+        &uploadHeapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &uploadBufferDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr, IID_PPV_ARGS(&uploadBuffer)))
+    
+    void* mappedData;
+    uploadBuffer->Map(0, nullptr, &mappedData);
+    
+    for (int face = 0; face < 6; ++face)
+    {
+        BYTE* destSliceStart = reinterpret_cast<BYTE*>(mappedData) + layouts[face].Offset;
+        for (UINT row = 0; row < numRows[face]; ++row)
+        {
+            memcpy(
+                destSliceStart + layouts[face].Footprint.RowPitch * row, 
+                faceData[face] + rowSizeInBytes * row, 
+                rowSizeInBytes
+            ); 
+        }
+    }
+    uploadBuffer->Unmap(0, nullptr);
+
+    for (int face = 0; face < 6; ++face)
+    {
+        D3D12_TEXTURE_COPY_LOCATION destLocation = {};
+        destLocation.pResource = texture.Get();
+        destLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        destLocation.SubresourceIndex = face;  
+
+        D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
+        srcLocation.pResource = uploadBuffer.Get();
+        srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        srcLocation.PlacedFootprint = layouts[face];  
+
+        commandList->CopyTextureRegion(&destLocation, 0, 0, 0, &srcLocation, nullptr);
+    }
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = texture.Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    commandList->ResourceBarrier(1, &barrier);
+
+    return texture;
 }
 
 vector<vector<float>> AsyncTextureLoader::EquirectangularToCubemap(float* imageData, UINT width, UINT height) 

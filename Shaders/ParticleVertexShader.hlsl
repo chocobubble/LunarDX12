@@ -32,7 +32,7 @@ cbuffer BasicConstants : register(b0)
     float2 padding2;
 };
 
-StructuredBuffer<Particle> particles : register(t0, space2);
+StructuredBuffer<Particle> particles : register(t0, space6);
 
 GeometryIn main(VertexIn vIn, uint instanceID : SV_InstanceID)
 {

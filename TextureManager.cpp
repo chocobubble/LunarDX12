@@ -443,7 +443,7 @@ ComPtr<ID3D12Resource> TextureManager::CreateCubemapResource(
         D3D12_HEAP_FLAG_NONE,
         &uploadBufferDesc,
         D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr, IID_PPV_ARGS(&uploadBuffer)));
+        nullptr, IID_PPV_ARGS(&uploadBuffer)))
     
     void* mappedData;
     uploadBuffer->Map(0, nullptr, &mappedData);
