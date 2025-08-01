@@ -93,6 +93,8 @@ void DescriptorAllocator::LogRangeUsage() const
     }
 }
 
+/*
+// DEPRECATED: Use CreateSRVAtRangeIndex for fixed indices to avoid race conditions
 UINT DescriptorAllocator::CreateSRV(LunarConstants::RangeType rangeType, 
                                    const string& resourceName,
                                    ID3D12Resource* resource, 
@@ -124,7 +126,10 @@ UINT DescriptorAllocator::CreateSRV(LunarConstants::RangeType rangeType,
     LOG_DEBUG("Created SRV '", resourceName, "' at index ", index);
     return index;
 }
+*/
 
+/*
+// DEPRECATED: Use CreateUAVAtRangeIndex for fixed indices to avoid race conditions
 UINT DescriptorAllocator::CreateUAV(LunarConstants::RangeType rangeType,
                                    const string& resourceName,
                                    ID3D12Resource* resource,
@@ -155,6 +160,7 @@ UINT DescriptorAllocator::CreateUAV(LunarConstants::RangeType rangeType,
     LOG_DEBUG("Created UAV '", resourceName, "' at index ", index);
     return index;
 }
+*/
 
 void DescriptorAllocator::CreateSRVAtRangeIndex(LunarConstants::RangeType rangeType, UINT relativeIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
 {
@@ -167,8 +173,51 @@ void DescriptorAllocator::CreateSRVAtRangeIndex(LunarConstants::RangeType rangeT
     LOG_DEBUG("Created SRV '", resourceName, "' at range index ", relativeIndex, " (absolute: ", absoluteIndex, ")");
 }
 
+void DescriptorAllocator::CreateUAVAtRangeIndex(LunarConstants::RangeType rangeType, UINT relativeIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc)
+{
+    const auto* rangeInfo = LunarConstants::FindRange(rangeType);
+    UINT absoluteIndex = rangeInfo->start + relativeIndex;
+    
+    CreateUAVAtAbsoluteIndex(absoluteIndex, resourceName, resource, desc);
+    
+    LOG_DEBUG("Created UAV '", resourceName, "' at range index ", relativeIndex, " (absolute: ", absoluteIndex, ")");
+}
+
+void DescriptorAllocator::CreateUAVAtAbsoluteIndex(UINT absoluteIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc)
+{
+    std::lock_guard<std::mutex> lock(m_mapMutex);  
+    
+    // check the index is used 
+    auto existingIt = std::find_if(m_nameToIndex.begin(), m_nameToIndex.end(),
+        [absoluteIndex](const auto& pair) { return pair.second == absoluteIndex; });
+    
+    if (existingIt != m_nameToIndex.end()) 
+    {
+        LOG_ERROR("Overwriting existing UAV '", existingIt->first, "' at index ", absoluteIndex, " with '", resourceName, "'");
+    }
+    
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = GetCPUHandle(absoluteIndex);
+    
+    D3D12_UNORDERED_ACCESS_VIEW_DESC defaultDesc = {};
+    if (!desc) 
+    {
+        auto resourceDesc = resource->GetDesc();
+        defaultDesc.Format = resourceDesc.Format;
+        defaultDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        defaultDesc.Texture2D.MipSlice = 0;
+        desc = &defaultDesc;
+    }
+    
+    m_device->CreateUnorderedAccessView(resource, nullptr, desc, handle);
+    m_nameToIndex[resourceName] = absoluteIndex;
+    
+    LOG_DEBUG("Created UAV '", resourceName, "' at absolute index ", absoluteIndex);
+}
+
 void DescriptorAllocator::CreateSRVAtAbsoluteIndex(UINT absoluteIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
 {
+    std::lock_guard<std::mutex> lock(m_mapMutex);  
+    
     // check the index is used 
     auto existingIt = std::find_if(m_nameToIndex.begin(), m_nameToIndex.end(),
         [absoluteIndex](const auto& pair) { return pair.second == absoluteIndex; });
@@ -192,10 +241,7 @@ void DescriptorAllocator::CreateSRVAtAbsoluteIndex(UINT absoluteIndex, const std
     }
     
     m_device->CreateShaderResourceView(resource, desc, handle);
-    {
-        std::lock_guard<std::mutex> lock(m_mapMutex);
-        m_nameToIndex[resourceName] = absoluteIndex;
-    }
+    m_nameToIndex[resourceName] = absoluteIndex;
     
     LOG_DEBUG("Created SRV '", resourceName, "' at absolute index ", absoluteIndex);
 }

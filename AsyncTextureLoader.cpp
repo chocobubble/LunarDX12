@@ -301,16 +301,16 @@ bool AsyncTextureLoader::LoadCubemapTexture(TextureLoadJob* job)
 			for (int i = 0; i < face; ++i) 
 			{
 				stbi_image_free(faceData[i]);
-	}
+			}
 			return false;
 		}
 	}
 	
 	LOG_DEBUG("Cubemap loaded: ", filename, " (", width, "x", height, ")");
-		
-		job->width = width;
-		job->height = height;
-		job->channels = 4;
+	
+	job->width = width;
+	job->height = height;
+	job->channels = 4;
 	job->cubemapFaceData = faceData;  
 	
 	return true;
@@ -420,15 +420,15 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 				int width, height, channels;
 				
 				for (int face = 0; face < 6; ++face)
-			{
+				{
 					faceData[face] = stbi_load(faceFiles[face].c_str(), &width, &height, &channels, 4);
 					if (!faceData[face]) 
 					{
 						LOG_ERROR("Failed to load cubemap face: ", faceFiles[face]);
 						for (int i = 0; i < face; ++i) 
-			{
+						{
 							stbi_image_free(faceData[i]);
-			}
+						}
 						return false;
 					}
 				}
@@ -443,17 +443,17 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 				for (int i = 0; i < 6; ++i) 
 				{
 					stbi_image_free(faceData[i]);
-		}
+				}
 			}
 			else
 			{
 				int width, height, channels;
 				uint8_t* data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
 				if (!data) 
-	{
+				{
 					LOG_ERROR("Failed to load texture: ", filename);
-		return false;
-	}
+					return false;
+				}
 				
 				LOG_DEBUG("2D texture loaded: ", filename, " (", width, "x", height, ")");
 				textureDesc.Width = static_cast<UINT>(width);
@@ -464,9 +464,9 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 				texture = CreateTextureResource(job, textureDesc, data, rowSizeInBytes, job->uploadBuffer, cmdList.Get());
 				stbi_image_free(data);
 			}
-	} 
-	else if (job->textureInfo.fileType == LunarConstants::FileType::DDS) 
-	{
+		}
+		else if (job->textureInfo.fileType == LunarConstants::FileType::DDS)
+		{
 			uint8_t* data = nullptr;
 			DirectX::ScratchImage image;
 			std::wstring wfilename(filename.begin(), filename.end());
@@ -488,9 +488,9 @@ bool AsyncTextureLoader::UploadTextureToGPU(TextureLoadJob* job)
 			rowSizeInBytes = img->rowPitch;
 			
 			texture = CreateTextureResource(job, textureDesc, data, rowSizeInBytes, job->uploadBuffer, cmdList.Get());
-	} 
-	else 
-	{
+		}
+		else 
+		{
 			LOG_ERROR("Unsupported texture file type: ", static_cast<int>(job->textureInfo.fileType));
 			return false;
 		}
@@ -751,7 +751,7 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::CreateSkyboxCubemap(TextureLoadJob* j
 	vector<UINT> numRows(6);
 	vector<UINT64> rowPitch(6);
 	UINT64 totalUploadBufferSize = 0;
-
+	
 	for (int face = 0; face < 6; ++face)
 	{
 		UINT64 faceUploadSize = 0;
@@ -888,7 +888,10 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::GenerateIrradianceMap(ID3D12Resource*
 	uavDesc.Texture2DArray.ArraySize = 6;
 
 	string uavName = baseName + "_irradiance_uav";
-	m_descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, uavName, irradianceResource.Get(), &uavDesc);
+	// m_descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, uavName, irradianceResource.Get(), &uavDesc);
+	
+	// Fixed index: DYNAMIC_UAV range starts at 65, using index 2 (absolute: 67)
+	m_descriptorAllocator->CreateUAVAtRangeIndex(LunarConstants::RangeType::DYNAMIC_UAV, 2, uavName, irradianceResource.Get(), &uavDesc);
 
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -979,7 +982,10 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::GeneratePrefilteredMap(UINT cubemapSi
 		uavDesc.Texture2DArray.ArraySize = 6;
 
 		string uavName = baseName + "_prefiltered_uav_mip" + to_string(mip);
-		m_descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, uavName, prefilteredResource.Get(), &uavDesc);
+		// m_descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, uavName, prefilteredResource.Get(), &uavDesc);
+		
+		// Fixed index: DYNAMIC_UAV range starts at 65, using index 3+mip (absolute: 68+mip)
+		m_descriptorAllocator->CreateUAVAtRangeIndex(LunarConstants::RangeType::DYNAMIC_UAV, 3 + mip, uavName, prefilteredResource.Get(), &uavDesc);
 
 		commandList->SetComputeRoot32BitConstants(LunarConstants::COMPUTE_CONSTANTS_INDEX, 4, constants, 0);
 		commandList->SetComputeRootDescriptorTable(LunarConstants::COMPUTE_OUTPUT_UAV_INDEX, m_descriptorAllocator->GetGPUHandle(uavName));
@@ -1008,7 +1014,10 @@ ComPtr<ID3D12Resource> AsyncTextureLoader::GenerateBRDFLUT(const string& baseNam
 	brdfLutUavDesc.Texture2D.PlaneSlice = 0;
 
 	string uavName = baseName + "_brdf_lut_uav";
-	m_descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, uavName, brdfLutResource.Get(), &brdfLutUavDesc);
+	// m_descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, uavName, brdfLutResource.Get(), &brdfLutUavDesc);
+	
+	// Fixed index: DYNAMIC_UAV range starts at 65, using index 8 (absolute: 73)
+	m_descriptorAllocator->CreateUAVAtRangeIndex(LunarConstants::RangeType::DYNAMIC_UAV, 8, uavName, brdfLutResource.Get(), &brdfLutUavDesc);
 
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;

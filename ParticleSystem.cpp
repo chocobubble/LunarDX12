@@ -124,6 +124,7 @@ void ParticleSystem::ResetParticles(const XMFLOAT3& position)
 
 void ParticleSystem::UploadParticlesToGPU(ID3D12GraphicsCommandList* commandList)
 {
+	return;
 	for (int i = 0; i < 2; ++i) {
 		BYTE* pData = nullptr;
 		THROW_IF_FAILED(m_uploadBuffers[i]->Map(0, nullptr, reinterpret_cast<void**>(&pData)));
@@ -166,6 +167,7 @@ int ParticleSystem::GetActiveParticleCount() const
 
 void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
 {
+	return;
 	if (m_resetFlag)
 	{
 		UploadParticlesToGPU(commandList);
@@ -185,6 +187,7 @@ void ParticleSystem::DrawParticles(ID3D12GraphicsCommandList* commandList)
 
 void ParticleSystem::Update(float deltaTime, ID3D12GraphicsCommandList* commandList)
 {
+	return;
     int inputBufferIndex = m_currentBuffer;
     int outputBufferIndex = 1 - m_currentBuffer;
     

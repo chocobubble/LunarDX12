@@ -84,7 +84,10 @@ void ShadowManager::CreateSRV(ID3D12Device* device, DescriptorAllocator* descrip
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
 	// descriptorAllocator->AllocateDescriptor("ShadowMap");
-	descriptorAllocator->CreateSRV(LunarConstants::RangeType::SHADOW, "ShadowMap", m_shadowTexture.Get(), &srvDesc);
+	// descriptorAllocator->CreateSRV(LunarConstants::RangeType::SHADOW, "ShadowMap", m_shadowTexture.Get(), &srvDesc);
+	
+	// Fixed index: SHADOW range starts at 45, using index 0 (absolute: 45)
+	descriptorAllocator->CreateSRVAtRangeIndex(LunarConstants::RangeType::SHADOW, 0, "ShadowMap", m_shadowTexture.Get(), &srvDesc);
 }
 
 void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)

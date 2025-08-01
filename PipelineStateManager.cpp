@@ -78,25 +78,46 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 		UINT OffsetInDescriptorsFromTableStart;
 	} 	D3D12_DESCRIPTOR_RANGE;
 	*/
-	D3D12_DESCRIPTOR_RANGE textureSrvRange = {};
-	textureSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	textureSrvRange.NumDescriptors = LunarConstants::TEXTURE_INFO.size() + 13;
-	textureSrvRange.BaseShaderRegister = 0;
-	textureSrvRange.RegisterSpace = 0;
-	textureSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	D3D12_DESCRIPTOR_RANGE basicTextureSrvRange = {};
+	basicTextureSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	basicTextureSrvRange.NumDescriptors = 30;
+	basicTextureSrvRange.BaseShaderRegister = 0;
+	basicTextureSrvRange.RegisterSpace = 0;
+	basicTextureSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	
+	D3D12_DESCRIPTOR_RANGE environmentSrvRange = {};
+	environmentSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	environmentSrvRange.NumDescriptors = 15;
+	environmentSrvRange.BaseShaderRegister = 0;
+	environmentSrvRange.RegisterSpace = 1;
+	environmentSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	D3D12_DESCRIPTOR_RANGE shadowMapSrvRange = {};
 	shadowMapSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	shadowMapSrvRange.NumDescriptors = 1;
+	shadowMapSrvRange.NumDescriptors = 5;
 	shadowMapSrvRange.BaseShaderRegister = 0;
-	shadowMapSrvRange.RegisterSpace = 1;
+	shadowMapSrvRange.RegisterSpace = 2;
 	shadowMapSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	D3D12_DESCRIPTOR_RANGE pPSrvRange = {};
+	pPSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	pPSrvRange.NumDescriptors = 10;
+	pPSrvRange.BaseShaderRegister = 0;
+	pPSrvRange.RegisterSpace = 3;
+	pPSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	
+	D3D12_DESCRIPTOR_RANGE renderTargetSrvRange = {};
+	renderTargetSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	renderTargetSrvRange.NumDescriptors = 5;
+	renderTargetSrvRange.BaseShaderRegister = 0;
+	renderTargetSrvRange.RegisterSpace = 4;
+	renderTargetSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	
 	D3D12_DESCRIPTOR_RANGE postProcessSrvRange = {};
 	postProcessSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	postProcessSrvRange.NumDescriptors = 2;
 	postProcessSrvRange.BaseShaderRegister = 0;
-	postProcessSrvRange.RegisterSpace = 3;
+	postProcessSrvRange.RegisterSpace = 7;
 	postProcessSrvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	
 	D3D12_DESCRIPTOR_RANGE postProcessUavRange = {};
@@ -119,10 +140,10 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	} 	D3D12_ROOT_PARAMETER;
 	*/
 	D3D12_ROOT_PARAMETER rootParameters[8];
-    D3D12_DESCRIPTOR_RANGE srvRanges[2] = { textureSrvRange, shadowMapSrvRange };
+    D3D12_DESCRIPTOR_RANGE srvRanges[5] = { basicTextureSrvRange, environmentSrvRange, shadowMapSrvRange, pPSrvRange, renderTargetSrvRange };
     size_t index = LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX;
 	rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[index].DescriptorTable.NumDescriptorRanges = 2;
+	rootParameters[index].DescriptorTable.NumDescriptorRanges = 5;
 	rootParameters[index].DescriptorTable.pDescriptorRanges = srvRanges;
 	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
@@ -146,7 +167,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 
     index = LunarConstants::PARTICLE_SRV_ROOT_PARAMETER_INDEX;
     rootParameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
-	rootParameters[index].Descriptor.RegisterSpace = 2;
+	rootParameters[index].Descriptor.RegisterSpace = 6;
 	rootParameters[index].Descriptor.ShaderRegister = 0;
     rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
@@ -167,6 +188,7 @@ void PipelineStateManager::CreateRootSignature(ID3D12Device* device)
 	rootParameters[index].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[index].DescriptorTable.pDescriptorRanges = &postProcessUavRange;
 	rootParameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	
 	/*
 	typedef struct D3D12_STATIC_SAMPLER_DESC
 	{

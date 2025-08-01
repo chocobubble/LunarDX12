@@ -68,7 +68,10 @@ void PostProcessManager::Initialize(ID3D12Device* device, DescriptorAllocator* d
     srvDesc.Texture2D.MipLevels = 1;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-	descriptorAllocator->CreateSRV(LunarConstants::RangeType::POSTPROCESS, m_postProcessPing.srvOffsetKey, m_postProcessPing.texture.Get(), &srvDesc);
+	// descriptorAllocator->CreateSRV(LunarConstants::RangeType::POSTPROCESS, m_postProcessPing.srvOffsetKey, m_postProcessPing.texture.Get(), &srvDesc);
+	
+	// Fixed index: POSTPROCESS range starts at 50, using index 0 (absolute: 50)
+	descriptorAllocator->CreateSRVAtRangeIndex(LunarConstants::RangeType::POSTPROCESS, 0, m_postProcessPing.srvOffsetKey, m_postProcessPing.texture.Get(), &srvDesc);
 
     /*
     typedef struct D3D12_UNORDERED_ACCESS_VIEW_DESC {
@@ -91,12 +94,21 @@ void PostProcessManager::Initialize(ID3D12Device* device, DescriptorAllocator* d
     uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
 	// m_postProcessPing.uavOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPing.uavOffsetKey);
-	descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, m_postProcessPing.uavOffsetKey, m_postProcessPing.texture.Get(), &uavDesc);
+	// descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, m_postProcessPing.uavOffsetKey, m_postProcessPing.texture.Get(), &uavDesc);
+	
+	// Fixed index: DYNAMIC_UAV range starts at 65, using index 0 (absolute: 65)
+	descriptorAllocator->CreateUAVAtRangeIndex(LunarConstants::RangeType::DYNAMIC_UAV, 0, m_postProcessPing.uavOffsetKey, m_postProcessPing.texture.Get(), &uavDesc);
 
 	// m_postProcessPong.srvOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPong.srvOffsetKey);
-	descriptorAllocator->CreateSRV(LunarConstants::RangeType::POSTPROCESS, m_postProcessPong.srvOffsetKey, m_postProcessPong.texture.Get(), &srvDesc);
+	// descriptorAllocator->CreateSRV(LunarConstants::RangeType::POSTPROCESS, m_postProcessPong.srvOffsetKey, m_postProcessPong.texture.Get(), &srvDesc);
+	
+	// Fixed index: POSTPROCESS range starts at 50, using index 1 (absolute: 51)
+	descriptorAllocator->CreateSRVAtRangeIndex(LunarConstants::RangeType::POSTPROCESS, 1, m_postProcessPong.srvOffsetKey, m_postProcessPong.texture.Get(), &srvDesc);
 	// m_postProcessPong.uavOffset = descriptorAllocator->AllocateDescriptor(m_postProcessPong.uavOffsetKey);
-	descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, m_postProcessPong.uavOffsetKey, m_postProcessPong.texture.Get(), &uavDesc);
+	// descriptorAllocator->CreateUAV(LunarConstants::RangeType::DYNAMIC_UAV, m_postProcessPong.uavOffsetKey, m_postProcessPong.texture.Get(), &uavDesc);
+	
+	// Fixed index: DYNAMIC_UAV range starts at 65, using index 1 (absolute: 66)
+	descriptorAllocator->CreateUAVAtRangeIndex(LunarConstants::RangeType::DYNAMIC_UAV, 1, m_postProcessPong.uavOffsetKey, m_postProcessPong.texture.Get(), &uavDesc);
 }
 
 void PostProcessManager::ApplyPostEffects(ID3D12GraphicsCommandList* commandList, ID3D12Resource* sceneRenderTarget, PipelineStateManager* pipelineStateManager, DescriptorAllocator* descriptorAllocator)
@@ -168,8 +180,8 @@ void PostProcessManager::SwapBuffers(ID3D12GraphicsCommandList* commandList, Des
 	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorAllocator->GetHeap() };
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle(m_postProcessPing.uavOffsetKey));
-	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle(m_postProcessPong.uavOffsetKey));
+	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_INPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle(inputTexture.srvOffsetKey));
+	commandList->SetComputeRootDescriptorTable(LunarConstants::POST_PROCESS_OUTPUT_ROOT_PARAMETER_INDEX, descriptorAllocator->GetGPUHandle(outputTexture.uavOffsetKey));
 }
 
 } // namespace Lunar

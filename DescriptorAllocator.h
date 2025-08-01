@@ -26,11 +26,13 @@ class DescriptorAllocator
 public:
     void Initialize(ID3D12Device* device);  
     
-    UINT CreateSRV(LunarConstants::RangeType rangeType, const std::string& resourceName,
-                   ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
+    // DEPRECATED: Use CreateSRVAtRangeIndex for fixed indices to avoid race conditions
+    // UINT CreateSRV(LunarConstants::RangeType rangeType, const std::string& resourceName,
+    //                ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
     
-    UINT CreateUAV(LunarConstants::RangeType rangeType, const std::string& resourceName,
-                   ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
+    // DEPRECATED: Use CreateUAVAtRangeIndex for fixed indices to avoid race conditions  
+    // UINT CreateUAV(LunarConstants::RangeType rangeType, const std::string& resourceName,
+    //                ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
     
     void CreateSRVAtRangeIndex(LunarConstants::RangeType rangeType,
                               UINT relativeIndex,
@@ -38,10 +40,21 @@ public:
                               ID3D12Resource* resource,
                               const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
     
+    void CreateUAVAtRangeIndex(LunarConstants::RangeType rangeType,
+                              UINT relativeIndex,
+                              const std::string& resourceName,
+                              ID3D12Resource* resource,
+                              const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
+    
     void CreateSRVAtAbsoluteIndex(UINT absoluteIndex,
                                  const std::string& resourceName,
                                  ID3D12Resource* resource,
                                  const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
+    
+    void CreateUAVAtAbsoluteIndex(UINT absoluteIndex,
+                                 const std::string& resourceName,
+                                 ID3D12Resource* resource,
+                                 const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
     
     const DescriptorRange* GetRange(LunarConstants::RangeType rangeType) const;
     

@@ -113,7 +113,8 @@ static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
 	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 6},
 	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 7},
 	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 8},
-    {"skybox", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP, RangeType::ENVIRONMENT, 0},
+	// {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP, RangeType::BASIC_TEXTURES, 9},
+    {"dusk", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP, RangeType::ENVIRONMENT, 0},
 }};
 
 /////////////// Shaders ///////////////
