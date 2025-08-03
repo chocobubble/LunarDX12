@@ -83,8 +83,7 @@ void ShadowManager::CreateSRV(ID3D12Device* device, DescriptorAllocator* descrip
 	srvDesc.Texture2D.ResourceMinLODClamp = 0;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-	descriptorAllocator->AllocateDescriptor("ShadowMap");
-	descriptorAllocator->CreateSRV(m_shadowTexture.Get(), &srvDesc, "ShadowMap");
+	descriptorAllocator->CreateSRVAtRangeIndex(LunarConstants::RangeType::SHADOW, 0, "ShadowMap", m_shadowTexture.Get(), &srvDesc);
 }
 
 void ShadowManager::UpdateShadowCB(const BasicConstants& basicConstants)

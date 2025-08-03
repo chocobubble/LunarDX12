@@ -5,14 +5,20 @@
 #include <unordered_map>
 #include <vector>
 #include <wrl/client.h>
+#include <future>
+#include <chrono>
+#include <future>
+#include <chrono>
 
 #include "LunarConstants.h"
+#include "AsyncTextureLoader.h"
 
 namespace Lunar
 {
 
 class DescriptorAllocator;
 class PipelineStateManager;
+struct TextureLoadJob;
 	
 struct Texture
 {
@@ -24,9 +30,21 @@ class TextureManager
 {
 public:
 	void Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, DescriptorAllocator* descriptorAllocator, PipelineStateManager* pipelineStateManager);
+	
+	struct LoadingStats {
+		std::chrono::milliseconds syncLoadTime{0};
+		std::chrono::milliseconds asyncLoadTime{0};
+		size_t totalTextures = 0;
+		size_t loadedTextures = 0;
+		float loadingProgress = 0.0f;
+	};
+	const LoadingStats& GetLoadingStats() const { return m_loadingStats; }
+	
+	ID3D12Resource* GetTexture(const std::string& name) const;
 
 private:
 	std::unordered_map<std::string, std::unique_ptr<Texture>> m_textureMap;
+	LoadingStats m_loadingStats;
 	
 	void CreateShaderResourceView(const LunarConstants::TextureInfo& textureInfo, DescriptorAllocator* descriptorAllocator, UINT mipLevels = 1);
 	
@@ -54,3 +72,4 @@ private:
 };
 	
 } // namespace Lunar
+    

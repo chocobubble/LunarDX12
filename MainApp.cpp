@@ -23,6 +23,8 @@
 #include "Geometry/Transform.h"
 #include "Geometry/Plane.h"
 #include "UI/PostProcessViewModel.h"
+#include "CommandListPool.h"
+#include "AsyncTextureLoader.h"
 
 using namespace std;
 using namespace DirectX;
@@ -49,6 +51,7 @@ MainApp::MainApp()
 	m_postProcessManager = make_unique<PostProcessManager>();
 	m_postProcessViewModel = make_unique<PostProcessViewModel>();
 	m_descriptorAllocator = make_unique<DescriptorAllocator>();
+	m_asyncTextureLoader = make_unique<AsyncTextureLoader>();
 }
 
 MainApp::~MainApp()
@@ -185,9 +188,9 @@ void MainApp::InitializeCommandList()
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_commandQueue.GetAddressOf()));
 	
-	THROW_IF_FAILED(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())))
-	
-	THROW_IF_FAILED(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_commandList.GetAddressOf())))
+	// THROW_IF_FAILED(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())))
+	//
+	// THROW_IF_FAILED(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_commandList.GetAddressOf())))
 
 	// m_commandList->Close();
 }
@@ -325,7 +328,7 @@ void MainApp::CreateRenderTargetView()
 void MainApp::CreateFence()
 {
 	LOG_FUNCTION_ENTRY();
-	m_fenceValue = 1;
+	// m_fenceValue = 1;
 	THROW_IF_FAILED(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf())))
 
 	m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -404,37 +407,46 @@ void MainApp::Render(double dt)
 {
 	PROFILE_FUNCTION(m_performanceProfiler.get());
 	
-	if (m_fence->GetCompletedValue() < m_fenceValue - 1)
-	{
-		THROW_IF_FAILED(m_fence->SetEventOnCompletion(m_fenceValue - 1, m_fenceEvent))
-		WaitForSingleObject(m_fenceEvent, INFINITE);
-	}
+	// if (m_fence->GetCompletedValue() < m_fenceValue - 1)
+	// {
+	// 	THROW_IF_FAILED(m_fence->SetEventOnCompletion(m_fenceValue - 1, m_fenceEvent))
+	// 	WaitForSingleObject(m_fenceEvent, INFINITE);
+	// }
 	
 	ComPtr<IDXGISwapChain3> swapChain3;
 	THROW_IF_FAILED(m_swapChain.As(&swapChain3));
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
 
+	ScopedCommandList scopedCmdList(m_commandListPool.get());
+	m_commandList = scopedCmdList.Get();
+	
+	if (!scopedCmdList.IsValid()) {
+		LOG_ERROR("Failed to get available command list from pool");
+		return;
+	}
+	
+	auto* cmdList = scopedCmdList.Get();
+	auto* context = scopedCmdList.GetContext();
+
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Command List Setup");
-		m_commandAllocator->Reset(); // Cautions!
-		m_commandList->Reset(m_commandAllocator.Get(), nullptr);
 		
 		{ // Compute Shader
-			m_commandList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
-			m_commandList->SetPipelineState(m_pipelineStateManager->GetPSO("particlesUpdate"));
-			m_sceneRenderer->UpdateParticleSystem(dt, m_commandList.Get());
+			cmdList->SetComputeRootSignature(m_pipelineStateManager->GetRootSignature());
+			cmdList->SetPipelineState(m_pipelineStateManager->GetPSO("particlesUpdate"));
+			m_sceneRenderer->UpdateParticleSystem(dt, cmdList);
 		}
 		
 		// Switch to graphics pipeline
-		m_commandList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
+		cmdList->SetGraphicsRootSignature(m_pipelineStateManager->GetRootSignature());
 		
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_descriptorAllocator->GetHeap() };
-		m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 		D3D12_GPU_DESCRIPTOR_HANDLE descriptorHandle = m_descriptorAllocator->GetHeap()->GetGPUDescriptorHandleForHeapStart(); 
-		m_commandList->SetGraphicsRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, descriptorHandle);
+		cmdList->SetGraphicsRootDescriptorTable(LunarConstants::TEXTURE_SR_ROOT_PARAMETER_INDEX, descriptorHandle);
 		
-		m_sceneRenderer->RenderShadowMap(m_commandList.Get());
+		m_sceneRenderer->RenderShadowMap(cmdList);
 
 		m_viewport = {};
 		m_viewport.TopLeftX = 0.0f;
@@ -444,14 +456,14 @@ void MainApp::Render(double dt)
 		m_viewport.MinDepth = 0.0f;
 		m_viewport.MaxDepth = 1.0f;
 
-		m_commandList->RSSetViewports(1, &m_viewport);
+		cmdList->RSSetViewports(1, &m_viewport);
 
 		m_scissorRect = {};
 		m_scissorRect.left = 0;
 		m_scissorRect.top = 0;
 		m_scissorRect.right = static_cast<LONG>(Utils::GetDisplayWidth());
 		m_scissorRect.bottom = static_cast<LONG>(Utils::GetDisplayHeight());
-		m_commandList->RSSetScissorRects(1, &m_scissorRect);
+		cmdList->RSSetScissorRects(1, &m_scissorRect);
     }
 
     {
@@ -459,22 +471,22 @@ void MainApp::Render(double dt)
 		
 		D3D12_CPU_DESCRIPTOR_HANDLE sceneRenderTargetViewHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilViewHandle = m_sceneRenderer->GetDSVHeap()->GetCPUDescriptorHandleForHeapStart();
-		m_commandList->OMSetRenderTargets(1, &sceneRenderTargetViewHandle, FALSE, &depthStencilViewHandle);
+		cmdList->OMSetRenderTargets(1, &sceneRenderTargetViewHandle, FALSE, &depthStencilViewHandle);
 
 		// clear
 		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		m_commandList->ClearRenderTargetView(sceneRenderTargetViewHandle, clearColor, 0, nullptr);
-		m_commandList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		cmdList->ClearRenderTargetView(sceneRenderTargetViewHandle, clearColor, 0, nullptr);
+		cmdList->ClearDepthStencilView(depthStencilViewHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	}
 
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Scene Rendering");
-		m_sceneRenderer->RenderScene(m_commandList.Get());
+		m_sceneRenderer->RenderScene(cmdList);
 	}
 	
 	{
 		PROFILE_SCOPE(m_performanceProfiler.get(), "Particle Rendering");
-		m_sceneRenderer->RenderParticles(m_commandList.Get());
+		m_sceneRenderer->RenderParticles(cmdList);
 	}
 
 	{
@@ -524,16 +536,8 @@ void MainApp::Render(double dt)
 	m_swapChain->Present(1, 0);
 
 	// ready for next frame
-	const UINT64 currentFenceValue = m_fenceValue;
+	const UINT64 currentFenceValue = scopedCmdList.GetFenceValue(); 
 	m_commandQueue->Signal(m_fence.Get(), currentFenceValue);
-	m_fenceValue++;
-
-	// // wait for completing current frame
-	// if (m_fence->GetCompletedValue() < currentFenceValue)
-	// {
-	// 	THROW_IF_FAILED(m_fence->SetEventOnCompletion(currentFenceValue, m_fenceEvent))
-	// 	WaitForSingleObject(m_fenceEvent, INFINITE);
-	// }
 
 	// update next frame index
 	m_frameIndex = swapChain3->GetCurrentBackBufferIndex();
@@ -550,17 +554,54 @@ void MainApp::Initialize()
 	CreateFence();
 	CreateCamera();
 	CreateSwapChain();
+	
+	// Initialize range-based descriptor allocation
 	m_descriptorAllocator->Initialize(m_device.Get());
+	
+	m_pipelineStateManager->Initialize(m_device.Get());
+	
+	// Command List Pool initialization - replaces single command list
+	m_commandListPool = make_unique<CommandListPool>();
+	m_commandListPool->Initialize(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, 15, m_fence.Get());
+	m_asyncTextureLoader->Initialize(4, m_device.Get(), m_commandListPool.get(), m_descriptorAllocator.get(), m_commandQueue.Get(), m_fence.Get(), m_pipelineStateManager.get());
+	for (auto& textureInfo : LunarConstants::TEXTURE_INFO)
+	{
+		auto f = m_asyncTextureLoader->LoadTextureAsync(textureInfo);
+		futures.push_back(move(f));
+	}
+	for (auto& f : futures)
+	{
+		f.wait();
+	}
+	
 	CreateSceneRenderTarget();
 	CreateRTVDescriptorHeap();
 	CreateRenderTargetView();
 	InitializeGeometry();
-	m_pipelineStateManager->Initialize(m_device.Get());
+
+	
+	ScopedCommandList scopedCmdList(m_commandListPool.get());
+	m_commandList = scopedCmdList.Get();
+	
 	InitializeTextures(); // for now, should come after InitializeGeometry method
 	m_postProcessManager->Initialize(m_device.Get(), m_descriptorAllocator.get());
 	m_postProcessViewModel->Initialize(m_gui.get(), m_postProcessManager.get());
 	m_performanceProfiler->Initialize();
 	m_performanceViewModel->Initialize(m_gui.get(), m_performanceProfiler.get());
+
+	m_commandList->Close();
+	ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
+	m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+	// Wait for initialization to complete
+	const UINT64 initFenceValue = scopedCmdList.GetFenceValue();
+	m_commandQueue->Signal(m_fence.Get(), initFenceValue);
+
+	if (m_fence->GetCompletedValue() < initFenceValue)
+	{
+		THROW_IF_FAILED(m_fence->SetEventOnCompletion(initFenceValue, m_fenceEvent))
+		WaitForSingleObject(m_fenceEvent, INFINITE);
+	}
 
     LOG_FUNCTION_EXIT();
 }
@@ -669,8 +710,8 @@ void MainApp::InitializeGeometry()
 	LOG_FUNCTION_ENTRY();
 	
     // TODO: Check really need this resetting?
-	m_commandAllocator->Reset();
-	m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+	// m_commandAllocator->Reset();
+	// m_commandList->Reset(m_commandAllocator.Get(), nullptr);
     Transform transform = {};
     transform.Location = XMFLOAT3(0.0f, 1.5f, 0.0f);
     m_sceneRenderer->AddGeometry<IcoSphere>("Sphere0", transform, RenderLayer::World);
@@ -732,7 +773,6 @@ void MainApp::CopyPPTextureToBackBuffer()
 	barriers[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barriers[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	barriers[1].Transition.pResource = m_renderTargets[m_frameIndex].Get();
-	// barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 	barriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;

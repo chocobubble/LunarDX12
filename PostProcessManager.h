@@ -37,7 +37,7 @@ private:
     UINT m_height = 720;
     UINT m_currentOutputIndex = 0;
 
-    bool m_blurXEnabled = true;
-    bool m_blurYEnabled = true;
+    bool m_blurXEnabled = false;
+    bool m_blurYEnabled = false;
 };
 } // namespace Lunar

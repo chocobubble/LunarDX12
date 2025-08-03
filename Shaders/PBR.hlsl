@@ -3,9 +3,9 @@ Texture2D aoTexture : register(t5);
 Texture2D metallicTexture : register(t7);
 Texture2D roughnessTexture : register(t8);
 
-TextureCube irradianceMap : register(t10);
-TextureCube prefilteredMap : register(t12);
-Texture2D brdfLutTexture : register(t21);
+TextureCube irradianceMap : register(t1, space1);
+TextureCube prefilteredMap : register(t2, space1);
+Texture2D brdfLutTexture : register(t3, space1);
 
 SamplerState g_sampler : register(s0);
 

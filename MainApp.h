@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d12.h>
+#include <future>
 #include <Windows.h>
 #include <wrl.h>
 #include "dxgi1_6.h"
@@ -20,6 +21,8 @@ class PerformanceViewModel;
 class PostProcessManager;
 class PostProcessViewModel;
 class DescriptorAllocator;
+class CommandListPool;
+class AsyncTextureLoader;
 	
 class MainApp {
 public:
@@ -52,7 +55,7 @@ private:
 	
 	Microsoft::WRL::ComPtr<ID3D12Device> m_device;
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+	// Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_commandList;
 	Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory;
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> m_adapter;
@@ -72,10 +75,11 @@ private:
 	// D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle;
 
 	UINT m_renderTargetViewDescriptorSize;
-	UINT m_fenceValue;
+	// UINT m_fenceValue;
 	UINT m_frameIndex;
 
-	HANDLE m_fenceEvent;
+	HANDLE                         m_fenceEvent;
+	std::vector<std::future<bool>> futures;
 
 	D3D12_VIEWPORT m_viewport;
 	D3D12_RECT m_scissorRect;
@@ -96,6 +100,8 @@ private:
 	std::unique_ptr<PostProcessManager> m_postProcessManager;
 	std::unique_ptr<PostProcessViewModel> m_postProcessViewModel;
 	std::unique_ptr<DescriptorAllocator> m_descriptorAllocator;
+	std::unique_ptr<CommandListPool> m_commandListPool;
+	std::unique_ptr<AsyncTextureLoader> m_asyncTextureLoader;
 
 	bool m_mouseMoving = false;
 };

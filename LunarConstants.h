@@ -36,35 +36,85 @@ static constexpr UINT COMPUTE_INPUT_SRV_INDEX = 1;
 static constexpr UINT COMPUTE_OUTPUT_UAV_INDEX = 2;
 static constexpr UINT COMPUTE_CONSTANTS_ROOT_PARAMETER_INDEX = 8;
 
+/////////////// Descriptor Ranges ///////////////
+enum class RangeType : uint8_t 
+{
+    BASIC_TEXTURES = 0,
+    ENVIRONMENT,
+    SHADOW,
+    POSTPROCESS,
+    RENDERTARGET,
+    DYNAMIC_UAV
+};
+
+struct DescriptorRangeInfo 
+{
+    RangeType type;
+    UINT start;
+    UINT count;
+};
+
+static constexpr DescriptorRangeInfo RANGES[] = 
+{
+    {RangeType::BASIC_TEXTURES,  0,  30},
+    {RangeType::ENVIRONMENT,     30, 15},
+    {RangeType::SHADOW,          45, 5},
+    {RangeType::POSTPROCESS,     50, 10},
+    {RangeType::RENDERTARGET,    60, 5},
+    {RangeType::DYNAMIC_UAV,     65, 35}
+};
+
+static constexpr size_t RANGE_COUNT = sizeof(RANGES) / sizeof(DescriptorRangeInfo);
+static constexpr UINT TOTAL_DESCRIPTORS = 100;
+
+inline const DescriptorRangeInfo* FindRange(RangeType type) 
+{
+    for (size_t i = 0; i < RANGE_COUNT; ++i) 
+    {
+        if (RANGES[i].type == type) 
+        {
+            return &RANGES[i];
+        }
+    }
+    return nullptr;
+}
+
 /////////////// textures  ///////////////
-enum class FileType : uint8_t {
+enum class FileType : uint8_t 
+{
     DEFAULT = 0,
     DDS = 1,
     HDR = 2,
 };
 
-enum class TextureDimension : uint8_t {
+enum class TextureDimension : uint8_t 
+{
     TEXTURE2D = 4,
     CUBEMAP = 9
 }; 
+
 struct TextureInfo
 {
     const char* name;
     const char* path;
     FileType fileType;
-    TextureDimension dimensionType; 
+    TextureDimension dimensionType;
+    RangeType rangeType;        
+    UINT registerIndex;         
 };
+
 static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
-    {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-    {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D},
-    {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D},
-	{"tile_color", "Assets\\Textures\\metal\\metal-color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_normal", "Assets\\Textures\\metal\\metal-normal.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_ao", "Assets\\Textures\\metal\\metal-ao.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D},
-    {"skybox", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP},
+    {"wall", "Assets\\Textures\\wall.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 0},
+    {"tree1", "Assets\\Textures\\tree1.dds", FileType::DDS, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 1},
+    {"tree2", "Assets\\Textures\\tree2.dds", FileType::DDS, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 2},
+	{"tile_color", "Assets\\Textures\\metal\\metal-color.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 3},
+	{"tile_normal", "Assets\\Textures\\metal\\metal-normal.png", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 4},
+	{"tile_ao", "Assets\\Textures\\metal\\metal-ao.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 5},
+	{"tile_height", "Assets\\Textures\\metal\\metal-height.png", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 6},
+	{"tile_metallic", "Assets\\Textures\\metal\\metal-metallic.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 7},
+	{"tile_roughness", "Assets\\Textures\\metal\\metal-roughness.jpg", FileType::DEFAULT, TextureDimension::TEXTURE2D, RangeType::BASIC_TEXTURES, 8},
+	// {"skybox", "Assets\\Textures\\skybox\\skybox", FileType::DEFAULT, TextureDimension::CUBEMAP, RangeType::BASIC_TEXTURES, 9},
+    {"dusk", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP, RangeType::ENVIRONMENT, 0},
 }};
 
 /////////////// Shaders ///////////////
