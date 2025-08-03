@@ -93,52 +93,40 @@ void DescriptorAllocator::LogRangeUsage() const
     }
 }
 
-UINT DescriptorAllocator::CreateSRV(LunarConstants::RangeType rangeType, 
-                                   const string& resourceName,
-                                   ID3D12Resource* resource, 
-                                   const D3D12_SHADER_RESOURCE_VIEW_DESC* desc) 
+void DescriptorAllocator::CreateSRVAtRangeIndex(LunarConstants::RangeType rangeType, UINT relativeIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
 {
+    
     const auto* rangeInfo = LunarConstants::FindRange(rangeType);
-    if (!rangeInfo) 
-    {
-        throw std::runtime_error("Invalid range type");
-    }
+    UINT absoluteIndex = rangeInfo->start + relativeIndex;
     
-    UINT index = AllocateInRange(rangeType, resourceName);
+    CreateSRVAtAbsoluteIndex(absoluteIndex, resourceName, resource, desc);
     
-    D3D12_CPU_DESCRIPTOR_HANDLE handle = GetCPUHandle(index);
-    
-    D3D12_SHADER_RESOURCE_VIEW_DESC defaultDesc = {};
-    if (!desc) 
-    {
-        auto resourceDesc = resource->GetDesc();
-        defaultDesc.Format = resourceDesc.Format;
-        defaultDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        defaultDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        defaultDesc.Texture2D.MipLevels = resourceDesc.MipLevels;
-        desc = &defaultDesc;
-    }
-    
-    m_device->CreateShaderResourceView(resource, desc, handle);
-
-    LOG_DEBUG("Created SRV '", resourceName, "' at index ", index);
-    return index;
+    LOG_DEBUG("Created SRV '", resourceName, "' at range index ", relativeIndex, " (absolute: ", absoluteIndex, ")");
 }
 
-UINT DescriptorAllocator::CreateUAV(LunarConstants::RangeType rangeType,
-                                   const string& resourceName,
-                                   ID3D12Resource* resource,
-                                   const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc) 
+void DescriptorAllocator::CreateUAVAtRangeIndex(LunarConstants::RangeType rangeType, UINT relativeIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc)
 {
     const auto* rangeInfo = LunarConstants::FindRange(rangeType);
-    if (!rangeInfo) 
+    UINT absoluteIndex = rangeInfo->start + relativeIndex;
+    
+    CreateUAVAtAbsoluteIndex(absoluteIndex, resourceName, resource, desc);
+    
+    LOG_DEBUG("Created UAV '", resourceName, "' at range index ", relativeIndex, " (absolute: ", absoluteIndex, ")");
+}
+
+void DescriptorAllocator::CreateUAVAtAbsoluteIndex(UINT absoluteIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc)
+{
+    std::lock_guard<std::mutex> lock(m_mapMutex);  
+    
+    auto existingIt = std::find_if(m_nameToIndex.begin(), m_nameToIndex.end(),
+        [absoluteIndex](const auto& pair) { return pair.second == absoluteIndex; });
+    
+    if (existingIt != m_nameToIndex.end()) 
     {
-        throw std::runtime_error("Invalid range type");
+        LOG_ERROR("Overwriting existing UAV '", existingIt->first, "' at index ", absoluteIndex, " with '", resourceName, "'");
     }
     
-    UINT index = AllocateInRange(rangeType, resourceName);
-    
-    D3D12_CPU_DESCRIPTOR_HANDLE handle = GetCPUHandle(index);
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = GetCPUHandle(absoluteIndex);
     
     D3D12_UNORDERED_ACCESS_VIEW_DESC defaultDesc = {};
     if (!desc) 
@@ -151,20 +139,9 @@ UINT DescriptorAllocator::CreateUAV(LunarConstants::RangeType rangeType,
     }
     
     m_device->CreateUnorderedAccessView(resource, nullptr, desc, handle);
+    m_nameToIndex[resourceName] = absoluteIndex;
     
-    LOG_DEBUG("Created UAV '", resourceName, "' at index ", index);
-    return index;
-}
-
-void DescriptorAllocator::CreateSRVAtRangeIndex(LunarConstants::RangeType rangeType, UINT relativeIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
-{
-    
-    const auto* rangeInfo = LunarConstants::FindRange(rangeType);
-    UINT absoluteIndex = rangeInfo->start + relativeIndex;
-    
-    CreateSRVAtAbsoluteIndex(absoluteIndex, resourceName, resource, desc);
-    
-    LOG_DEBUG("Created SRV '", resourceName, "' at range index ", relativeIndex, " (absolute: ", absoluteIndex, ")");
+    LOG_DEBUG("Created UAV '", resourceName, "' at absolute index ", absoluteIndex);
 }
 
 void DescriptorAllocator::CreateSRVAtAbsoluteIndex(UINT absoluteIndex, const std::string& resourceName, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc)
@@ -237,32 +214,6 @@ D3D12_GPU_DESCRIPTOR_HANDLE DescriptorAllocator::GetGPUHandle(const string& name
     LOG_ERROR("Descriptor not found: ", name);
     return {};
 }
-
-// void DescriptorAllocator::CreateSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc, const string& name)
-// {
-//     auto it = m_nameToIndex.find(name);
-//     if (it == m_nameToIndex.end())
-//     {
-//         LOG_ERROR("Descriptor not allocated: ", name);
-//         return;
-//     }
-//     
-//     m_device->CreateShaderResourceView(resource, desc, GetCPUHandle(it->second));
-//     LOG_DEBUG("SRV created for '", name, "' at index ", it->second);
-// }
-//
-// void DescriptorAllocator::CreateUAV(ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc, const string& name)
-// {
-//     auto it = m_nameToIndex.find(name);
-//     if (it == m_nameToIndex.end())
-//     {
-//         LOG_ERROR("Descriptor not allocated: ", name);
-//         return;
-//     }
-//     
-//     m_device->CreateUnorderedAccessView(resource, nullptr, desc, GetCPUHandle(it->second));
-//     LOG_DEBUG("UAV created for '", name, "' at index ", it->second);
-// }
 
 UINT DescriptorAllocator::GetDescriptorIndex(const string& name) const
 {
