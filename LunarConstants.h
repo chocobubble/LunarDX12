@@ -117,6 +117,22 @@ static constexpr std::array<TextureInfo, 10> TEXTURE_INFO = {{
     {"dusk", "Assets\\Textures\\HDR\\dusk.hdr", FileType::HDR, TextureDimension::CUBEMAP, RangeType::ENVIRONMENT, 0},
 }};
 
+/////////////// Models ///////////////
+struct ModelInfo
+{
+    const char* name;
+    const char* path;
+    bool hasAnimation;
+    RangeType rangeType;
+    UINT registerIndex;
+};
+
+static constexpr std::array<ModelInfo, 3> MODEL_INFO = {{
+    {"cube", "Assets\\Models\\cube.obj", false, RangeType::BASIC_TEXTURES, 20},
+    {"character", "Assets\\Models\\character.fbx", true, RangeType::BASIC_TEXTURES, 21},
+    {"building", "Assets\\Models\\building.fbx", false, RangeType::BASIC_TEXTURES, 22},
+}};
+
 /////////////// Shaders ///////////////
 struct ShaderInfo
 {

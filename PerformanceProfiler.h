@@ -8,6 +8,9 @@
 
 namespace Lunar
 {
+
+class GPUProfiler;
+
 class PerformanceProfiler
 {
 private:

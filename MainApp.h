@@ -23,6 +23,7 @@ class PostProcessViewModel;
 class DescriptorAllocator;
 class CommandListPool;
 class AsyncTextureLoader;
+class GPUProfiler;
 	
 class MainApp {
 public:
